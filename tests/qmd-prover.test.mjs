@@ -4,10 +4,10 @@ import { execFile } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { compileProject, theoremBundle } from '../src/compiler.mjs';
-import { readJson } from '../src/files.mjs';
-import { renderProject } from '../src/render.mjs';
-import { submitProof, revokeVerification } from '../src/verification.mjs';
+import { compileProject, theoremBundle } from '../skills/qmd-prover/scripts/lib/compiler.mjs';
+import { readJson } from '../skills/qmd-prover/scripts/lib/files.mjs';
+import { renderProject } from '../skills/qmd-prover/scripts/lib/render.mjs';
+import { submitProof, revokeVerification } from '../skills/qmd-prover/scripts/lib/verification.mjs';
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const fakePandoc = path.join(here, 'fixtures', 'fake-pandoc.mjs');
@@ -184,7 +184,7 @@ test('accepted verifier output is rejected as stale after a concurrent target ed
 test('dispatcher emits stable JSON and a structural-error exit code', async () => {
   const root = await project();
   await writeFile(path.join(root, 'goal.qmd'), theorem('thm-main-cli', 'CLI statement.'));
-  const cli = path.join(here, '..', 'scripts', 'qmd-prover.mjs');
+  const cli = path.join(here, '..', 'skills', 'qmd-prover', 'scripts', 'qmd-prover.mjs');
   const run = await new Promise((resolve, reject) => execFile(process.execPath, [cli, 'inspect-project'], {
     cwd: root, env: { ...process.env, QMD_PROVER_PANDOC: fakePandoc }
   }, (error, stdout, stderr) => error ? reject(error) : resolve({ stdout, stderr })));

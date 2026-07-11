@@ -35,3 +35,5 @@ Only a `correct` verdict with empty critical errors and gaps is accepted. Treat 
 - Use `verification revoke @thm-ID --reason "..."` only with a concrete recorded reason.
 
 Translate dispatcher JSON into natural language for the user. Do not make the user learn these commands.
+
+Read [references/cli.md](references/cli.md) only when configuring a parser or verifier, troubleshooting command behavior, or installing the skill. Read [references/design.md](references/design.md) only when changing qmd-prover itself or checking architectural intent.

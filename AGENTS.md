@@ -1,6 +1,6 @@
 # qmd-prover agent contract
 
-This repository implements qmd-prover. Keep runtime code dependency-free, use Pandoc JSON as the semantic parser, and run `npm test` after changes.
+This repository implements qmd-prover. Keep the installable skill self-contained under `skills/qmd-prover/`, keep runtime code dependency-free, use Pandoc JSON as the semantic parser, and run `npm test` after changes.
 
 For mathematical projects using qmd-prover, this file is the normative agent contract:
 

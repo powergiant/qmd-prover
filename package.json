@@ -4,11 +4,12 @@
   "description": "A Quarto-based agentic mathematical proof workflow",
   "type": "module",
   "bin": {
-    "qmd-prover": "scripts/qmd-prover.mjs"
+    "qmd-prover": "skills/qmd-prover/scripts/qmd-prover.mjs"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
-    "inspect": "node scripts/qmd-prover.mjs inspect-project"
+    "test": "node --test tests/*.test.mjs",
+    "inspect": "node skills/qmd-prover/scripts/qmd-prover.mjs inspect-project",
+    "install:skill": "node tooling/install-skill.mjs"
   },
   "engines": {
     "node": ">=20"

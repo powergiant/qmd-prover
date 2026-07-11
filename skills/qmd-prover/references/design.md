@@ -1,4 +1,4 @@
-# DESIGN.md — qmd-prover
+# Design — qmd-prover
 
 ## 1. Purpose
 
