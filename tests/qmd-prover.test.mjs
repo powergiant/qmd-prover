@@ -196,3 +196,22 @@ test('dispatcher emits stable JSON and a structural-error exit code', async () =
   assert.equal(failed.error.code, 2);
   assert.equal(JSON.parse(failed.stdout).ok, false);
 });
+
+test('skill requires a once-per-context project contract preflight', async () => {
+  const skillRoot = path.join(here, '..', 'skills', 'qmd-prover');
+  const [skill, contract] = await Promise.all([
+    readFile(path.join(skillRoot, 'SKILL.md'), 'utf8'),
+    readFile(path.join(skillRoot, 'references', 'AGENTS.md'), 'utf8')
+  ]);
+  assert.match(skill, /current agent in the same project context/);
+  assert.match(skill, /Do not reread the files before every QMD read/);
+  assert.match(skill, /Every independent worker must perform this preflight/);
+  assert.match(skill, /Never create, replace, or synchronize `AGENTS\.md` without user approval/);
+  assert.match(contract, /<!-- qmd-prover-contract:start version=1 -->/);
+  assert.match(contract, /<!-- qmd-prover-contract:end -->/);
+  assert.match(contract, /#thm-main-uniform-index/);
+  assert.match(contract, /#lem-local-exponent-bound/);
+  assert.match(contract, /\.theorem-imports/);
+  assert.match(contract, /Correct and incorrect behavior/);
+  assert.match(contract, /Project-specific additions/);
+});

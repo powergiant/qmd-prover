@@ -8,6 +8,7 @@ qmd-prover is a Codex skill and dependency-light Node CLI for agentic mathematic
 skills/qmd-prover/   self-contained installable Codex skill
 tests/               compiler, verification, concurrency, and rendering tests
 tooling/             repository development and installation tools
+docs/                maintainer design and architecture documentation
 ```
 
 The skill package contains its own `SKILL.md`, UI metadata, references, dispatcher, and runtime. It can be copied independently of the rest of this repository.
@@ -34,4 +35,4 @@ npm test
 
 The test suite uses an AST-producing Pandoc adapter and fresh-process mock verifiers, so it does not require production Pandoc or verifier credentials.
 
-See [the CLI reference](skills/qmd-prover/references/cli.md) for configuration and commands, and [the design](skills/qmd-prover/references/design.md) for architectural details.
+See [the CLI reference](skills/qmd-prover/references/cli.md) for configuration and commands, the [canonical project contract](skills/qmd-prover/references/AGENTS.md) for project-agent rules, and [the design](docs/design.md) for architectural details.
