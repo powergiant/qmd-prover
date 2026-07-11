@@ -1,0 +1,17 @@
+{
+  "name": "qmd-prover",
+  "version": "0.1.0",
+  "description": "A Quarto-based agentic mathematical proof workflow",
+  "type": "module",
+  "bin": {
+    "qmd-prover": "scripts/qmd-prover.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "inspect": "node scripts/qmd-prover.mjs inspect-project"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

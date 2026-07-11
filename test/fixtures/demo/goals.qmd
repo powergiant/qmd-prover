@@ -1,0 +1,32 @@
+::: {.theorem-imports}
+from: foundations.qmd
+use:
+  - @def-reflexive
+:::
+
+::: {#thm-main-first .theorem .goal}
+## First demo theorem
+
+### Statement
+
+The number one is equal to itself.
+
+### Uses
+
+- @def-reflexive
+
+### Proof
+
+Apply @def-reflexive.
+:::
+
+::: {#thm-main-second .theorem .goal}
+## Second demo theorem
+
+### Statement
+
+The number two is equal to itself.
+
+### Proof
+
+:::

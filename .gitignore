@@ -1,0 +1,3 @@
+.qmd-prover/
+node_modules/
+*.log
