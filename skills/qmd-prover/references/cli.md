@@ -26,6 +26,10 @@ The verifier receives one JSON packet on standard input and must return:
 ```bash
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" inspect-project
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" inspect-theorem @thm-main-ID
+node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" inspect-path path/to/file-or-folder
+node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" dependency frontier @thm-main-ID
+node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" dependency search "query" --kind lemma
+node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" check-staleness
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" workspace init @thm-main-ID
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" workspace inspect @thm-main-ID
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" submit-proof path/to/proposal.qmd
@@ -35,7 +39,11 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" veri
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" render
 ```
 
-All machine-readable command output is JSON. Structural diagnostics use exit code 2. `submit-proof` stores the isolated proposal, starts a fresh verifier process, leaves canonical QMD unchanged on rejection, and atomically inserts or replaces only the linked proof on acceptance. A new-result proposal requires `--to` so project policy, rather than qmd-prover, chooses its canonical location. Main theorem IDs, `name` captions, and statement bodies are locked on first successful inspection.
+Inspection and dependency commands return schema-versioned JSON by default. Add `--print` to any inspection or dependency command for the same decision and snapshot as a human-readable report. Blocking diagnostics use exit code 2.
+
+Dependency operations are `dependencies`, `reverse-dependencies`, `path`, `cycles`, `impact`, `frontier`, and `search`. Every query names the complete graph snapshot it used. Search accepts `--kind`, `--status`, `--origin`, `--path`, `--related-to`, and `--frontier-of` filters.
+
+`submit-proof` stores the isolated proposal, starts a fresh verifier process, leaves canonical QMD unchanged on rejection, and atomically inserts or replaces only the linked proof on acceptance. Acceptance stores the exact evidence cache and matching record and inserts the record-backed `VERIFIED` control marker. `check-staleness` fails closed on missing or corrupt evidence, removes stale markers from the changed fact and verified reverse dependencies, marks retained records stale, and reports invalidation paths. A new-result proposal requires `--to` so project policy, rather than qmd-prover, chooses its canonical location. Main theorem IDs, `name` captions, and statement bodies are locked on first successful inspection.
 
 `render` refreshes `.qmd-prover/generated/proof-status.qmd`, its dependency SVG, and report data. It does not build a parallel website. Run ordinary `quarto render` through the project's configured pipeline for final output.
 

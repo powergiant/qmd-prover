@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { compileProject, theoremBundle } from './compiler.mjs';
-import { atomicJson, atomicWrite, AUX, cleanId, exists, readJson, relativePosix } from './files.mjs';
+import { atomicJson, atomicWrite, AUX, cleanId, exists, readJson, relativePosix, sha256, stableJson } from './files.mjs';
 import { readLocatedBlock } from './source.mjs';
 
 async function discoverActive(directory, output = []) {
@@ -34,7 +34,12 @@ export async function initializeWorkspace(root, requested, options = {}) {
     return { schema_version: 1, status: 'resumed', workspace: relativePosix(root, directory), metadata: await readJson(metadataFile) };
   }
   const located = await readLocatedBlock(path.join(root, target.file), id);
-  const dependencySnapshot = Object.fromEntries(theoremBundle(compilation, id).dependencies.map((result) => [result.id, {
+  const targetFile = compilation.manifest.files.find((file) => file.path === target.file);
+  const availableIds = new Set([
+    ...theoremBundle(compilation, id).dependencies.map((result) => result.id),
+    ...(targetFile?.imports ?? []).flatMap((declaration) => declaration.use)
+  ]);
+  const dependencySnapshot = Object.fromEntries(compilation.manifest.results.filter((result) => availableIds.has(result.id)).map((result) => [result.id, {
     statement_hash: result.statement_hash,
     proof_hash: result.proof_hash,
     status: result.status
@@ -91,6 +96,11 @@ export async function inspectWorkspace(root, requested, options = {}) {
     const referenced = item.message.match(/@((?:def|lem|thm|prp|cor)-[^\s,]+)/)?.[1];
     return !referenced || !canonicalById.has(referenced);
   });
+  if (stale) diagnostics.push({
+    severity: 'error', code: 'WORKSPACE_STALE',
+    message: `The protected canonical snapshot for @${id} is stale`,
+    file: relativePosix(root, path.join(directory, 'workspace.json')), id
+  });
   const workspaceResults = provisional.manifest.results.map((result) => ({
     ...result,
     origin: 'workspace',
@@ -99,6 +109,7 @@ export async function inspectWorkspace(root, requested, options = {}) {
     status: result.proof_present ? 'workspace-candidate' : 'workspace-open'
   }));
   const workspaceIds = new Set(workspaceResults.map((result) => result.id));
+  const availableCanonical = new Set(Object.keys(metadata.canonical.dependencies ?? {}));
   const externalProofs = new Map();
   for (const proof of provisional.manifest.proofs) {
     if (workspaceIds.has(proof.target) || !canonicalById.has(proof.target) || externalProofs.has(proof.target)) continue;
@@ -122,25 +133,71 @@ export async function inspectWorkspace(root, requested, options = {}) {
       message: `Workspace result @${result.id} collides with canonical mathematics`,
       file: result.file, line: result.line, id: result.id
     });
+    for (const dependency of result.dependencies) {
+      const canonicalDependency = canonicalById.get(dependency);
+      if (!canonicalDependency) continue;
+      if (!availableCanonical.has(dependency)) diagnostics.push({
+        severity: 'error', code: 'WORKSPACE_DEPENDENCY_UNAVAILABLE',
+        message: `Workspace fact @${result.id} cites canonical @${dependency}, which was not imported by the protected target`,
+        file: result.file, line: result.proof_line ?? result.line, id: result.id
+      });
+      else if (canonicalDependency.status !== 'verified') diagnostics.push({
+        severity: 'error', code: 'WORKSPACE_DEPENDENCY_STATUS_INSUFFICIENT',
+        message: `Workspace fact @${result.id} cites canonical @${dependency}, whose current status is ${canonicalDependency.status}`,
+        file: result.file, line: result.proof_line ?? result.line, id: result.id
+      });
+    }
   }
   const citedCanonicalIds = new Set(workspaceResults.flatMap((result) => result.dependencies).filter((dependency) => canonicalById.has(dependency)));
   const canonicalNodes = [...citedCanonicalIds].sort().map((dependency) => {
     const result = canonicalById.get(dependency);
-    return { id: result.id, title: result.title, kind: result.kind, status: result.status, file: result.file, line: result.line, origin: 'canonical' };
+    return {
+      id: result.id, title: result.title, kind: result.kind, status: result.status,
+      file: result.file, line: result.line, origin: 'canonical',
+      identity: { statement_hash: result.statement_hash, proof_hash: result.proof_hash }
+    };
   });
+  const knownIds = new Set([...workspaceResults.map((result) => result.id), ...canonicalNodes.map((result) => result.id)]);
+  const unresolvedNodes = [...new Set(workspaceResults.flatMap((result) => result.dependencies).filter((dependency) => !knownIds.has(dependency)))].sort()
+    .map((dependency) => ({ id: dependency, title: '', kind: 'unknown', status: 'missing', origin: 'unresolved' }));
+  const provisionalEdges = new Map(provisional.graph.edges.map((edge) => [`${edge.from}\0${edge.to}`, edge]));
   const graph = {
-    schema_version: 1,
+    schema_version: 2,
     nodes: [
-      ...workspaceResults.map(({ id: resultId, title, kind, status, file, line }) => ({ id: resultId, title, kind, status, file, line, origin: 'workspace' })),
-      ...canonicalNodes
+      ...workspaceResults.map(({ id: resultId, title, kind, status, file, line, statement_hash, proof_hash }) => ({
+        id: resultId, title, kind, status, file, line, origin: 'workspace',
+        identity: { statement_hash, proof_hash }
+      })),
+      ...canonicalNodes,
+      ...unresolvedNodes
     ],
-    edges: workspaceResults.flatMap((result) => result.dependencies.map((dependency) => ({ from: result.id, to: dependency })))
+    edges: workspaceResults.flatMap((result) => result.dependencies.map((dependency) => {
+      const edge = provisionalEdges.get(`${result.id}\0${dependency}`);
+      const canonicalDependency = canonicalById.get(dependency);
+      return {
+        from: result.id,
+        to: dependency,
+        checks: canonicalDependency ? {
+          existence: 'pass',
+          scope: availableCanonical.has(dependency) ? 'pass' : 'fail',
+          status: canonicalDependency.status === 'verified' ? 'pass' : 'fail',
+          cycle: 'pass',
+          ai_sufficiency: 'not-run'
+        } : edge?.checks ?? { existence: 'fail', scope: 'fail', status: 'fail', cycle: 'pass', ai_sufficiency: 'not-run' }
+      };
+    })).sort((left, right) => `${left.from}:${left.to}`.localeCompare(`${right.from}:${right.to}`)),
+    cycles: provisional.graph.cycles ?? []
   };
-  const manifest = { schema_version: 1, target: id, stale, results: workspaceResults, canonical_results: canonicalNodes };
-  await Promise.all([atomicJson(path.join(directory, 'manifest.json'), manifest), atomicJson(path.join(directory, 'graph.json'), graph)]);
+  graph.snapshot_id = sha256(stableJson(graph, 0));
+  const manifest = { schema_version: 2, snapshot_id: graph.snapshot_id, target: id, stale, results: workspaceResults, canonical_results: canonicalNodes };
+  const complete = canonical.complete && provisional.complete !== false;
+  if (complete) await Promise.all([atomicJson(path.join(directory, 'manifest.json'), manifest), atomicJson(path.join(directory, 'graph.json'), graph)]);
   return {
-    schema_version: 1,
+    schema_version: 2,
     ok: diagnostics.every((item) => item.severity !== 'error'),
+    complete,
+    snapshot_id: graph.snapshot_id,
+    snapshot_published: complete,
     workspace: relativePosix(root, directory),
     target: currentTarget ?? { id, status: 'missing' },
     stale,

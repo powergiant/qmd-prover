@@ -6,7 +6,9 @@ import path from 'node:path';
 import test from 'node:test';
 import { compileProject, theoremBundle } from '../skills/qmd-prover/scripts/lib/compiler.mjs';
 import { readJson } from '../skills/qmd-prover/scripts/lib/files.mjs';
+import { analyzeDependencies, inspectFact, inspectPath, inspectProject } from '../skills/qmd-prover/scripts/lib/inspector.mjs';
 import { renderProject } from '../skills/qmd-prover/scripts/lib/render.mjs';
+import { checkStaleness } from '../skills/qmd-prover/scripts/lib/staleness.mjs';
 import { submitProof, revokeVerification } from '../skills/qmd-prover/scripts/lib/verification.mjs';
 import { initializeWorkspace, inspectWorkspace } from '../skills/qmd-prover/scripts/lib/workspace.mjs';
 
@@ -55,14 +57,30 @@ test('compiler reads metadata imports, linked proofs, and deterministic semantic
   const firstManifest = await readFile(path.join(root, '.qmd-prover', 'manifest.json'), 'utf8');
   const second = await compileProject(root, options);
   const secondManifest = await readFile(path.join(root, '.qmd-prover', 'manifest.json'), 'utf8');
-  assert.equal(first.ok, true, JSON.stringify(first.diagnostics));
-  assert.equal(second.ok, true);
+  assert.equal(first.ok, false);
+  assert.equal(first.complete, true);
+  assert.equal(second.ok, false);
   assert.equal(firstManifest, secondManifest);
   assert.deepEqual(first.summary.goals.map((goal) => goal.id), ['thm-main-goal']);
-  assert.deepEqual(first.graph.edges, [{ from: 'thm-main-goal', to: 'lem-base' }]);
+  assert.deepEqual(first.graph.edges.map(({ from, to }) => ({ from, to })), [{ from: 'thm-main-goal', to: 'lem-base' }]);
   assert.deepEqual(first.manifest.results.find((item) => item.id === 'thm-main-goal').dependencies, ['lem-base']);
-  assert.ok(first.diagnostics.some((item) => item.code === 'DEPENDENCY_STATUS_INSUFFICIENT' && item.severity === 'warning'));
+  assert.ok(first.diagnostics.some((item) => item.code === 'DEPENDENCY_STATUS_INSUFFICIENT' && item.severity === 'error'));
+  assert.equal(first.graph.edges[0].checks.status, 'fail');
   assert.equal(theoremBundle(first, '@thm-main-goal').dependencies[0].id, 'lem-base');
+});
+
+test('source discovery honors configured exclusions and gitignore reinclusions deterministically', async () => {
+  const root = await project();
+  await Promise.all([mkdir(path.join(root, 'generated')), mkdir(path.join(root, 'ignored'))]);
+  await writeFile(path.join(root, '.qmd-prover', 'config.yml'), 'project:\n  exclude: [generated]\nrender:\n  output-dir: rendered\n');
+  await writeFile(path.join(root, '.gitignore'), 'ignored/\n!ignored/keep.qmd\n');
+  await writeFile(path.join(root, 'visible.qmd'), result('lem-visible', 'Visible.'));
+  await writeFile(path.join(root, 'generated', 'excluded.qmd'), result('lem-config-excluded', 'Excluded.'));
+  await writeFile(path.join(root, 'ignored', 'excluded.qmd'), result('lem-git-excluded', 'Excluded.'));
+  await writeFile(path.join(root, 'ignored', 'keep.qmd'), result('lem-git-reincluded', 'Reincluded.'));
+  const compilation = await compileProject(root, options);
+  assert.deepEqual(compilation.manifest.files.map((file) => file.path), ['ignored/keep.qmd', 'visible.qmd']);
+  assert.deepEqual(compilation.manifest.results.map((item) => item.id), ['lem-git-reincluded', 'lem-visible']);
 });
 
 test('compiler diagnoses metadata imports, duplicates, proof shape, and cycles', async () => {
@@ -90,17 +108,21 @@ test('compiler rejects semantic dependency cycles and legacy section layout', as
   const codes = new Set(compilation.diagnostics.map((item) => item.code));
   assert.ok(codes.has('DEPENDENCY_CYCLE'));
   assert.ok(codes.has('LEGACY_RESULT_SECTIONS'));
+  assert.deepEqual((await analyzeDependencies(root, 'cycles', [], options)).cycles, [['lem-left', 'lem-right', 'lem-left']]);
+  assert.deepEqual((await analyzeDependencies(root, 'frontier', ['@lem-left'], options)).frontier.map((item) => item.fact.id), ['lem-left', 'lem-right']);
 });
 
 test('compiler validates result names, semantic kinds, and main-goal classes', async () => {
   const root = await project();
   const wrongKind = result('lem-wrong', 'Shape.').replace('.lemma', '.proposition');
   const noName = result('thm-main-no-name', 'Missing caption.').replace(' name="thm-main-no-name"', '');
-  await writeFile(path.join(root, 'shape.qmd'), `${wrongKind}\n${noName}`);
+  const unsafeId = result('lem-unsafe/path', 'Unsafe identifier.');
+  await writeFile(path.join(root, 'shape.qmd'), `${wrongKind}\n${noName}\n${unsafeId}`);
   const compilation = await compileProject(root, options);
   const codes = new Set(compilation.diagnostics.map((item) => item.code));
   assert.ok(codes.has('ID_KIND_MISMATCH'));
   assert.ok(codes.has('RESULT_NAME_MISSING'));
+  assert.ok(codes.has('INVALID_SEMANTIC_ID'));
 });
 
 test('main statement and name baselines are immutable', async () => {
@@ -113,6 +135,73 @@ test('main statement and name baselines are immutable', async () => {
   const codes = new Set(changed.diagnostics.map((item) => item.code));
   assert.ok(codes.has('MAIN_STATEMENT_MUTATED'));
   assert.ok(codes.has('MAIN_TITLE_MUTATED'));
+});
+
+test('complete snapshot identities change with exact mathematical content', async () => {
+  const root = await project();
+  const file = path.join(root, 'fact.qmd');
+  await writeFile(file, result('lem-snapshot-identity', 'First statement.'));
+  const first = await compileProject(root, options);
+  await writeFile(file, result('lem-snapshot-identity', 'Second statement.'));
+  const second = await compileProject(root, options);
+  assert.notEqual(first.graph.snapshot_id, second.graph.snapshot_id);
+  assert.equal((await readJson(path.join(root, '.qmd-prover', 'graphs', 'latest.json'))).snapshot_id, second.graph.snapshot_id);
+});
+
+test('definitions declare construction dependencies and unresolved graph edges retain failed checks', async () => {
+  const root = await project();
+  await writeFile(path.join(root, 'definitions.qmd'), [
+    result('def-base', 'A base object.'),
+    result('def-derived', 'Construct the derived object from @def-base.'),
+    result('lem-broken', 'A broken claim.', { proofText: 'Apply @lem-absent.' })
+  ].join('\n'));
+  const compilation = await compileProject(root, options);
+  const derived = compilation.manifest.results.find((item) => item.id === 'def-derived');
+  const brokenEdge = compilation.graph.edges.find((edge) => edge.from === 'lem-broken');
+  assert.deepEqual(derived.dependencies, ['def-base']);
+  assert.equal(brokenEdge.to, 'lem-absent');
+  assert.equal(brokenEdge.checks.existence, 'fail');
+  assert.equal(compilation.graph.nodes.find((node) => node.id === 'lem-absent').status, 'missing');
+  assert.ok(compilation.diagnostics.some((item) => item.code === 'DEPENDENCY_UNKNOWN' && item.id === 'lem-broken'));
+});
+
+test('inspector supports fact, path, search, and lowest-frontier queries on a named snapshot', async () => {
+  const root = await project();
+  await mkdir(path.join(root, 'foundations'));
+  await writeFile(path.join(root, 'foundations', 'base.qmd'), result('lem-frontier-base', 'The base obligation.', { title: 'Base frontier fact', exported: true }));
+  await writeFile(path.join(root, 'goal.qmd'), document(
+    [{ from: 'foundations/base.qmd', use: ['lem-frontier-base'] }],
+    `${result('lem-frontier-middle', 'The middle claim.', { proofText: 'Use @lem-frontier-base.' })}\n${result('thm-main-frontier', 'The final claim.', { proofText: 'Use @lem-frontier-middle.' })}`
+  ));
+  const projectInspection = await inspectProject(root, options);
+  assert.equal(projectInspection.ok, false);
+  assert.equal(projectInspection.snapshot_published, true);
+  const factInspection = await inspectFact(root, '@thm-main-frontier', options);
+  assert.deepEqual(factInspection.graph.nodes.map((node) => node.id).sort(), ['lem-frontier-base', 'lem-frontier-middle', 'thm-main-frontier']);
+  const pathInspection = await inspectPath(root, 'goal.qmd', options);
+  assert.equal(pathInspection.graph.nodes.find((node) => node.id === 'lem-frontier-base').scope, 'external');
+  const frontier = await analyzeDependencies(root, 'frontier', ['@thm-main-frontier'], options);
+  assert.deepEqual(frontier.frontier.map((item) => item.fact.id), ['lem-frontier-base']);
+  assert.deepEqual(frontier.frontier[0].path, ['thm-main-frontier', 'lem-frontier-middle', 'lem-frontier-base']);
+  const dependencies = await analyzeDependencies(root, 'dependencies', ['@thm-main-frontier'], options);
+  assert.deepEqual(dependencies.direct.map((item) => item.id), ['lem-frontier-middle']);
+  assert.deepEqual(dependencies.transitive.map((item) => item.id).sort(), ['lem-frontier-base', 'lem-frontier-middle']);
+  const reverse = await analyzeDependencies(root, 'reverse-dependencies', ['@lem-frontier-base'], options);
+  assert.deepEqual(reverse.transitive.map((item) => item.id).sort(), ['lem-frontier-middle', 'thm-main-frontier']);
+  assert.deepEqual((await analyzeDependencies(root, 'path', ['@thm-main-frontier', '@lem-frontier-base'], options)).path, ['thm-main-frontier', 'lem-frontier-middle', 'lem-frontier-base']);
+  assert.deepEqual((await analyzeDependencies(root, 'cycles', [], options)).cycles, []);
+  const search = await analyzeDependencies(root, 'search', ['base frontier'], { ...options, kind: 'lemma' });
+  assert.deepEqual(search.matches.map((item) => item.id), ['lem-frontier-base']);
+  assert.equal(search.snapshot_id, projectInspection.snapshot_id);
+});
+
+test('record-backed markers fail closed when their exact evidence is absent', async () => {
+  const root = await project();
+  await writeFile(path.join(root, 'unsupported.qmd'), result('lem-unsupported-marker', 'A claim.', { proofText: 'VERIFIED\n\nA purported proof.' }));
+  const compilation = await compileProject(root, options);
+  const fact = compilation.manifest.results.find((item) => item.id === 'lem-unsupported-marker');
+  assert.equal(fact.status, 'candidate');
+  assert.ok(compilation.diagnostics.some((item) => item.code === 'VERIFIED_RECORD_INVALID'));
 });
 
 test('rejected linked-proof proposals preserve canonical QMD and accepted repair inserts only proof', async () => {
@@ -132,7 +221,7 @@ test('rejected linked-proof proposals preserve canonical QMD and accepted repair
   const accepted = await submitProof(root, goodProposal, options);
   assert.equal(accepted.status, 'verified');
   const merged = await readFile(canonicalFile, 'utf8');
-  assert.match(merged, /:::\n\n::: \{\.proof of="thm-main-proof"\}\nBy reflexivity/);
+  assert.match(merged, /:::\n\n::: \{\.proof of="thm-main-proof"\}\nVERIFIED\n\nBy reflexivity/);
   assert.equal((await compileProject(root, options)).manifest.results[0].status, 'verified');
   await assert.rejects(() => submitProof(root, goodProposal, options), /already verified/);
   assert.equal((await revokeVerification(root, '@thm-main-proof', 'New concern', options)).status, 'revoked');
@@ -160,15 +249,65 @@ test('a correct verdict with a gap is rejected and proposals cannot redefine can
 test('accepted new-result proposals are promoted atomically to an explicit canonical destination', async () => {
   const root = await project();
   process.env.QMD_PROVER_VERIFIER = verifier;
-  await writeFile(path.join(root, 'goal.qmd'), result('thm-main-existing', 'Existing goal.'));
+  await writeFile(path.join(root, 'goal.qmd'), `${result('thm-main-existing', 'Existing goal.')}\n${result('lem-new-base', 'A reusable premise.', { exported: true })}`);
+  const baseProposal = proposalPath(root, 'new-result-base.qmd');
+  await writeFile(baseProposal, proof('lem-new-base', 'By direct calculation.'));
+  assert.equal((await submitProof(root, baseProposal, options)).status, 'verified');
   const proposal = proposalPath(root, 'new-result.qmd');
-  await writeFile(proposal, result('lem-new', 'A newly verified lemma.', { proofText: 'By direct calculation.', title: 'New lemma', exported: true }));
+  await writeFile(proposal, document(
+    [{ from: 'goal.qmd', use: ['lem-new-base'] }],
+    result('lem-new', 'A newly verified lemma.', { proofText: 'Apply @lem-new-base.', title: 'New lemma', exported: true })
+  ));
   const accepted = await submitProof(root, proposal, { ...options, destination: 'lemmas.qmd' });
   assert.equal(accepted.status, 'verified');
   const promoted = await readFile(path.join(root, 'lemmas.qmd'), 'utf8');
   assert.match(promoted, /#lem-new/);
   assert.match(promoted, /\.proof of="lem-new"/);
   assert.equal((await compileProject(root, options)).manifest.results.find((item) => item.id === 'lem-new').status, 'verified');
+  delete process.env.QMD_PROVER_VERIFIER;
+});
+
+test('staleness invalidates verified reverse dependencies and retains exact paths', async () => {
+  const root = await project();
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  const baseFile = path.join(root, 'base.qmd');
+  await writeFile(baseFile, result('lem-stale-base', 'The stable premise.', { exported: true }));
+  await writeFile(path.join(root, 'goal.qmd'), document(
+    [{ from: 'base.qmd', use: ['lem-stale-base'] }],
+    result('thm-main-stale-chain', 'The dependent conclusion.')
+  ));
+  const baseProposal = proposalPath(root, 'base-proof.qmd');
+  await writeFile(baseProposal, proof('lem-stale-base', 'A proof of the premise.'));
+  assert.equal((await submitProof(root, baseProposal, options)).status, 'verified');
+  const targetProposal = proposalPath(root, 'target-proof.qmd');
+  await writeFile(targetProposal, proof('thm-main-stale-chain', 'Apply @lem-stale-base.'));
+  assert.equal((await submitProof(root, targetProposal, options)).status, 'verified');
+  assert.deepEqual((await compileProject(root, options)).manifest.results.map((item) => item.status), ['verified', 'verified']);
+  assert.deepEqual((await analyzeDependencies(root, 'impact', ['@lem-stale-base'], options)).affected.map((item) => item.id), ['thm-main-stale-chain']);
+
+  await writeFile(baseFile, result('lem-stale-base', 'The stable premise.', { proofText: 'A changed proof.', exported: true }));
+  const stale = await checkStaleness(root, options);
+  assert.deepEqual(stale.changed.map((item) => item.id), ['lem-stale-base']);
+  assert.deepEqual(stale.invalidated.find((item) => item.id === 'thm-main-stale-chain').path, ['lem-stale-base', 'thm-main-stale-chain']);
+  const index = await readJson(path.join(root, '.qmd-prover', 'verification', 'index.json'));
+  assert.equal(index['lem-stale-base'].status, 'stale');
+  assert.equal(index['thm-main-stale-chain'].status, 'stale');
+  assert.doesNotMatch(await readFile(path.join(root, 'goal.qmd'), 'utf8'), /^VERIFIED$/m);
+  assert.deepEqual((await compileProject(root, options)).manifest.results.map((item) => item.status), ['candidate', 'candidate']);
+  delete process.env.QMD_PROVER_VERIFIER;
+});
+
+test('staleness fails closed when the configured checker contract changes', async () => {
+  const root = await project();
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  await writeFile(path.join(root, 'fact.qmd'), result('lem-checker-contract', 'A checked fact.'));
+  const proposal = proposalPath(root, 'checker-contract.qmd');
+  await writeFile(proposal, proof('lem-checker-contract', 'A direct proof.'));
+  assert.equal((await submitProof(root, proposal, options)).status, 'verified');
+  await writeFile(path.join(root, '.qmd-prover', 'config.yml'), 'verification:\n  backend: none\n  model: changed-model\n');
+  const stale = await checkStaleness(root, options);
+  assert.deepEqual(stale.changed[0].reasons, ['checker-contract-changed']);
+  assert.equal((await compileProject(root, options)).manifest.results[0].status, 'candidate');
   delete process.env.QMD_PROVER_VERIFIER;
 });
 
@@ -206,6 +345,34 @@ test('goal workspaces preserve a protected target snapshot and report staleness'
   assert.ok(inspected.graph.edges.some((edge) => edge.from === 'thm-main-work' && edge.to === 'lem-work'));
   await writeFile(canonical, result('thm-main-work', 'Do the work.', { title: 'Workspace theorem', proofText: 'A concurrent proof.' }));
   assert.equal((await inspectWorkspace(root, '@thm-main-work', options)).stale, true);
+});
+
+test('workspace inspection admits only current verified canonical imports from the protected target', async () => {
+  const root = await project();
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  await writeFile(path.join(root, 'base.qmd'), `${result('lem-workspace-import', 'Imported premise.', { exported: true })}\n${result('lem-workspace-hidden', 'Unimported premise.', { exported: true })}`);
+  await writeFile(path.join(root, 'goal.qmd'), document(
+    [{ from: 'base.qmd', use: ['lem-workspace-import'] }],
+    result('thm-main-workspace-scope', 'Workspace conclusion.')
+  ));
+  for (const id of ['lem-workspace-import', 'lem-workspace-hidden']) {
+    const proposal = proposalPath(root, `${id}.qmd`);
+    await writeFile(proposal, proof(id, 'A direct proof.'));
+    assert.equal((await submitProof(root, proposal, options)).status, 'verified');
+  }
+  const created = await initializeWorkspace(root, '@thm-main-workspace-scope', options);
+  const workspace = path.join(root, created.workspace);
+  const attempt = path.join(workspace, 'main-attempt.qmd');
+  await writeFile(attempt, proof('thm-main-workspace-scope', 'Apply @lem-workspace-import.'));
+  const available = await inspectWorkspace(root, '@thm-main-workspace-scope', options);
+  assert.equal(available.ok, true, JSON.stringify(available.diagnostics));
+  assert.equal(available.graph.edges[0].checks.scope, 'pass');
+  assert.equal(available.graph.edges[0].checks.status, 'pass');
+  await writeFile(attempt, proof('thm-main-workspace-scope', 'Apply @lem-workspace-hidden.'));
+  const unavailable = await inspectWorkspace(root, '@thm-main-workspace-scope', options);
+  assert.equal(unavailable.ok, false);
+  assert.ok(unavailable.diagnostics.some((item) => item.code === 'WORKSPACE_DEPENDENCY_UNAVAILABLE'));
+  delete process.env.QMD_PROVER_VERIFIER;
 });
 
 test('concurrent independent submissions serialize canonical state writes', async () => {
@@ -250,7 +417,12 @@ test('dispatcher preserves JSON commands and adds workspace operations', async (
   const run = await new Promise((resolve, reject) => execFile(process.execPath, [cli, 'inspect-project'], {
     cwd: root, env: { ...process.env, QMD_PROVER_PANDOC: fakePandoc }
   }, (error, stdout, stderr) => error ? reject(error) : resolve({ stdout, stderr })));
-  assert.equal(JSON.parse(run.stdout).summary.goals[0].id, 'thm-main-cli');
+  const jsonInspection = JSON.parse(run.stdout);
+  assert.equal(jsonInspection.summary.goals[0].id, 'thm-main-cli');
+  const printed = await new Promise((resolve, reject) => execFile(process.execPath, [cli, 'inspect-project', '--print'], {
+    cwd: root, env: { ...process.env, QMD_PROVER_PANDOC: fakePandoc }
+  }, (error, stdout) => error ? reject(error) : resolve(stdout)));
+  assert.match(printed, new RegExp(`snapshot: ${jsonInspection.snapshot_id}`));
   const workspace = await new Promise((resolve, reject) => execFile(process.execPath, [cli, 'workspace', 'init', '@thm-main-cli'], {
     cwd: root, env: { ...process.env, QMD_PROVER_PANDOC: fakePandoc }
   }, (error, stdout) => error ? reject(error) : resolve(JSON.parse(stdout))));

@@ -3,7 +3,7 @@ import { copyFile, mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { appendEvent, atomicJson, atomicWrite, AUX, newId, readJson, sha256, withWriteLock } from './files.mjs';
 import { compileProject } from './compiler.mjs';
-import { readLocatedBlock, readLocatedProof, mergeProof } from './source.mjs';
+import { locateDiv, readLocatedBlock, readLocatedProof, mergeProof, setProofMarker } from './source.mjs';
 
 function run(command, args, input) {
   return new Promise((resolve, reject) => {
@@ -109,6 +109,7 @@ export async function submitProof(root, proposalFile, options = {}) {
     throw new Error('A proof proposal must contain exactly one linked proof and at most one new result');
   }
   const proposalProof = proposalCompilation.manifest.proofs[0];
+  if (proposalProof.marker) throw new Error('A proposal must not contain OPEN, REJECTED, VERIFIED, or REVOKED control markers');
   const proposedResult = proposalCompilation.manifest.results[0] ?? null;
   const canonicalTarget = initial.manifest.results.find((result) => result.id === proposalProof.target);
   if (canonicalTarget && proposedResult) throw new Error(`Proposal must not redefine existing canonical result @${proposalProof.target}`);
@@ -243,16 +244,40 @@ export async function submitProof(root, proposalFile, options = {}) {
       const canonical = await readLocatedBlock(destination, target.id);
       merged = mergeProof(canonical, proposed);
     }
+    merged = setProofMarker(merged, target.id, 'VERIFIED');
     const indexFile = path.join(root, AUX, 'verification', 'index.json');
+    const cacheFile = path.join(root, AUX, 'verification', 'facts', `${target.id}.json`);
     const previousIndex = await readJson(indexFile, {});
     const nextIndex = structuredClone(previousIndex);
+    let previousCache = null;
+    try { previousCache = await readFile(cacheFile, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const scope = current.manifest.files.find((item) => item.path === destinationRelative)?.imports
+      ?? (isNewResult ? proposalFileRecord?.imports ?? [] : []);
+    const factCache = {
+      schema_version: 2,
+      id: target.id,
+      source: { file: destinationRelative, line: locateDiv(merged, target.id)?.startLine },
+      statement: packet.target.statement,
+      proof: packet.target.proof,
+      statement_hash: target.statement_hash,
+      proof_hash: candidateResult.proof_hash,
+      dependencies: packet.dependencies,
+      dependency_snapshot: dependencySnapshot,
+      scope,
+      graph_snapshot_id: current.graph.snapshot_id,
+      verification: { submission_id: submissionId, backend: initial.config.verification.backend, model: initial.config.verification.model, report }
+    };
     nextIndex[target.id] = {
       status: 'verified', submission_id: submissionId, statement_hash: target.statement_hash,
       proof_hash: candidateResult.proof_hash, backend: initial.config.verification.backend,
-      formal_status: 'not-formal', human_review_status: 'not-reviewed'
+      formal_status: 'not-formal', human_review_status: 'not-reviewed',
+      dependency_snapshot: dependencySnapshot,
+      record: `${AUX}/verification/${submissionId}.json`,
+      cache: `${AUX}/verification/facts/${target.id}.json`
     };
     try {
       await atomicWrite(destination, merged);
+      await atomicJson(cacheFile, factCache);
       await atomicJson(indexFile, nextIndex);
       const rebuilt = await compileProject(root, { ...options, excludeFiles: [proposalFile] });
       const mergedTarget = rebuilt.manifest.results.find((result) => result.id === target.id);
@@ -260,6 +285,8 @@ export async function submitProof(root, proposalFile, options = {}) {
     } catch (error) {
       if (original == null) await rm(destination, { force: true });
       else await atomicWrite(destination, original);
+      if (previousCache == null) await rm(cacheFile, { force: true });
+      else await atomicWrite(cacheFile, previousCache);
       await atomicJson(indexFile, previousIndex);
       await compileProject(root, { ...options, excludeFiles: [proposalFile] });
       throw error;
@@ -286,10 +313,22 @@ export async function revokeVerification(root, requested, reason, options = {}) 
     if (result.status !== 'verified') throw new Error(`@${id} is not currently verified`);
     const indexFile = path.join(root, AUX, 'verification', 'index.json');
     const index = await readJson(indexFile, {});
+    const sourceFile = path.join(path.resolve(root), result.file);
+    const originalSource = await readFile(sourceFile, 'utf8');
+    const previousIndex = structuredClone(index);
     index[id] = { ...index[id], status: 'revoked', revoked_at: new Date().toISOString(), reason };
-    await atomicJson(indexFile, index);
+    try {
+      await atomicWrite(sourceFile, setProofMarker(originalSource, id, 'REVOKED'));
+      await atomicJson(indexFile, index);
+      const rebuilt = await compileProject(root, options);
+      if (!rebuilt.ok || rebuilt.manifest.results.find((item) => item.id === id)?.status !== 'revoked') throw new Error('Post-write inspection did not confirm revocation');
+    } catch (error) {
+      await atomicWrite(sourceFile, originalSource);
+      await atomicJson(indexFile, previousIndex);
+      await compileProject(root, options);
+      throw error;
+    }
     await appendEvent(root, { type: 'verification-revoked', target: id, reason });
-    await compileProject(root, options);
     return { target: id, status: 'revoked', reason };
   });
 }

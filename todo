@@ -8,6 +8,8 @@
 
 progress do not write theorem
 
+Ideation skill 只在side task触发
+
 
 ## Verification and acceptance in detail
 
@@ -82,3 +84,5 @@ qmd-prover does not define:
 
 An independent LLM verifier establishes only the configured verification
 status. Formal verification and human review remain distinct claims.
+
+

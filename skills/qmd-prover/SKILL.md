@@ -24,7 +24,7 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" <sub
 
 ## Proving workflow
 
-1. Complete the project contract preflight, then run `inspect-project`. Stop and repair structural errors before proving.
+1. Complete the project contract preflight, run `check-staleness`, then run `inspect-project`. Stop and repair blocking errors before proving.
 2. Run `inspect-theorem @thm-main-ID` for each requested goal.
 3. Run `workspace init @thm-main-ID`, then develop the argument only under the returned goal workspace. Use isolated workers only when the user or local policy requests parallel work.
 4. Read the protected target snapshot, exact statement, imports, verified dependency closure, accepted mathematics, prior proposals, and verification reports.
@@ -39,8 +39,10 @@ Only a `correct` verdict with empty critical errors and gaps is accepted. Treat 
 
 ## Status and rendering
 
+- Run `check-staleness` before relying on verified mathematics; it removes stale `VERIFIED` markers transitively and reports each invalidation path.
 - Use `inspect-project` for all goal states and diagnostics.
 - Use `inspect-theorem` for a bounded target/dependency/history bundle.
+- Use `inspect-path` for one QMD file or folder, and `dependency frontier`, `dependency search`, or the other dependency queries to work from the latest named graph snapshot.
 - Use `verification show` for the complete stored report.
 - Use `render` to prepare a generated QMD status page, report data, and a dependency graph; use ordinary `quarto render` for final HTML, PDF, or other output.
 - Use `verification revoke @thm-ID --reason "..."` only with a concrete recorded reason.

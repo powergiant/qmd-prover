@@ -86,3 +86,21 @@ export function mergeProof(canonical, candidate) {
   const after = canonical.source.slice(canonical.div.end).replace(/^\s*/, '');
   return `${before}\n\n${proofText}\n${after ? `\n${after}` : ''}`;
 }
+
+const controlMarkers = new Set(['OPEN', 'REJECTED', 'VERIFIED', 'REVOKED']);
+
+export function setProofMarker(source, target, marker = null) {
+  if (marker != null && !controlMarkers.has(marker)) throw new Error(`Invalid proof marker: ${marker}`);
+  const proofDiv = locateProof(source, target);
+  if (!proofDiv) throw new Error(`Linked proof of @${target.replace(/^@/, '')} was not found`);
+  const proofBody = body(source, proofDiv);
+  const newline = source.includes('\r\n') ? '\r\n' : '\n';
+  const lines = source.slice(proofBody.bodyStart, proofBody.bodyEnd).split(/\r?\n/);
+  const firstContent = lines.findIndex((line) => line.trim() !== '');
+  if (firstContent >= 0 && controlMarkers.has(lines[firstContent].trim())) lines.splice(firstContent, 1);
+  const content = lines.join(newline).trim();
+  const nextBody = marker
+    ? `${marker}${content ? `${newline}${newline}${content}` : ''}${newline}`
+    : `${content}${content ? newline : ''}`;
+  return `${source.slice(0, proofBody.bodyStart)}${nextBody}${source.slice(proofBody.bodyEnd)}`;
+}

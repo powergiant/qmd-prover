@@ -6,18 +6,70 @@ import { inlineText, normalizedAst, readAst, references, walk } from './pandoc.m
 import { locateDiv, locateProof } from './source.mjs';
 
 const semanticPrefixes = /^(def|lem|thm|prp|cor)-/;
+const semanticId = /^(def|lem|thm|prp|cor)-[A-Za-z0-9._:-]+$/;
 const kindClasses = ['definition', 'lemma', 'theorem', 'proposition', 'corollary'];
 const expectedKind = { def: 'definition', lem: 'lemma', thm: 'theorem', prp: 'proposition', cor: 'corollary' };
+const controlMarkers = new Set(['OPEN', 'REJECTED', 'VERIFIED', 'REVOKED']);
 
 function diagnostic(severity, code, message, file, line, id) {
   return { severity, code, message, ...(file ? { file } : {}), ...(line ? { line } : {}), ...(id ? { id } : {}) };
 }
 
-async function discover(directory, root, output = []) {
+function excluded(relative, exclusions) {
+  let ignored = false;
+  for (const entry of exclusions) {
+    const rooted = entry.pattern.startsWith('/');
+    const pattern = entry.pattern.replace(/^\//, '').replace(/\/$/, '');
+    const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replaceAll('**', '\0')
+      .replaceAll('*', '[^/]*')
+      .replaceAll('?', '[^/]')
+      .replaceAll('\0', '.*');
+    const prefix = rooted || pattern.includes('/') ? '^' : '(?:^|/)';
+    if (new RegExp(`${prefix}${escaped}(?:/|$)`).test(relative)) ignored = !entry.negate;
+  }
+  return ignored;
+}
+
+function mayReincludeDescendant(relative, exclusions) {
+  return exclusions.some((entry) => {
+    if (!entry.negate) return false;
+    const pattern = entry.pattern.replace(/^\//, '').replace(/\/$/, '');
+    if (!pattern.includes('/')) return true;
+    const wildcard = [pattern.indexOf('*'), pattern.indexOf('?')].filter((index) => index >= 0).sort((left, right) => left - right)[0] ?? pattern.length;
+    const prefix = pattern.slice(0, wildcard).replace(/\/$/, '');
+    return prefix === relative || prefix.startsWith(`${relative}/`);
+  });
+}
+
+async function discoveryExclusions(root, config) {
+  let ignored = [];
+  try {
+    ignored = (await readFile(path.join(root, '.gitignore'), 'utf8')).split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'))
+      .map((line) => ({ pattern: line.replace(/^!/, ''), negate: line.startsWith('!') }))
+      .filter((entry) => entry.pattern !== '');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const protectedExclusions = unique([
+    AUX,
+    '.git',
+    'node_modules',
+    ...(Array.isArray(config.project.exclude) ? config.project.exclude : []),
+    config.render['output-dir']
+  ].filter(Boolean).map((entry) => String(entry).replace(/^\.\//, '').replace(/\/$/, '')))
+    .map((pattern) => ({ pattern, negate: false }));
+  return [...ignored, ...protectedExclusions];
+}
+
+async function discover(directory, root, exclusions, output = []) {
   for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
-    if (entry.name === AUX || entry.name === '.git' || entry.name === 'node_modules') continue;
     const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) await discover(absolute, root, output);
+    const relative = relativePosix(root, absolute);
+    if (excluded(relative, exclusions) && !(entry.isDirectory() && mayReincludeDescendant(relative, exclusions))) continue;
+    if (entry.isDirectory()) await discover(absolute, root, exclusions, output);
     else if (entry.isFile() && entry.name.endsWith('.qmd')) output.push({ absolute, relative: relativePosix(root, absolute) });
   }
   return output;
@@ -75,38 +127,89 @@ function semanticDivs(ast) {
   return entries;
 }
 
+function unique(values) {
+  return [...new Set(values)].sort();
+}
+
+function proofContent(blocks) {
+  const index = blocks.findIndex((block) => block.t !== 'Null');
+  const marker = index >= 0 && ['Para', 'Plain'].includes(blocks[index].t)
+    ? inlineText(blocks[index].c ?? [])
+    : '';
+  if (!controlMarkers.has(marker)) return { marker: null, blocks };
+  return { marker, blocks: blocks.filter((_, blockIndex) => blockIndex !== index) };
+}
+
 function resolveImport(importer, imported) {
   const candidate = path.posix.normalize(path.posix.join(path.posix.dirname(importer), imported));
   return candidate.startsWith('../') || path.posix.isAbsolute(candidate) ? null : candidate;
 }
 
-function findCycles(adjacency) {
+export function findCycles(adjacency) {
   const cycles = [];
-  const visiting = new Set();
-  const visited = new Set();
-  function visit(node, chain) {
-    if (visiting.has(node)) {
-      const index = chain.indexOf(node);
-      cycles.push(chain.slice(index));
-      return;
-    }
-    if (visited.has(node)) return;
-    visiting.add(node);
-    for (const next of adjacency.get(node) ?? []) visit(next, [...chain, next]);
-    visiting.delete(node);
-    visited.add(node);
+  const state = new Map();
+  const stack = [];
+  const seen = new Set();
+  function canonical(cycle) {
+    const open = cycle.slice(0, -1);
+    const rotations = open.map((_, index) => [...open.slice(index), ...open.slice(0, index)]);
+    const selected = rotations.sort((left, right) => left.join('\0').localeCompare(right.join('\0')))[0];
+    return [...selected, selected[0]];
   }
-  for (const node of [...adjacency.keys()].sort()) visit(node, [node]);
-  return cycles;
+  function visit(node) {
+    state.set(node, 'visiting');
+    stack.push(node);
+    for (const next of [...(adjacency.get(node) ?? [])].sort()) {
+      if (state.get(next) === 'visiting') {
+        const cycle = canonical([...stack.slice(stack.indexOf(next)), next]);
+        const key = cycle.join('\0');
+        if (!seen.has(key)) { seen.add(key); cycles.push(cycle); }
+      } else if (!state.has(next)) visit(next);
+    }
+    stack.pop();
+    state.set(node, 'visited');
+  }
+  for (const node of [...adjacency.keys()].sort()) if (!state.has(node)) visit(node);
+  return cycles.sort((left, right) => left.join('\0').localeCompare(right.join('\0')));
 }
 
-function verificationStatus(result, verification) {
+function verificationStatus(result, verification, evidence) {
   const record = verification[result.id];
-  if (record?.status === 'revoked' && record.statement_hash === result.statement_hash && record.proof_hash === result.proof_hash) return 'revoked';
-  if (record?.status === 'verified' && record.statement_hash === result.statement_hash && record.proof_hash === result.proof_hash) return 'verified';
-  if (record?.status === 'rejected' && record.statement_hash === result.statement_hash && record.canonical_proof_hash === result.proof_hash) return 'rejected';
-  if (!result.proof_present) return 'open';
+  const identityMatches = record?.statement_hash === result.statement_hash && record.proof_hash === result.proof_hash;
+  if (result.marker === 'REVOKED' && record?.status === 'revoked' && identityMatches && record.reason?.trim()) return 'revoked';
+  if (result.marker === 'VERIFIED' && record?.status === 'verified' && identityMatches && evidence.get(result.id)?.valid) return 'verified';
+  if (result.marker === 'REJECTED' || (record?.status === 'rejected' && record.statement_hash === result.statement_hash && record.canonical_proof_hash === result.proof_hash)) return 'rejected';
+  if (result.marker === 'OPEN' || !result.proof_present) return 'open';
   return 'candidate';
+}
+
+async function verificationEvidence(root, verification) {
+  const evidence = new Map();
+  const verificationRoot = path.join(root, AUX, 'verification');
+  function evidencePath(relative) {
+    if (typeof relative !== 'string') return null;
+    const absolute = path.resolve(root, relative);
+    return absolute.startsWith(`${verificationRoot}${path.sep}`) ? absolute : null;
+  }
+  await Promise.all(Object.entries(verification).map(async ([id, entry]) => {
+    if (entry.status !== 'verified') return;
+    let record = null;
+    let cache = null;
+    const recordFile = evidencePath(entry.record);
+    const cacheFile = evidencePath(entry.cache);
+    try { if (recordFile) record = await readJson(recordFile); } catch { /* Invalid evidence fails closed below. */ }
+    try { if (cacheFile) cache = await readJson(cacheFile); } catch { /* Invalid evidence fails closed below. */ }
+    const valid = record?.accepted === true
+      && record.submission_id === entry.submission_id
+      && record.statement_hash === entry.statement_hash
+      && record.proof_hash === entry.proof_hash
+      && cache?.id === id
+      && cache.statement_hash === entry.statement_hash
+      && cache.proof_hash === entry.proof_hash
+      && stableJson(cache.dependency_snapshot ?? {}, 0) === stableJson(entry.dependency_snapshot ?? {}, 0);
+    evidence.set(id, { valid, record, cache });
+  }));
+  return evidence;
 }
 
 async function initializeAux(root) {
@@ -122,9 +225,10 @@ export async function compileProject(root = process.cwd(), options = {}) {
   root = path.resolve(root);
   if (options.write !== false) await initializeAux(root);
   const config = await loadConfig(root);
+  const exclusions = await discoveryExclusions(root, config);
   let discovered = options.files
     ? options.files.map((absolute) => ({ absolute: path.resolve(absolute), relative: relativePosix(root, path.resolve(absolute)) }))
-    : await discover(root, root);
+    : await discover(root, root, exclusions);
   const excludedFiles = new Set((options.excludeFiles ?? []).map((file) => path.resolve(file)));
   if (excludedFiles.size) discovered = discovered.filter((file) => !excludedFiles.has(file.absolute));
   const diagnostics = [];
@@ -145,12 +249,15 @@ export async function compileProject(root = process.cwd(), options = {}) {
           const target = cleanId(String(values.of ?? ''));
           const located = target ? locateProof(source, target) : null;
           const line = located?.startLine;
+          const content = proofContent(entry.blocks);
           const proof = {
             target, file: file.relative, line,
-            proof_hash: sha256(stableJson(normalizedAst(entry.blocks), 0)),
-            proof_present: inlineText(entry.blocks).length > 0 || entry.blocks.some((block) => block.t !== 'Null'),
-            dependencies: references(entry.blocks),
-            blocks: entry.blocks
+            marker: content.marker,
+            proof_hash: sha256(stableJson(normalizedAst(content.blocks), 0)),
+            proof_present: inlineText(content.blocks).length > 0 || content.blocks.some((block) => block.t !== 'Null'),
+            proof_text: inlineText(content.blocks),
+            dependencies: references(content.blocks),
+            blocks: content.blocks
           };
           proofs.push(proof);
           allProofs.push(proof);
@@ -168,16 +275,20 @@ export async function compileProject(root = process.cwd(), options = {}) {
           id, file: file.relative, line, kind, classes: [...classes].sort(), title,
           origin: id.startsWith(config.goals['id-prefix']) ? 'user' : 'agent',
           export: values.export ?? null,
+          statement_text: inlineText(entry.blocks),
           statement_hash: sha256(stableJson(normalizedAst(entry.blocks), 0)),
           title_hash: sha256(title),
           proof_hash: sha256(stableJson(normalizedAst([]), 0)),
           proof_present: false,
-          dependencies: [],
-          uses: []
+          proof_text: '',
+          marker: null,
+          construction_dependencies: kind === 'definition' ? references(entry.blocks) : [],
+          dependencies: kind === 'definition' ? references(entry.blocks) : [],
+          uses: kind === 'definition' ? references(entry.blocks) : []
         };
         results.push(result);
         allResults.push(result);
-        if (!semanticPrefixes.test(id)) diagnostics.push(diagnostic('error', 'INVALID_ID_PREFIX', `Semantic ID ${id} uses an unreserved prefix`, file.relative, line, id));
+        if (!semanticId.test(id)) diagnostics.push(diagnostic('error', 'INVALID_SEMANTIC_ID', `Semantic ID ${id} must use a reserved prefix followed by letters, digits, dot, underscore, colon, or hyphen`, file.relative, line, id));
         if (semanticKinds.length === 0) diagnostics.push(diagnostic('error', 'SEMANTIC_KIND_MISSING', `${id} requires one semantic kind class`, file.relative, line, id));
         if (semanticKinds.length > 1) diagnostics.push(diagnostic('error', 'SEMANTIC_KIND_MULTIPLE', `${id} has multiple semantic kind classes`, file.relative, line, id));
         const prefix = id.match(semanticPrefixes)?.[1];
@@ -195,8 +306,10 @@ export async function compileProject(root = process.cwd(), options = {}) {
   }
 
   const byId = new Map();
+  const idCounts = new Map();
   const byExport = new Map();
   for (const result of allResults) {
+    idCounts.set(result.id, (idCounts.get(result.id) ?? 0) + 1);
     if (byId.has(result.id)) diagnostics.push(diagnostic('error', 'DUPLICATE_ID', `${result.id} is also defined in ${byId.get(result.id).file}`, result.file, result.line, result.id));
     else byId.set(result.id, result);
     if (result.export) {
@@ -227,8 +340,10 @@ export async function compileProject(root = process.cwd(), options = {}) {
       if (proof.file !== result.file) diagnostics.push(diagnostic('error', 'PROOF_DIFFERENT_FILE', `Proof of @${target} must be in the result's source file`, proof.file, proof.line, target));
       result.proof_hash = proof.proof_hash;
       result.proof_present = proof.proof_present;
-      result.dependencies = proof.dependencies;
-      result.uses = proof.dependencies;
+      result.proof_text = proof.proof_text;
+      result.marker = proof.marker;
+      result.dependencies = unique([...result.construction_dependencies, ...proof.dependencies]);
+      result.uses = result.dependencies;
       result.proof_file = proof.file;
       result.proof_line = proof.line;
     }
@@ -255,15 +370,26 @@ export async function compileProject(root = process.cwd(), options = {}) {
     }
     for (const id of file.results) {
       const result = byId.get(id);
+      if (!result || result.file !== file.path) continue;
+      result.reference_checks = [];
       for (const dependency of result.dependencies) {
-        if (!byId.has(dependency)) diagnostics.push(diagnostic('error', 'DEPENDENCY_UNKNOWN', `@${dependency} cited by the proof does not exist`, result.file, result.proof_line ?? result.line, result.id));
-        else if (!available.has(dependency)) diagnostics.push(diagnostic('error', 'DEPENDENCY_UNAVAILABLE', `@${dependency} is cited by the proof but is not local or imported`, result.file, result.proof_line ?? result.line, result.id));
+        const count = idCounts.get(dependency) ?? 0;
+        const existsCheck = count === 1 ? 'pass' : 'fail';
+        const scopeCheck = count === 1 && available.has(dependency) ? 'pass' : 'fail';
+        result.reference_checks.push({ dependency, existence: existsCheck, scope: scopeCheck, status: 'pending', ai_sufficiency: 'not-run' });
+        if (count === 0) diagnostics.push(diagnostic('error', 'DEPENDENCY_UNKNOWN', `@${dependency} cited by @${result.id} does not exist`, result.file, result.proof_line ?? result.line, result.id));
+        else if (count > 1) diagnostics.push(diagnostic('error', 'DEPENDENCY_AMBIGUOUS', `@${dependency} cited by @${result.id} is ambiguous`, result.file, result.proof_line ?? result.line, result.id));
+        else if (!available.has(dependency)) diagnostics.push(diagnostic('error', 'DEPENDENCY_UNAVAILABLE', `@${dependency} cited by @${result.id} is not local or explicitly imported`, result.file, result.proof_line ?? result.line, result.id));
       }
     }
   }
-  for (const cycle of findCycles(importAdjacency)) diagnostics.push(diagnostic('error', 'IMPORT_CYCLE', `Import cycle: ${cycle.join(' -> ')}`, cycle[0]));
+  const importCycles = findCycles(importAdjacency);
+  for (const cycle of importCycles) diagnostics.push(diagnostic('error', 'IMPORT_CYCLE', `Import cycle: ${cycle.join(' -> ')}`, cycle[0]));
   const dependencyAdjacency = new Map(allResults.map((result) => [result.id, result.dependencies.filter((id) => byId.has(id))]));
-  for (const cycle of findCycles(dependencyAdjacency)) {
+  const dependencyCycles = findCycles(dependencyAdjacency);
+  const cycleEdges = new Set();
+  for (const cycle of dependencyCycles) {
+    for (let index = 0; index < cycle.length - 1; index += 1) cycleEdges.add(`${cycle[index]}\0${cycle[index + 1]}`);
     const result = byId.get(cycle[0]);
     diagnostics.push(diagnostic('error', 'DEPENDENCY_CYCLE', `Semantic dependency cycle: ${cycle.map((id) => `@${id}`).join(' -> ')}`, result?.file, result?.line, result?.id));
   }
@@ -283,12 +409,46 @@ export async function compileProject(root = process.cwd(), options = {}) {
   }
 
   const verification = await readJson(path.join(root, AUX, 'verification', 'index.json'), {});
-  for (const result of allResults) result.status = verificationStatus(result, verification);
+  const evidence = await verificationEvidence(root, verification);
+  for (const result of allResults) result.status = verificationStatus(result, verification, evidence);
+  const compiledFiles = new Map(files.map((file) => [file.path, file]));
+  let statusChanged = true;
+  while (statusChanged) {
+    statusChanged = false;
+    for (const result of allResults.filter((item) => item.status === 'verified')) {
+      const entry = verification[result.id];
+      const cache = evidence.get(result.id)?.cache;
+      const dependencyChanged = Object.entries(entry.dependency_snapshot ?? {}).some(([id, identity]) => {
+        const dependency = byId.get(id);
+        return !dependency || sha256(`${dependency.statement_hash}:${dependency.proof_hash}:${dependency.status}`) !== identity;
+      });
+      const scopeChanged = stableJson(cache?.scope ?? [], 0) !== stableJson(compiledFiles.get(result.file)?.imports ?? [], 0);
+      const sourceChanged = cache?.source?.file !== result.file;
+      const checkerChanged = cache?.verification?.backend !== config.verification.backend || cache?.verification?.model !== config.verification.model;
+      if (dependencyChanged || scopeChanged || sourceChanged || checkerChanged) {
+        result.status = 'candidate';
+        result.stale_reasons = [
+          ...(dependencyChanged ? ['dependency-snapshot-changed'] : []),
+          ...(scopeChanged ? ['scope-changed'] : []),
+          ...(sourceChanged ? ['source-association-changed'] : []),
+          ...(checkerChanged ? ['checker-contract-changed'] : [])
+        ];
+        statusChanged = true;
+      }
+    }
+  }
   for (const result of allResults) {
-    if (result.proof_present && result.status !== 'verified') {
-      for (const dependency of result.dependencies) {
-        const premise = byId.get(dependency);
-        if (premise && premise.status !== 'verified') diagnostics.push(diagnostic('warning', 'DEPENDENCY_STATUS_INSUFFICIENT', `${result.id} cites @${dependency}, whose current status is ${premise.status}`, result.file, result.proof_line ?? result.line, result.id));
+    const record = verification[result.id];
+    if (result.marker === 'VERIFIED' && result.status !== 'verified') diagnostics.push(diagnostic('error', 'VERIFIED_RECORD_INVALID', `${result.id} has VERIFIED without a matching current record`, result.file, result.proof_line ?? result.line, result.id));
+    if (result.marker === 'REVOKED' && result.status !== 'revoked') diagnostics.push(diagnostic('error', 'REVOKED_RECORD_INVALID', `${result.id} has REVOKED without a matching revocation record and reason`, result.file, result.proof_line ?? result.line, result.id));
+    if (record?.status === 'verified' && result.marker !== 'VERIFIED') diagnostics.push(diagnostic('error', 'VERIFIED_MARKER_MISSING', `${result.id} has a verification record but no matching VERIFIED marker`, result.file, result.proof_line ?? result.line, result.id));
+    for (const check of result.reference_checks ?? []) {
+      const premise = idCounts.get(check.dependency) === 1 ? byId.get(check.dependency) : null;
+      check.status = premise?.status === 'verified' ? 'pass' : 'fail';
+      check.cycle = cycleEdges.has(`${result.id}\0${check.dependency}`) ? 'fail' : 'pass';
+      check.ai_sufficiency = result.status === 'verified' ? 'pass' : 'not-run';
+      if (check.existence === 'pass' && check.scope === 'pass' && check.cycle === 'pass' && check.status === 'fail') {
+        diagnostics.push(diagnostic('error', 'DEPENDENCY_STATUS_INSUFFICIENT', `${result.id} cites @${check.dependency}, whose current status is ${premise.status}`, result.file, result.proof_line ?? result.line, result.id));
       }
     }
     if (result.status === 'verified') {
@@ -301,12 +461,25 @@ export async function compileProject(root = process.cwd(), options = {}) {
   allResults.sort((a, b) => a.id.localeCompare(b.id));
   files.sort((a, b) => a.path.localeCompare(b.path));
   diagnostics.sort((a, b) => `${a.file ?? ''}:${a.line ?? 0}:${a.code}`.localeCompare(`${b.file ?? ''}:${b.line ?? 0}:${b.code}`));
-  const manifest = { schema_version: 1, files, results: allResults, proofs: allProofs.map(({ blocks, ...proof }) => proof) };
+  const manifest = { schema_version: 2, files, results: allResults, proofs: allProofs.map(({ blocks, ...proof }) => proof) };
+  const missingIds = unique(allResults.flatMap((result) => result.dependencies).filter((id) => !byId.has(id)));
   const graph = {
-    schema_version: 1,
-    nodes: allResults.map(({ id, title, kind, status, file, line }) => ({ id, title, kind, status, file, line })),
-    edges: allResults.flatMap((result) => result.dependencies.map((dependency) => ({ from: result.id, to: dependency }))).sort((a, b) => `${a.from}:${a.to}`.localeCompare(`${b.from}:${b.to}`))
+    schema_version: 2,
+    nodes: [
+      ...allResults.map(({ id, title, kind, status, file, line, origin, statement_hash, proof_hash }) => ({
+        id, title, kind, status, file, line, origin: 'canonical', ownership: origin,
+        identity: { statement_hash, proof_hash }
+      })),
+      ...missingIds.map((id) => ({ id, title: '', kind: 'unknown', status: 'missing', origin: 'unresolved' }))
+    ],
+    edges: allResults.flatMap((result) => result.dependencies.map((dependency) => {
+      const check = result.reference_checks?.find((item) => item.dependency === dependency);
+      return { from: result.id, to: dependency, checks: check ?? { existence: 'fail', scope: 'fail', status: 'fail', cycle: 'pass', ai_sufficiency: 'not-run' } };
+    })).sort((a, b) => `${a.from}:${a.to}`.localeCompare(`${b.from}:${b.to}`)),
+    cycles: dependencyCycles
   };
+  graph.snapshot_id = sha256(stableJson(graph, 0));
+  manifest.snapshot_id = graph.snapshot_id;
   const summary = {
     files: files.length,
     results: allResults.length,
@@ -315,17 +488,26 @@ export async function compileProject(root = process.cwd(), options = {}) {
     warnings: diagnostics.filter((item) => item.severity === 'warning').length
   };
   const ok = summary.errors === 0;
+  const complete = diagnostics.every((item) => item.code !== 'PARSE_ERROR');
   if (options.write !== false) {
     await atomicJson(path.join(root, AUX, 'diagnostics.json'), diagnostics);
-    if (ok) {
+    if (complete) {
+      const snapshot = { schema_version: 2, snapshot_id: graph.snapshot_id, manifest, graph, summary, diagnostics };
+      const snapshotFile = path.join(root, AUX, 'graphs', `${graph.snapshot_id.slice('sha256:'.length)}.json`);
       await Promise.all([
+        atomicJson(snapshotFile, snapshot),
         atomicJson(path.join(root, AUX, 'manifest.json'), manifest),
         atomicJson(path.join(root, AUX, 'graph.json'), graph),
-        ...(protectStatements ? [atomicJson(locksFile, locks)] : [])
+        ...(protectStatements && ok ? [atomicJson(locksFile, locks)] : [])
       ]);
+      await atomicJson(path.join(root, AUX, 'graphs', 'latest.json'), {
+        schema_version: 2,
+        snapshot_id: graph.snapshot_id,
+        file: relativePosix(root, snapshotFile)
+      });
     }
   }
-  return { root, config, manifest, graph, diagnostics, summary, ok };
+  return { root, config, manifest, graph, diagnostics, summary, ok, complete };
 }
 
 export function theoremBundle(compilation, requested) {
