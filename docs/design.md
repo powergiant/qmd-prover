@@ -232,8 +232,8 @@ references at their points of use.
 
 The format has four structural rules:
 
-1. A result block has a semantic ID, semantic class, one title heading, and the
-   statement as its body.
+1. A result block has a semantic ID, semantic class, a `name` attribute, and
+   the statement as its body. Quarto renders `name` as the theorem caption.
 2. A proof is a `.proof` block whose `of` attribute names the result it proves.
 3. A missing proof block means an open result; canonical QMD cannot contain two
    proofs associated with the same result.
@@ -247,9 +247,7 @@ The result block itself is the statement. The absence of an associated proof
 block means that the goal is open:
 
 ```markdown
-::: {#thm-main-even-square .theorem .goal}
-## Even squares
-
+::: {#thm-main-even-square .theorem .goal name="Even squares"}
 For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
 :::
 ```
@@ -265,9 +263,7 @@ semantic classes and ID prefixes. A proof is a separate block linked to its
 result by `of`. Each semantic reference inside the proof becomes a dependency:
 
 ```markdown
-::: {#lem-square-of-double .lemma export="square-of-double"}
-## Square of a double
-
+::: {#lem-square-of-double .lemma name="Square of a double" export="square-of-double"}
 If \(n=2k\) for integers \(n,k\), then \(n^2=4k^2\).
 :::
 
@@ -330,9 +326,7 @@ When the agent proposes a new intermediate result, its proposal contains the
 new result block followed by its proof block:
 
 ```markdown
-::: {#lem-product-positive .lemma}
-## Product of positive elements
-
+::: {#lem-product-positive .lemma name="Product of positive elements"}
 If \(a>0\) and \(b>0\) in an ordered field, then \(ab>0\).
 :::
 

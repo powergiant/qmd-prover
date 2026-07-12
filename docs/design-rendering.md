@@ -65,9 +65,7 @@ qmd-prover:
 
 We use the parity definition from @def-even-integer.
 
-::: {#thm-main-even-square .theorem .goal}
-## Even squares
-
+::: {#thm-main-even-square .theorem .goal name="Even squares"}
 For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
 :::
 
@@ -77,10 +75,11 @@ By @def-even-integer, write \(n=2k\). Then \(n^2=4k^2\).
 ```
 
 The inspector associates the proof through `of` and derives its dependency
-from the semantic reference. Quarto renders a theorem followed by its proof;
-there are no `Statement`, `Uses`, or `Proof` section headings polluting the
-table of contents or visual hierarchy. qmd-prover does not translate this
-source into a separate document format.
+from the semantic reference. Quarto uses `name="Even squares"` as the theorem
+caption and renders the proof afterward. There are no theorem-title headings or
+`Statement`, `Uses`, and `Proof` section headings polluting the table of
+contents or visual hierarchy. qmd-prover does not translate this source into a
+separate document format.
 
 ## Observability
 

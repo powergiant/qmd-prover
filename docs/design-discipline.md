@@ -156,9 +156,7 @@ machine-decidable.
 Assume the user supplied:
 
 ```markdown
-::: {#thm-main-primes-odd .theorem .goal}
-## Every prime is odd
-
+::: {#thm-main-primes-odd .theorem .goal name="Every prime is odd"}
 Every prime number is odd.
 :::
 ```
@@ -177,7 +175,7 @@ definitions and results.
 
 Within a semantic result, the discipline distinguishes:
 
-- the result block, whose heading and body say what is claimed; and
+- the result block, whose `name` attribute and body say what is claimed; and
 - a linked proof block, whose semantic references declare the logical premises
   at their points of use.
 

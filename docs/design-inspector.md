@@ -36,9 +36,7 @@ This script interface is not a separate CLI product.
 Consider two mathematical files. `foundations.qmd` exports a definition:
 
 ```markdown
-::: {#def-even-integer .definition export="even-integer"}
-## Even integer
-
+::: {#def-even-integer .definition name="Even integer" export="even-integer"}
 An integer \(n\) is even if there is an integer \(k\) with \(n=2k\).
 :::
 ```
@@ -54,9 +52,7 @@ qmd-prover:
         - def-even-integer
 ---
 
-::: {#thm-main-even-square .theorem .goal}
-## Even squares
-
+::: {#thm-main-even-square .theorem .goal name="Even squares"}
 For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
 :::
 ```
@@ -85,13 +81,14 @@ The inspector recognizes:
 
 Nonsemantic QMD is left alone.
 
-For a result block, the first heading supplies the display title and the
-remaining block content is the statement. A `.proof` block names its result
-with `of="semantic-id"`; its entire body is proof content. A canonical result
-may have at most one associated proof. A missing proof means `open`, while an
-empty, orphaned, ambiguous, or multiply associated proof is a structural
-error. In an isolated proposal, `of` may point to the protected canonical
-target rather than to a result block copied into the proposal file.
+For a result block, the `name` attribute supplies the display title and the
+block content is the statement. Quarto natively renders `name` as the theorem
+caption. A `.proof` block names its result with `of="semantic-id"`; its entire
+body is proof content. A canonical result may have at most one associated
+proof. A missing proof means `open`, while an empty, orphaned, ambiguous, or
+multiply associated proof is a structural error. In an isolated proposal,
+`of` may point to the protected canonical target rather than to a result block
+copied into the proposal file.
 
 ## Inspection pipeline
 
