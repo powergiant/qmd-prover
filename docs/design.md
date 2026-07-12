@@ -283,27 +283,34 @@ For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
 ### How proof status is derived
 
 The inspector combines the current statement and proof with retained
-verification records. A workspace proof may begin with a first nonempty
-paragraph containing exactly `OPEN` or `REJECTED`. This control paragraph is
-not part of the proof and is excluded from proof identity and verifier input.
-There is no `VERIFIED` source marker, and neither control marker can assert
-success.
+verification records. A proof may begin with a first nonempty paragraph
+containing exactly `OPEN`, `REJECTED`, `VERIFIED`, or `REVOKED`. This control
+paragraph is not part of the mathematical proof and is excluded from proof
+identity and verifier input. `VERIFIED` and `REVOKED` record claimed source
+statuses, but neither marker can establish its status alone: the inspector must
+confirm the corresponding verification or revocation record for the exact
+current statement and proof.
 
 - `open`: no proof is present, or the proof begins with `OPEN`.
 - `candidate`: an unmarked proof is present but no accepted record matches its
   current identity.
 - `rejected`: the proof begins with `REJECTED`, or a matching rejection record
   exists. A rejected submission does not change canonical QMD.
-- `verified`: the current statement and proof exactly match an accepted
-  verification record.
-- `revoked`: an earlier acceptance was withdrawn with a recorded reason.
+- `verified`: the proof begins with `VERIFIED`, and the inspector confirms that
+  the current statement and proof exactly match the accepted verification
+  record associated with that result.
+- `revoked`: the proof begins with `REVOKED`, and the inspector confirms that a
+  matching earlier acceptance was withdrawn with a recorded concrete reason.
 
-A workspace may retain several `OPEN` or `REJECTED` attempts for one result,
-but only one unmarked proof may be active. Canonical QMD may contain only the
-accepted unmarked proof. Adding a marker cannot establish a claim, and removing
-one cannot erase a verification record; changing the mathematical text creates
-a new proof identity. Formal verification and human review are recorded
-separately; an informal LLM verdict is neither.
+A workspace may retain several `OPEN`, `REJECTED`, or `REVOKED` attempts for
+one result, but at most one unmarked candidate or `VERIFIED` proof may be
+active. Canonical QMD may contain an accepted proof marked `VERIFIED` or a
+previously accepted proof marked `REVOKED`. A missing, stale, or nonmatching
+record makes either record-backed marker invalid and produces a diagnostic.
+Adding `VERIFIED` cannot establish a claim, adding `REVOKED` cannot revoke one,
+and removing either marker cannot erase its record; changing the mathematical
+text creates a new proof identity. Formal verification and human review are
+recorded separately; an informal LLM verdict is neither.
 
 A candidate for a protected canonical goal therefore contains only the linked
 proof; it does not copy the statement into the workspace:
@@ -371,8 +378,9 @@ For a typical request, the host agent follows this loop:
    verifier, which may itself be implemented with a fresh sub-agent.
 10. If rejected, preserve the report in verification JSON, retain the rejected
     proof with its `REJECTED` marker when useful, repair the result, and repeat.
-11. If accepted, recheck that the target and dependencies are current and
-    promote the result or proof into canonical QMD atomically.
+11. If accepted, recheck that the target and dependencies are current, mark the
+    proof `VERIFIED`, promote the result or proof into canonical QMD, and
+    publish its matching project verification record atomically.
 12. Continue until the original main theorem is accepted or the work reaches
     another legitimate stopping condition.
 13. Run `quarto render` when the user wants a rendered document or project
@@ -496,6 +504,9 @@ Revoke an accepted verification only with a concrete reason:
 node "$QMD_PROVER_ROOT/scripts/qmd-prover.mjs" \
   verification revoke @thm-main-even-square --reason "The dependency was invalidated"
 ```
+
+Revocation atomically replaces the proof's `VERIFIED` marker with `REVOKED`
+and publishes the matching revocation record with its concrete reason.
 
 These operations expose the skill's tool protocol; they are not a separately
 designed interactive CLI. Their JSON output is stable so a host agent can call

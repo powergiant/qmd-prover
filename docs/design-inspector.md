@@ -12,9 +12,15 @@ implies the next sentence.
 
 ## Inputs and outputs
 
-The inspector reads:
+The inspector has two explicit source modes. Canonical inspection reads the
+project's QMD files outside `.qmd-prover/`. Workspace inspection reads the
+ordinary working QMD under `.qmd-prover/workspaces/`, together with the
+protected canonical target and canonical results made available to that
+workspace. It does not treat the machine-managed `.workspaces/` child as
+ordinary mathematical source.
 
-- the project's QMD files;
+In either mode, the inspector also reads:
+
 - the root `AGENTS.md` preflight result;
 - qmd-prover configuration, when present; and
 - retained verification records needed to determine proof status.
@@ -85,26 +91,33 @@ Nonsemantic QMD is left alone.
 
 For a definition or result block, the `name` attribute supplies the display
 title, `date` records its introduction date, and the block content is the
-statement. Quarto natively renders `name` as the caption. A `.proof` block names
-its result with `of="semantic-id"`. If its first nonempty paragraph is exactly
-`OPEN` or `REJECTED`, the inspector records that control marker separately and
-excludes it from mathematical proof identity and verifier input.
+statement. Quarto natively renders `name` as the caption. Definitions are
+declarations and do not require associated proofs. A `.proof` block names the
+result it proves with `of="semantic-id"`. If its first nonempty paragraph is
+exactly `OPEN` or `REJECTED`, the inspector records that control marker
+separately and excludes it from mathematical proof identity and verifier input.
 
-A canonical result may have at most one associated, unmarked proof. A workspace
-may retain multiple marked proofs for the same result but at most one unmarked
-active proof. A missing proof or `OPEN` proof means `open`; a `REJECTED` proof is
-inactive; an unmarked proof is a candidate unless an exact verification record
-says otherwise. Empty, orphaned, ambiguous, or multiply active proofs are
-structural errors. A workspace proof may point through `of` to the protected
-canonical target without copying its statement into the working file.
+A workspace may retain multiple marked proofs for the same result but at most
+one unmarked active proof. A missing proof or `OPEN` proof means `open`; a
+`REJECTED` proof is inactive; an unmarked proof is a candidate unless an exact
+accepted verification record says otherwise. Canonical QMD may contain only
+the one accepted, unmarked proof associated with a result; an unmarked
+canonical proof without a matching accepted record is reported as a candidate
+and as a canonical-boundary error. Empty, orphaned, ambiguous, or multiply
+active proofs are structural errors. A workspace proof may point through `of`
+to the protected canonical target without copying its statement into the
+working file.
 
 ## Inspection pipeline
 
 ### 1. Discover sources
 
-The inspector recursively discovers project QMD files while excluding derived
-directories such as `.qmd-prover/`. Mathematical folder names are project
-policy rather than qmd-prover conventions.
+In canonical mode, the inspector recursively discovers project QMD files while
+excluding `.qmd-prover/`. In workspace mode, it discovers visible QMD under
+`.qmd-prover/workspaces/` while excluding the machine-managed
+`.qmd-prover/workspaces/.workspaces/` child. Mathematical folder names and the
+placement of `progress.qmd` files are project organization, not semantic
+conventions.
 
 ### 2. Extract semantic results
 
@@ -245,7 +258,7 @@ the graph contains:
   "nodes": [
     { "id": "thm-main-even-square", "status": "candidate" },
     { "id": "lem-square-of-double", "status": "verified" },
-    { "id": "def-even-integer", "status": "verified" }
+    { "id": "def-even-integer", "kind": "definition", "origin": "canonical" }
   ],
   "edges": [
     { "from": "thm-main-even-square", "to": "lem-square-of-double" },
@@ -260,9 +273,9 @@ contains both results.
 
 ### 6. Determine status
 
-Status is derived from the current statement, proof marker, and retained
-verification record. Verification applies only when its stored identities still
-match the current semantic result.
+For propositions that require proof, status is derived from the current
+statement, proof marker, and retained verification record. Verification applies
+only when its stored identities still match the current semantic result.
 
 At minimum, the inspector distinguishes:
 
@@ -273,6 +286,14 @@ At minimum, the inspector distinguishes:
 - `rejected`: the proof begins with `REJECTED` or the latest matching candidate
   was rejected while canonical mathematics remained unchanged; and
 - `revoked`: prior acceptance was explicitly withdrawn.
+
+These status values are the same in canonical and workspace inspection. Origin
+and workspace location are separate fields; the inspector does not invent
+parallel values such as `workspace-candidate`. A canonical `candidate` is also
+a structural diagnostic because unaccepted proof work belongs in the
+workspace. Definitions are declarations, so their authority or availability is
+reported separately rather than pretending that they acquired proof status
+from a proof block.
 
 Formal-verification and human-review labels are separate metadata, not aliases
 for `verified`.
@@ -343,7 +364,8 @@ modes must not be confused:
 - workspace inspection reports provisional agent-generated mathematics plus
   the canonical results imported into that workspace.
 
-A workspace result records its origin and working status. For example:
+A workspace result records its origin and ordinary semantic status separately.
+For example:
 
 ```json
 {
@@ -351,7 +373,7 @@ A workspace result records its origin and working status. For example:
   "origin": "workspace",
   "workspace": ".qmd-prover/workspaces",
   "file": "local-theory/exponent-bounds.qmd",
-  "status": "workspace-candidate",
+  "status": "candidate",
   "dependencies": [
     "thm-canonical-local-class-group-finite",
     "lem-completion-preserves-index"
@@ -369,12 +391,15 @@ uses the canonical target's semantic ID so statement protection can compare it
 with the original. Newly introduced intermediate IDs must not collide with
 canonical results or with other live workspace results.
 
-Workspace inspection writes protected target state, its graph, and provisional
-verification records only under `.qmd-prover/workspaces/.workspaces/`. It may
-read top-level and subject-local `progress.qmd` files for resumable context, but
-those files are mathematical project notes rather than machine authority. It
-never merges workspace files into the canonical manifest merely because they
-parse successfully or have plausible proofs.
+Workspace inspection reads protected target state and provisional verification
+records only from `.qmd-prover/workspaces/.workspaces/` and may atomically
+refresh the derived workspace graph there. The proving utilities, not the
+inspector, create protected target state and verification records. Top-level
+and subject-local `progress.qmd` files are discovered as ordinary workspace QMD
+and may provide resumable context, but they are mathematical project notes
+rather than machine authority. The inspector never merges workspace files into
+the canonical manifest merely because they parse successfully or have
+plausible proofs.
 
 ## Writes and failure behavior
 
