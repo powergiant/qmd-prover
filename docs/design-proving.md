@@ -1,0 +1,337 @@
+# Proving utilities design
+
+## Role
+
+The proving utilities help Codex or Claude Code turn mathematical reasoning
+into a checked proof candidate and move an independently accepted candidate
+into canonical QMD safely.
+
+They do not form a proving agent. The host agent decides how to reason, which
+lemmas to introduce, when to explore examples, and how to repair a proof. The
+utilities provide bounded context, mechanical checks, independent verification,
+and a protected acceptance path.
+
+## Proof-development loop
+
+The skill instructs the host agent to repeat:
+
+```text
+inspect target
+    -> reason and draft outside canonical QMD
+    -> check candidate structure
+    -> independently verify
+    -> repair on rejection or accept safely
+```
+
+The loop ends when the selected goal is verified, precisely refuted, genuinely
+blocked, cancelled, or explicitly stopped by the user.
+
+## Goal-scoped agent workspace
+
+Proof development takes place in a persistent workspace associated with the
+target theorem, not in the canonical Quarto sources. This matters when one
+short user-given statement expands into a large body of agent-generated
+mathematics.
+
+For example, work on `@thm-main-uniform-index` may eventually contain:
+
+```text
+.qmd-prover/workspaces/thm-main-uniform-index/
+├── workspace.json
+├── target.qmd
+├── progress.qmd
+├── context/
+│   └── imported-results.qmd
+├── reductions/
+│   ├── reduce-to-strata.qmd
+│   └── specialization.qmd
+├── local-theory/
+│   ├── local-class-groups.qmd
+│   └── exponent-bounds.qmd
+├── attempts/
+│   ├── main-0001.qmd
+│   └── main-0002-repaired.qmd
+├── dead-ends/
+│   └── uniform-generator.qmd
+└── proposals/
+    ├── lem-local-exponent-bound.qmd
+    └── thm-main-uniform-index.qmd
+```
+
+`target.qmd` preserves the assigned statement and `workspace.json` records the
+canonical identities on which the work began. The other QMD files are
+noncanonical working mathematics. They may contain proposed definitions,
+lemmas, theorems, examples, or alternative proof routes.
+
+The inspector maintains a provisional dependency graph for this workspace. A
+workspace result may depend on verified canonical results or other workspace
+claims, but a conjectural claim cannot silently become an accepted premise.
+The agent follows unproved edges until it closes the required dependency
+closure, replaces a failed claim, or records a genuine dead end.
+
+The directory layout inside a workspace may grow with the proof. It should
+group coherent mathematical developments rather than create one file for every
+transient thought. Resuming agents use `progress.qmd`, the graph, previous
+attempts, and verifier reports to recover the proof frontier.
+
+## Preparing a candidate
+
+The host agent begins from the inspector's bounded theorem context. A utility
+may create a proof scaffold linked to the canonical result by semantic ID. The
+statement is not copied into each attempt, so the agent cannot accidentally
+rewrite protected content while drafting a proof.
+
+A proposal for an existing result contains one `.proof` block with an `of`
+attribute. A proposal for a new intermediate result contains one result block
+and its linked proof block. Proposals are stored outside canonical QMD while
+they are developed. Supporting calculations or search notes may accompany
+them, but are not submitted as proof text.
+
+Useful assistance may include:
+
+- showing verified premises available in the theorem's scope;
+- searching local semantic results by ID, title, or statement text;
+- explaining which import would make a cross-file result available;
+- comparing a draft with the protected canonical statement;
+- checking every semantic reference in a proof for availability and status;
+- retrieving earlier rejected attempts and concrete repair feedback.
+
+These are aids to the host agent. They do not synthesize an autonomous work
+plan or maintain a qmd-prover worker model.
+
+### Example proposal
+
+Starting from an open goal, the host agent writes only the proof in an isolated
+`proposal.qmd`:
+
+```markdown
+::: {.proof of="thm-main-even-square"}
+Let \(n\) be even. By @def-even-integer, there is an integer \(k\) such
+that \(n=2k\). Hence \(n^2=(2k)^2=4k^2\), so \(4\mid n^2\).
+:::
+```
+
+The utility obtains the exact title and statement from canonical QMD. The
+reference to `@def-even-integer` is the proof's dependency declaration. This
+file becomes eligible for acceptance only after preflight and independent
+verification.
+
+## Candidate preflight
+
+Before independent verification, the utility confirms that:
+
+- the proposal contains exactly one proof and at most one new result;
+- the proof's `of` attribute resolves to its canonical or proposed result;
+- an existing target's protected result block was not redefined;
+- the proof body is nonempty;
+- every dependency exists and is available through local scope or an explicit
+  import; and
+- every premise required to support an accepted proof has the required
+  verification status.
+
+Preflight establishes that the candidate is eligible for mathematical review.
+It does not imply correctness.
+
+### Example preflight failure
+
+If the proposal links its proof to a nonexistent or misspelled target:
+
+```markdown
+::: {.proof of="thm-main-even-squares"}
+Let \(n=2k\). Then \(n^2=4k^2\).
+:::
+```
+
+preflight rejects it because `@thm-main-even-squares` does not exist. The host
+agent must link the proof to `thm-main-even-square`. There is no duplicated
+statement in the proposal to edit or compare.
+
+## Independent verification
+
+The verifier is a bounded facility within the proving utilities. It may run an
+external command, a fresh LLM context, a host-provided verification sub-agent,
+or a formal checker adapter.
+
+An informal verifier receives a minimal packet containing:
+
+- the exact target statement;
+- the candidate proof;
+- dependencies cited in the proof;
+- the statements of cited, verified results;
+- relevant definitions and hypotheses; and
+- a verification rubric requiring explicit errors and gaps.
+
+It does not receive the proving agent's confidence, private reasoning,
+persuasive commentary, or unrelated project narrative. A fresh verifier
+context prevents the candidate's author from implicitly self-verifying.
+
+The verifier returns structured results with at least:
+
+- a verdict;
+- a short summary;
+- critical mathematical errors;
+- unfilled gaps; and
+- repair guidance.
+
+An informal candidate is accepted only when the verdict is correct and both
+the critical-error and gap lists are empty.
+
+LLM verification, formal verification, and human review are separate statuses.
+The record must not describe an informal verifier result as formal proof.
+
+### Example verifier packet
+
+An abbreviated packet for the proposal above could be:
+
+```json
+{
+  "target": {
+    "id": "thm-main-even-square",
+    "statement": "For every even integer n, n^2 is divisible by 4.",
+    "proof": "Let n be even. By @def-even-integer ...",
+    "cited_dependencies": ["def-even-integer"]
+  },
+  "dependencies": [
+    {
+      "id": "def-even-integer",
+      "statement": "An integer n is even if n=2k for some integer k.",
+      "status": "verified"
+    }
+  ],
+  "verification": {
+    "fresh_context": true,
+    "require_zero_gaps": true
+  }
+}
+```
+
+It contains the mathematical context needed for judgment, but no statement
+that the author is confident or that a previous attempt almost passed.
+
+## Rejection and repair
+
+On rejection:
+
+- canonical QMD is unchanged;
+- the candidate and complete verifier report are retained;
+- the host agent reads every critical error and gap;
+- repair occurs in a new or updated isolated proposal; and
+- the repaired candidate is checked and verified again in a fresh context.
+
+The utility does not hide earlier reports or replace them with a summary that
+loses actionable detail.
+
+If the statement appears false, the host agent preserves it and develops a
+precise refutation or counterexample for the user. It must not weaken the
+statement to manufacture an acceptable proof.
+
+### Example rejection and repair
+
+For the claim “the product of two positive numbers is positive,” suppose a
+candidate merely says “This is obvious.” A verifier can respond:
+
+```json
+{
+  "verdict": "incorrect",
+  "summary": "The conclusion is asserted without using the ordered-field rule.",
+  "critical_errors": [],
+  "gaps": ["Justify why a>0 and b>0 imply ab>0."],
+  "repair_hints": "Cite the verified positivity-under-multiplication result."
+}
+```
+
+The host agent then cites the available lemma at the point of application and
+resubmits. A successful second report might be:
+
+```json
+{
+  "verdict": "correct",
+  "summary": "The cited ordered-field lemma directly proves the claim.",
+  "critical_errors": [],
+  "gaps": [],
+  "repair_hints": ""
+}
+```
+
+The first rejection remains recorded; it is not rewritten as a successful
+attempt.
+
+## Safe acceptance
+
+Verification can take time, so acceptance must confirm that the verified
+context is still current.
+
+Before verification, the utility records identities for:
+
+- the target statement and existing canonical proof; and
+- every dependency statement, proof, and verification status used by the
+  candidate.
+
+After a successful verdict, it reinspects the project. If the target or any
+dependency changed, the submission is stale and must not be applied.
+
+For a current submission, the utility:
+
+1. acquires the canonical-write lock;
+2. replaces only the permitted proof content;
+3. records verification for the exact accepted statement and proof;
+4. rebuilds and checks the semantic project state; and
+5. commits the files atomically, rolling back on any failure.
+
+The host agent cannot bypass this path merely because it authored the proof.
+
+### Example stale acceptance
+
+Assume the verifier accepted a proof using `@lem-bound` with statement hash
+`sha256:A`. Before the acceptance write, another edit changes that lemma,
+producing statement hash `sha256:B`.
+
+Even if the changed lemma remains true, the verifier did not review the
+candidate against that exact dependency. The proving utility reports the
+submission as stale and leaves canonical QMD unchanged. The host agent must
+inspect the new dependency context and submit again.
+
+By contrast, an unrelated prose edit outside all semantic blocks does not
+change the target or dependency identities and need not invalidate the
+submission.
+
+## Records
+
+The proving utilities may retain under `.qmd-prover/`:
+
+- persistent goal-scoped workspaces containing agent-generated QMD;
+- isolated proposals and optional supporting notes;
+- the bounded packet sent to the verifier or its stable identity;
+- complete verifier reports;
+- accepted and rejected submission records; and
+- a verification index relating an exact proof to its status.
+
+This is mathematical working state and proof provenance, not an agent runtime.
+The core design has no qmd-prover worker registry, scheduler, or inter-agent
+message store. Codex or Claude Code owns the running agent; qmd-prover preserves
+the goal workspace that agent reads and writes.
+
+## Invocation model
+
+The utilities are dependency-free Node programs shipped inside the skill. The
+skill tells the host agent which script operation to run and how to interpret
+its stable JSON result. A human may run the same operation with `node` for
+debugging or direct use.
+
+There is no separately installed qmd-prover binary and no independent CLI
+architecture. Script command names and JSON schemas are the tool protocol used
+by the skill.
+
+### Example direct invocation
+
+From the mathematical project root, a maintainer can submit the isolated
+proposal with:
+
+```bash
+node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" \
+  submit-proof .qmd-prover/proposals/even-square.qmd
+```
+
+A rejected JSON response directs the host agent to the stored report. An
+accepted response identifies the exact target and verification record that now
+matches canonical QMD.
