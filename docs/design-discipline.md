@@ -3,43 +3,30 @@
 ## Role
 
 The discipline defines what a valid qmd-prover mathematical project looks like
-and how a host agent must work on it. Its canonical form is the managed contract
-in `skills/qmd-prover/references/AGENTS.md`.
+and how a host agent must work on it. Its canonical form is the managed
+contract in `skills/qmd-prover/references/AGENTS.md`.
 
-This document describes the role and enforcement model of that contract. It
-does not duplicate the contract's normative text.
-
-## Why the discipline is separate
-
-Mathematical proof work combines rules of different kinds:
-
-- source-format rules that a program can decide;
-- mathematical requirements that require judgment; and
-- behavioral constraints on the agent editing the project.
-
-Keeping them in one visible project discipline gives the user, the host agent,
-the inspector, and the verifier a shared contract. Separating the discipline
-from the utilities also prevents implementation details from silently becoming
-mathematical policy.
+A matching project contract is a prerequisite for inspection and proof work.
+Before invoking the inspector, the host agent checks that the managed block in
+the project's root `AGENTS.md` is present, has the canonical version, and is
+unchanged. If that preflight fails, the host agent stops before inspection or
+mutation and asks whether the user wants to synchronize the project-owned
+contract. This is an agent preflight requirement, not a substitute for the
+inspector's source and mathematical checks.
 
 ## Canonical and local policy
 
-The skill ships one versioned managed contract. A mathematical project copies
-that managed block into its root `AGENTS.md` without modification. The project
-may add local rules outside the block for matters such as:
+Each project policy has two parts:
 
-- notation and terminology;
-- language and writing style;
-- subject-directory organization;
-- preferred foundational sources; and
-- restrictions on introducing new definitions or files.
+1. The **managed block** supplies qmd-prover's shared safety and proof rules.
+   The project copies this versioned block into its root `AGENTS.md` verbatim.
+2. **Local policy**, written outside the managed block, supplies rules specific
+   to that project, such as notation, language, directory layout, or preferred
+   sources.
 
-Local policy may strengthen the managed discipline but cannot weaken it.
-
-Before proof work, the host agent compares the project's managed block with the
-canonical copy. A missing, changed, or incompatible contract is a preflight
-failure. Synchronizing the project contract requires the user's approval
-because `AGENTS.md` is project-owned policy.
+Local rules may add constraints, but they may not change or weaken the managed
+rules. Because `AGENTS.md` belongs to the project, qmd-prover must ask the user
+before creating or synchronizing it.
 
 ### Example: project-local policy
 
@@ -51,18 +38,29 @@ here. A project can append local policy after it:
 
 ## Local project policy
 
-- Put shared algebra definitions in `algebra/foundations.qmd`.
 - Use \(\mathbb N=\{0,1,2,\ldots\}\).
-- State theorem titles in English and write proofs in Chinese.
-- Ask before introducing a new axiom or external theorem.
+- Put shared definitions in `foundations.qmd`.
 ```
 
-The directory and writing rules strengthen the project discipline without
-changing the managed contract. A local rule such as “agents may edit a
-`thm-main-*` statement when convenient” would conflict with the managed
-contract and must be rejected.
+These additions choose notation and file placement without changing how proofs
+are protected or verified. By contrast, a local rule saying “agents may edit a
+`thm-main-*` statement” contradicts statement protection and is invalid.
 
 ## Rule categories
+
+The discipline assigns rules to three enforcement mechanisms. Passing one
+mechanism never implies that the other two have passed.
+
+| Rule category | Enforced by | What it establishes |
+|---|---|---|
+| Mechanically enforceable | Inspector and proving utilities | The QMD structure, references, records, and writes satisfy decidable invariants. |
+| Mathematically judged | Independent AI verifier | The exact construction or proof is mathematically sufficient. |
+| Agent conduct | Host-agent instructions | The agent follows project ownership and proof-development workflow rules. |
+
+The first category is checked by code. The second is checked only after the
+programmatic checks pass. The third is not generally decidable from the final
+QMD and has no separate automated checker: the skill instructs the AI host
+agent to follow it, while the user remains able to identify a violation.
 
 ### Mechanically enforceable rules
 
@@ -81,9 +79,9 @@ project representation, including:
 - cached-statement checks and transitive stale-verification invalidation; and
 - rejection-safe, atomic acceptance.
 
-Mechanical enforcement is deliberately conservative. If a required fact
-cannot be established from the semantic representation, the utility reports a
-diagnostic rather than guessing.
+Mechanical checking is deliberately conservative. If the program cannot
+establish a required fact from the semantic representation and protected
+records, it reports a diagnostic rather than guessing.
 
 #### Example: a mechanically detectable dependency error
 
