@@ -5,6 +5,46 @@ import { readFileSync } from 'node:fs';
 const file = process.argv.at(-1);
 const source = readFileSync(file, 'utf8');
 
+function metaString(value) { return { t: 'MetaString', c: value }; }
+
+function parseMetadata(text) {
+  const lines = text.split(/\r?\n/);
+  const first = lines.findIndex((line) => line.trim() === '---');
+  if (first < 0) return {};
+  const last = lines.findIndex((line, index) => index > first && line.trim() === '---');
+  if (last < 0) return {};
+  const imports = [];
+  let current = null;
+  let inQmdProver = false;
+  let inImports = false;
+  let inUse = false;
+  for (const raw of lines.slice(first + 1, last)) {
+    const indent = raw.match(/^\s*/)[0].length;
+    const line = raw.trim();
+    if (indent === 0) {
+      inQmdProver = line === 'qmd-prover:';
+      inImports = false;
+      inUse = false;
+      continue;
+    }
+    if (!inQmdProver) continue;
+    if (indent === 2 && line === 'imports:') { inImports = true; inUse = false; continue; }
+    if (!inImports) continue;
+    const from = line.match(/^-\s*from:\s*(.+)$/);
+    if (from) { current = { from: from[1].replace(/^['"]|['"]$/g, ''), use: [] }; imports.push(current); inUse = false; continue; }
+    if (line === 'use:') { inUse = true; continue; }
+    const item = inUse && line.match(/^-\s*(.+)$/);
+    if (item && current) current.use.push(item[1].replace(/^@/, '').replace(/^['"]|['"]$/g, ''));
+  }
+  if (!inQmdProver && imports.length === 0) return {};
+  return {
+    'qmd-prover': {
+      t: 'MetaMap',
+      c: { imports: { t: 'MetaList', c: imports.map((entry) => ({ t: 'MetaMap', c: { from: metaString(entry.from), use: { t: 'MetaList', c: entry.use.map(metaString) } } })) } }
+    }
+  };
+}
+
 function inlines(text) {
   const output = [];
   const parts = text.trim().split(/(\s+|@(def|lem|thm|prp|cor)-[A-Za-z0-9_:-]+(?:\.[A-Za-z0-9_:-]+)*)/).filter((part) => part && !/^(def|lem|thm|prp|cor)$/.test(part));
@@ -52,4 +92,4 @@ for (let index = 0; index < lines.length; index += 1) {
   index = end;
 }
 
-process.stdout.write(JSON.stringify({ 'pandoc-api-version': [1, 23], meta: {}, blocks: astBlocks }));
+process.stdout.write(JSON.stringify({ 'pandoc-api-version': [1, 23], meta: parseMetadata(source), blocks: astBlocks }));

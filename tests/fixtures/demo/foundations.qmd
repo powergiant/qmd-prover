@@ -1,11 +1,7 @@
-::: {#def-reflexive .definition export="reflexive"}
-## Reflexive equality
-
-### Statement
-
+::: {#def-reflexive .definition name="Reflexive equality" export="reflexive"}
 Every object is equal to itself.
+:::
 
-### Proof
-
+::: {.proof of="def-reflexive"}
 This is the reflexivity axiom for equality.
 :::

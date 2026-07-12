@@ -1,6 +1,6 @@
 # qmd-prover
 
-qmd-prover is a Codex skill and dependency-light Node CLI for agentic mathematical proof workflows in Quarto Markdown. Canonical mathematics remains readable QMD; generated state, verification reports, and rendered navigation stay under `.qmd-prover/`.
+qmd-prover is a Codex skill and dependency-free Node runtime for disciplined mathematical proof workflows in Quarto Markdown. Canonical mathematics remains readable QMD; goal workspaces, verification reports, and generated Quarto observability inputs stay under `.qmd-prover/`.
 
 ## Repository layout
 

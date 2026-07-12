@@ -26,12 +26,14 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" <sub
 
 1. Complete the project contract preflight, then run `inspect-project`. Stop and repair structural errors before proving.
 2. Run `inspect-theorem @thm-main-ID` for each requested goal.
-3. Partition independent goals and claim work in `.qmd-prover/goal-locks.json`. Use isolated workers only when the user or local policy requests parallel work.
-4. Read the exact statement, imports, verified dependency closure, accepted mathematics, prior proposals, and verification reports.
-5. Write a proposal containing exactly one complete semantic result block. Preserve a main theorem's ID, title, and Statement byte-for-byte. Put every logical premise in `Uses` and cite it in the proof.
-6. Run `submit-proof PROPOSAL_FILE`. Never edit a canonical proof directly and never declare your own proposal verified.
-7. On rejection, read `verification show SUBMISSION_ID`, repair every critical error and gap in a new proposal, and resubmit.
-8. Continue until verified, precisely refuted, genuinely blocked, cancelled, or explicitly stopped. Preserve useful notes under the assigned worker directory.
+3. Run `workspace init @thm-main-ID`, then develop the argument only under the returned goal workspace. Use isolated workers only when the user or local policy requests parallel work.
+4. Read the protected target snapshot, exact statement, imports, verified dependency closure, accepted mathematics, prior proposals, and verification reports.
+5. Run `workspace inspect @thm-main-ID` as the development grows. Follow open workspace dependencies instead of treating candidate lemmas as established.
+6. For an existing result, write a proposal containing exactly one nonempty `.proof` block with `of="semantic-id"`. Do not copy or redefine the protected result. Semantic references inside the proof are its dependency declarations.
+7. For a new result, write exactly one result block and its linked proof, then submit it with an explicit canonical destination consistent with project policy.
+8. Run `submit-proof PROPOSAL_FILE` (or `submit-proof PROPOSAL_FILE --to CANONICAL_QMD` for a new result). Never edit a canonical proof directly and never declare your own proposal verified.
+9. On rejection, read `verification show SUBMISSION_ID`, repair every critical error and gap in workspace QMD, and resubmit.
+10. Continue until verified, precisely refuted, genuinely blocked, cancelled, or explicitly stopped. Preserve useful notes in the goal workspace.
 
 Only a `correct` verdict with empty critical errors and gaps is accepted. Treat `verified`, `formally verified`, and `human reviewed` as distinct states.
 
@@ -40,7 +42,7 @@ Only a `correct` verdict with empty critical errors and gaps is accepted. Treat 
 - Use `inspect-project` for all goal states and diagnostics.
 - Use `inspect-theorem` for a bounded target/dependency/history bundle.
 - Use `verification show` for the complete stored report.
-- Use `render` for linked theorem pages, reports, and a dependency graph.
+- Use `render` to prepare a generated QMD status page, report data, and a dependency graph; use ordinary `quarto render` for final HTML, PDF, or other output.
 - Use `verification revoke @thm-ID --reason "..."` only with a concrete recorded reason.
 
 Translate dispatcher JSON into natural language for the user. Do not make the user learn these commands.

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { AUX, atomicJson, atomicWrite, cleanId, exists, readJson, relativePosix, sha256, stableJson } from './files.mjs';
 import { loadConfig } from './config.mjs';
 import { inlineText, normalizedAst, readAst, references, walk } from './pandoc.mjs';
-import { locateDiv } from './source.mjs';
+import { locateDiv, locateProof } from './source.mjs';
 
 const semanticPrefixes = /^(def|lem|thm|prp|cor)-/;
 const kindClasses = ['definition', 'lemma', 'theorem', 'proposition', 'corollary'];
@@ -27,51 +27,57 @@ function attrs(tuple = ['', [], []]) {
   return { id: tuple[0] ?? '', classes: tuple[1] ?? [], values: Object.fromEntries(tuple[2] ?? []) };
 }
 
-function sectionize(blocks) {
-  const sections = new Map();
-  let current = '_preamble';
-  sections.set(current, []);
-  for (const block of blocks) {
-    if (block.t === 'Header') {
-      const title = inlineText(block.c?.[2] ?? []).toLowerCase();
-      if (['statement', 'uses', 'proof'].includes(title)) {
-        current = title;
-        if (!sections.has(current)) sections.set(current, []);
-        continue;
-      }
-    }
-    sections.get(current).push(block);
+function metaValue(value) {
+  if (!value || typeof value !== 'object') return value;
+  if (value.t === 'MetaMap') return Object.fromEntries(Object.entries(value.c ?? {}).map(([key, item]) => [key, metaValue(item)]));
+  if (value.t === 'MetaList') return (value.c ?? []).map(metaValue);
+  if (value.t === 'MetaString' || value.t === 'MetaBool') return value.c;
+  if (value.t === 'MetaInlines') return inlineText(value.c ?? []);
+  if (value.t === 'MetaBlocks') return inlineText(value.c ?? []);
+  return value.c ?? value;
+}
+
+function importsFromMeta(ast, file, diagnostics) {
+  const metadata = metaValue(ast.meta?.['qmd-prover']);
+  if (metadata == null) return [];
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    diagnostics.push(diagnostic('error', 'IMPORT_METADATA_INVALID', 'qmd-prover metadata must be a map', file));
+    return [];
   }
-  return sections;
-}
-
-function titleOf(blocks) {
-  const header = blocks.find((block) => block.t === 'Header');
-  return header ? inlineText(header.c?.[2] ?? []) : '';
-}
-
-function parseImports(blocks) {
-  const text = blocks.map((block) => inlineText(block)).join('\n');
-  const from = text.match(/(?:^|\s)from:\s*([^\s]+)/i)?.[1] ?? '';
-  return { from, use: references(blocks) };
+  const declarations = metadata.imports ?? [];
+  if (!Array.isArray(declarations)) {
+    diagnostics.push(diagnostic('error', 'IMPORT_METADATA_INVALID', 'qmd-prover.imports must be a list', file));
+    return [];
+  }
+  return declarations.map((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      diagnostics.push(diagnostic('error', 'IMPORT_METADATA_INVALID', 'Each qmd-prover import must be a map', file));
+      return { from: '', use: [] };
+    }
+    const from = typeof entry.from === 'string' ? entry.from : '';
+    const use = Array.isArray(entry.use) ? entry.use.map(String).map(cleanId) : [];
+    if (!from) diagnostics.push(diagnostic('error', 'IMPORT_FROM_MISSING', 'Import metadata requires a from path', file));
+    if (use.length === 0) diagnostics.push(diagnostic('error', 'IMPORT_USE_MISSING', 'Import metadata requires an explicit, nonempty use list', file));
+    return { from, use };
+  });
 }
 
 function semanticDivs(ast) {
-  const results = [];
+  const entries = [];
   walk(ast.blocks ?? [], (node) => {
     if (node.t !== 'Div') return;
     const attribute = attrs(node.c?.[0]);
     const blocks = node.c?.[1] ?? [];
     const kind = kindClasses.find((candidate) => attribute.classes.includes(candidate));
-    if (attribute.classes.includes('theorem-imports')) results.push({ type: 'import', attribute, blocks, ...parseImports(blocks) });
-    else if (attribute.id && (semanticPrefixes.test(attribute.id) || kind)) results.push({ type: 'result', attribute, blocks, kind });
+    if (attribute.classes.includes('proof')) entries.push({ type: 'proof', attribute, blocks });
+    else if (attribute.id && (semanticPrefixes.test(attribute.id) || kind)) entries.push({ type: 'result', attribute, blocks, kind });
   });
-  return results;
+  return entries;
 }
 
 function resolveImport(importer, imported) {
   const candidate = path.posix.normalize(path.posix.join(path.posix.dirname(importer), imported));
-  return candidate.startsWith('../') ? null : candidate;
+  return candidate.startsWith('../') || path.posix.isAbsolute(candidate) ? null : candidate;
 }
 
 function findCycles(adjacency) {
@@ -96,7 +102,7 @@ function findCycles(adjacency) {
 
 function verificationStatus(result, verification) {
   const record = verification[result.id];
-  if (record?.status === 'revoked') return 'revoked';
+  if (record?.status === 'revoked' && record.statement_hash === result.statement_hash && record.proof_hash === result.proof_hash) return 'revoked';
   if (record?.status === 'verified' && record.statement_hash === result.statement_hash && record.proof_hash === result.proof_hash) return 'verified';
   if (record?.status === 'rejected' && record.statement_hash === result.statement_hash && record.canonical_proof_hash === result.proof_hash) return 'rejected';
   if (!result.proof_present) return 'open';
@@ -104,64 +110,70 @@ function verificationStatus(result, verification) {
 }
 
 async function initializeAux(root) {
-  const directories = ['tasks', 'workers', 'proposals', 'verification', 'accepted', 'rejected', 'dead-ends', 'reports', 'graphs', 'site', 'cache'];
+  const directories = ['workspaces', 'proposals', 'verification', 'accepted', 'rejected', 'reports', 'graphs', 'generated', 'cache'];
   await Promise.all(directories.map((directory) => mkdir(path.join(root, AUX, directory), { recursive: true })));
-  const initialFiles = [
-    [path.join(root, AUX, 'goal-locks.json'), {}],
-    [path.join(root, AUX, 'verification', 'index.json'), {}]
-  ];
-  for (const [file, value] of initialFiles) if (!await exists(file)) await atomicJson(file, value);
+  const indexFile = path.join(root, AUX, 'verification', 'index.json');
+  if (!await exists(indexFile)) await atomicJson(indexFile, {});
   const configFile = path.join(root, AUX, 'config.yml');
-  if (!await exists(configFile)) await atomicWrite(configFile, `project:\n  name: ${path.basename(root)}\n  root: ..\n  discover-qmd-recursively: true\n  exclude: [.qmd-prover]\n\ngoals:\n  id-prefix: thm-main-\n  protect-statements: true\n\nsemantic:\n  wildcard-imports: false\n  require-declared-uses: true\n\nverification:\n  backend: none\n  model: configurable\n  effort: high\n  fresh-context: true\n  require-zero-gaps: true\n\nrender:\n  graph-engine: builtin\n  hover-previews: true\n  output-dir: .qmd-prover/site\n`);
-  const quartoFile = path.join(root, AUX, '_quarto.yml');
-  if (!await exists(quartoFile)) await atomicWrite(quartoFile, `project:\n  type: website\n  output-dir: site\n`);
+  if (!await exists(configFile)) await atomicWrite(configFile, `project:\n  name: ${path.basename(root)}\n  root: ..\n  discover-qmd-recursively: true\n  exclude: [.qmd-prover]\n\ngoals:\n  id-prefix: thm-main-\n  protect-statements: true\n\nsemantic:\n  wildcard-imports: false\n\nverification:\n  backend: none\n  model: configurable\n  effort: high\n  fresh-context: true\n  require-zero-gaps: true\n\nrender:\n  graph-engine: builtin\n  output-dir: .qmd-prover/generated\n`);
 }
 
 export async function compileProject(root = process.cwd(), options = {}) {
   root = path.resolve(root);
   if (options.write !== false) await initializeAux(root);
   const config = await loadConfig(root);
-  const discovered = options.files
+  let discovered = options.files
     ? options.files.map((absolute) => ({ absolute: path.resolve(absolute), relative: relativePosix(root, path.resolve(absolute)) }))
     : await discover(root, root);
+  const excludedFiles = new Set((options.excludeFiles ?? []).map((file) => path.resolve(file)));
+  if (excludedFiles.size) discovered = discovered.filter((file) => !excludedFiles.has(file.absolute));
   const diagnostics = [];
   const files = [];
   const allResults = [];
+  const allProofs = [];
+
   for (const file of discovered) {
     try {
       const [ast, source] = await Promise.all([readAst(file.absolute, options), readFile(file.absolute, 'utf8')]);
+      const imports = importsFromMeta(ast, file.relative, diagnostics);
       const entries = semanticDivs(ast);
-      const imports = [];
       const results = [];
+      const proofs = [];
       for (const entry of entries) {
-        if (entry.type === 'import') {
-          imports.push({ from: entry.from, use: entry.use });
-          if (!entry.from) diagnostics.push(diagnostic('error', 'IMPORT_FROM_MISSING', 'Import block requires a from path', file.relative));
-          if (entry.use.length === 0) diagnostics.push(diagnostic('error', 'IMPORT_USE_MISSING', 'Import block requires an explicit, nonempty use list', file.relative));
+        const { id, classes, values } = entry.attribute;
+        if (entry.type === 'proof') {
+          const target = cleanId(String(values.of ?? ''));
+          const located = target ? locateProof(source, target) : null;
+          const line = located?.startLine;
+          const proof = {
+            target, file: file.relative, line,
+            proof_hash: sha256(stableJson(normalizedAst(entry.blocks), 0)),
+            proof_present: inlineText(entry.blocks).length > 0 || entry.blocks.some((block) => block.t !== 'Null'),
+            dependencies: references(entry.blocks),
+            blocks: entry.blocks
+          };
+          proofs.push(proof);
+          allProofs.push(proof);
+          if (!target) diagnostics.push(diagnostic('error', 'PROOF_TARGET_MISSING', 'A .proof block requires an of attribute', file.relative, line));
+          if (!proof.proof_present) diagnostics.push(diagnostic('error', 'PROOF_EMPTY', `Proof of @${target || '?'} is empty`, file.relative, line, target));
           continue;
         }
-        const { id, classes, values } = entry.attribute;
+
         const located = locateDiv(source, id);
         const line = located?.startLine;
-        const sections = sectionize(entry.blocks);
-        const statement = sections.get('statement') ?? [];
-        const proof = sections.get('proof') ?? [];
-        const uses = references(sections.get('uses') ?? []);
-        const proofRefs = references(proof);
-        const title = titleOf(sections.get('_preamble') ?? entry.blocks);
-        const statementHash = sha256(stableJson(normalizedAst(statement), 0));
-        const proofHash = sha256(stableJson(normalizedAst(proof), 0));
         const semanticKinds = classes.filter((item) => kindClasses.includes(item));
         const kind = entry.kind ?? 'unknown';
+        const title = String(values.name ?? '');
         const result = {
           id, file: file.relative, line, kind, classes: [...classes].sort(), title,
           origin: id.startsWith(config.goals['id-prefix']) ? 'user' : 'agent',
           export: values.export ?? null,
-          statement_hash: statementHash,
+          statement_hash: sha256(stableJson(normalizedAst(entry.blocks), 0)),
           title_hash: sha256(title),
-          proof_hash: proofHash,
-          proof_present: inlineText(proof).length > 0 || proof.some((block) => !['Null'].includes(block.t)),
-          uses, proof_references: proofRefs
+          proof_hash: sha256(stableJson(normalizedAst([]), 0)),
+          proof_present: false,
+          dependencies: [],
+          uses: []
         };
         results.push(result);
         allResults.push(result);
@@ -171,14 +183,12 @@ export async function compileProject(root = process.cwd(), options = {}) {
         const prefix = id.match(semanticPrefixes)?.[1];
         if (prefix && entry.kind && expectedKind[prefix] !== entry.kind) diagnostics.push(diagnostic('error', 'ID_KIND_MISMATCH', `${id} requires class .${expectedKind[prefix]}, not .${entry.kind}`, file.relative, line, id));
         if (id.startsWith(config.goals['id-prefix']) && (!classes.includes('goal') || entry.kind !== 'theorem')) diagnostics.push(diagnostic('error', 'MAIN_GOAL_SHAPE', `${id} requires both .theorem and .goal classes`, file.relative, line, id));
-        if (statement.length === 0) diagnostics.push(diagnostic('error', 'STATEMENT_MISSING', `${id} requires a nonempty Statement section`, file.relative, line, id));
-        if (!sections.has('proof')) diagnostics.push(diagnostic('error', 'PROOF_SECTION_MISSING', `${id} requires a Proof section`, file.relative, line, id));
-        const undeclared = proofRefs.filter((ref) => !uses.includes(ref));
-        const unused = uses.filter((ref) => !proofRefs.includes(ref));
-        if (config.semantic['require-declared-uses'] && undeclared.length) diagnostics.push(diagnostic('error', 'UNDECLARED_PROOF_REFERENCE', `${id} cites undeclared dependencies: ${undeclared.map((x) => `@${x}`).join(', ')}`, file.relative, line, id));
-        if (config.semantic['require-declared-uses'] && unused.length && result.proof_present) diagnostics.push(diagnostic('error', 'UNUSED_DECLARED_USE', `${id} declares dependencies not cited in its proof: ${unused.map((x) => `@${x}`).join(', ')}`, file.relative, line, id));
+        if (!title.trim()) diagnostics.push(diagnostic('error', 'RESULT_NAME_MISSING', `${id} requires a nonempty name attribute`, file.relative, line, id));
+        if (inlineText(entry.blocks).length === 0 && entry.blocks.every((block) => block.t === 'Null')) diagnostics.push(diagnostic('error', 'STATEMENT_MISSING', `${id} requires a nonempty statement body`, file.relative, line, id));
+        const legacyHeaders = entry.blocks.filter((block) => block.t === 'Header' && ['statement', 'uses', 'proof'].includes(inlineText(block.c?.[2] ?? []).toLowerCase()));
+        if (legacyHeaders.length) diagnostics.push(diagnostic('error', 'LEGACY_RESULT_SECTIONS', `${id} must use a result body and a separate linked .proof block, not Statement/Uses/Proof headings`, file.relative, line, id));
       }
-      files.push({ path: file.relative, imports, results: results.map((result) => result.id) });
+      files.push({ path: file.relative, imports, results: results.map((result) => result.id), proofs: proofs.map((proof) => proof.target) });
     } catch (error) {
       diagnostics.push(diagnostic('error', 'PARSE_ERROR', error.message, file.relative));
     }
@@ -194,6 +204,36 @@ export async function compileProject(root = process.cwd(), options = {}) {
       else byExport.set(result.export, result);
     }
   }
+
+  const externalTargets = new Set((options.externalTargets ?? []).map(cleanId));
+  const proofsByTarget = new Map();
+  for (const proof of allProofs) {
+    if (!proof.target) continue;
+    if (!proofsByTarget.has(proof.target)) proofsByTarget.set(proof.target, []);
+    proofsByTarget.get(proof.target).push(proof);
+  }
+  for (const [target, proofs] of proofsByTarget) {
+    const result = byId.get(target);
+    if (!result && !externalTargets.has(target)) {
+      for (const proof of proofs) diagnostics.push(diagnostic('error', 'PROOF_TARGET_UNKNOWN', `Proof target @${target} does not exist`, proof.file, proof.line, target));
+      continue;
+    }
+    if (proofs.length > 1) {
+      for (const proof of proofs) diagnostics.push(diagnostic('error', 'PROOF_MULTIPLE', `@${target} has more than one associated proof`, proof.file, proof.line, target));
+      continue;
+    }
+    const proof = proofs[0];
+    if (result) {
+      if (proof.file !== result.file) diagnostics.push(diagnostic('error', 'PROOF_DIFFERENT_FILE', `Proof of @${target} must be in the result's source file`, proof.file, proof.line, target));
+      result.proof_hash = proof.proof_hash;
+      result.proof_present = proof.proof_present;
+      result.dependencies = proof.dependencies;
+      result.uses = proof.dependencies;
+      result.proof_file = proof.file;
+      result.proof_line = proof.line;
+    }
+  }
+
   const fileMap = new Map(files.map((file) => [file.path, file]));
   const importAdjacency = new Map(files.map((file) => [file.path, []]));
   for (const file of files) {
@@ -215,13 +255,14 @@ export async function compileProject(root = process.cwd(), options = {}) {
     }
     for (const id of file.results) {
       const result = byId.get(id);
-      for (const dependency of result.uses) {
-        if (!available.has(dependency)) diagnostics.push(diagnostic('error', 'DEPENDENCY_UNAVAILABLE', `@${dependency} is neither local nor explicitly imported`, result.file, result.line, result.id));
+      for (const dependency of result.dependencies) {
+        if (!byId.has(dependency)) diagnostics.push(diagnostic('error', 'DEPENDENCY_UNKNOWN', `@${dependency} cited by the proof does not exist`, result.file, result.proof_line ?? result.line, result.id));
+        else if (!available.has(dependency)) diagnostics.push(diagnostic('error', 'DEPENDENCY_UNAVAILABLE', `@${dependency} is cited by the proof but is not local or imported`, result.file, result.proof_line ?? result.line, result.id));
       }
     }
   }
   for (const cycle of findCycles(importAdjacency)) diagnostics.push(diagnostic('error', 'IMPORT_CYCLE', `Import cycle: ${cycle.join(' -> ')}`, cycle[0]));
-  const dependencyAdjacency = new Map(allResults.map((result) => [result.id, result.uses.filter((id) => byId.has(id))]));
+  const dependencyAdjacency = new Map(allResults.map((result) => [result.id, result.dependencies.filter((id) => byId.has(id))]));
   for (const cycle of findCycles(dependencyAdjacency)) {
     const result = byId.get(cycle[0]);
     diagnostics.push(diagnostic('error', 'DEPENDENCY_CYCLE', `Semantic dependency cycle: ${cycle.map((id) => `@${id}`).join(' -> ')}`, result?.file, result?.line, result?.id));
@@ -229,27 +270,30 @@ export async function compileProject(root = process.cwd(), options = {}) {
 
   const locksFile = path.join(root, AUX, 'statement-locks.json');
   const locks = await readJson(locksFile, {});
-  for (const result of allResults.filter((item) => item.origin === 'user')) {
-    const prior = locks[result.id];
-    if (!prior) locks[result.id] = { statement_hash: result.statement_hash, title_hash: result.title_hash, file: result.file };
-    else {
-      if (prior.statement_hash !== result.statement_hash) diagnostics.push(diagnostic('error', 'MAIN_STATEMENT_MUTATED', `${result.id} statement differs from its user-owned baseline`, result.file, result.line, result.id));
-      if (prior.title_hash !== result.title_hash) diagnostics.push(diagnostic('error', 'MAIN_TITLE_MUTATED', `${result.id} title differs from its user-owned baseline`, result.file, result.line, result.id));
+  const protectStatements = options.protectStatements ?? !options.files;
+  if (protectStatements) {
+    for (const result of allResults.filter((item) => item.origin === 'user')) {
+      const prior = locks[result.id];
+      if (!prior) locks[result.id] = { statement_hash: result.statement_hash, title_hash: result.title_hash, file: result.file };
+      else {
+        if (prior.statement_hash !== result.statement_hash) diagnostics.push(diagnostic('error', 'MAIN_STATEMENT_MUTATED', `${result.id} statement differs from its user-owned baseline`, result.file, result.line, result.id));
+        if (prior.title_hash !== result.title_hash) diagnostics.push(diagnostic('error', 'MAIN_TITLE_MUTATED', `${result.id} title differs from its user-owned baseline`, result.file, result.line, result.id));
+      }
     }
   }
-  if (options.write !== false) await atomicJson(locksFile, locks);
 
   const verification = await readJson(path.join(root, AUX, 'verification', 'index.json'), {});
-  const goalState = await readJson(path.join(root, AUX, 'goal-locks.json'), {});
+  for (const result of allResults) result.status = verificationStatus(result, verification);
   for (const result of allResults) {
-    result.status = verificationStatus(result, verification);
-    const persisted = goalState[result.id]?.status;
-    if (['open', 'in-progress', 'blocked', 'refuted', 'cancelled'].includes(persisted) && !['verified', 'revoked', 'rejected'].includes(result.status)) result.status = persisted;
-  }
-  for (const result of allResults) {
+    if (result.proof_present && result.status !== 'verified') {
+      for (const dependency of result.dependencies) {
+        const premise = byId.get(dependency);
+        if (premise && premise.status !== 'verified') diagnostics.push(diagnostic('warning', 'DEPENDENCY_STATUS_INSUFFICIENT', `${result.id} cites @${dependency}, whose current status is ${premise.status}`, result.file, result.proof_line ?? result.line, result.id));
+      }
+    }
     if (result.status === 'verified') {
-      for (const dependency of result.uses) {
-        if (byId.get(dependency)?.status !== 'verified') diagnostics.push(diagnostic('error', 'VERIFIED_DEPENDENCY_INVALID', `${result.id} depends on unverified @${dependency}`, result.file, result.line, result.id));
+      for (const dependency of result.dependencies) {
+        if (byId.get(dependency)?.status !== 'verified') diagnostics.push(diagnostic('error', 'VERIFIED_DEPENDENCY_INVALID', `${result.id} depends on unverified @${dependency}`, result.file, result.proof_line ?? result.line, result.id));
       }
     }
   }
@@ -257,11 +301,11 @@ export async function compileProject(root = process.cwd(), options = {}) {
   allResults.sort((a, b) => a.id.localeCompare(b.id));
   files.sort((a, b) => a.path.localeCompare(b.path));
   diagnostics.sort((a, b) => `${a.file ?? ''}:${a.line ?? 0}:${a.code}`.localeCompare(`${b.file ?? ''}:${b.line ?? 0}:${b.code}`));
-  const manifest = { schema_version: 1, files, results: allResults };
+  const manifest = { schema_version: 1, files, results: allResults, proofs: allProofs.map(({ blocks, ...proof }) => proof) };
   const graph = {
     schema_version: 1,
     nodes: allResults.map(({ id, title, kind, status, file, line }) => ({ id, title, kind, status, file, line })),
-    edges: allResults.flatMap((result) => result.uses.map((dependency) => ({ from: result.id, to: dependency }))).sort((a, b) => `${a.from}:${a.to}`.localeCompare(`${b.from}:${b.to}`))
+    edges: allResults.flatMap((result) => result.dependencies.map((dependency) => ({ from: result.id, to: dependency }))).sort((a, b) => `${a.from}:${a.to}`.localeCompare(`${b.from}:${b.to}`))
   };
   const summary = {
     files: files.length,
@@ -270,14 +314,18 @@ export async function compileProject(root = process.cwd(), options = {}) {
     errors: diagnostics.filter((item) => item.severity === 'error').length,
     warnings: diagnostics.filter((item) => item.severity === 'warning').length
   };
+  const ok = summary.errors === 0;
   if (options.write !== false) {
-    await Promise.all([
-      atomicJson(path.join(root, AUX, 'manifest.json'), manifest),
-      atomicJson(path.join(root, AUX, 'graph.json'), graph),
-      atomicJson(path.join(root, AUX, 'diagnostics.json'), diagnostics)
-    ]);
+    await atomicJson(path.join(root, AUX, 'diagnostics.json'), diagnostics);
+    if (ok) {
+      await Promise.all([
+        atomicJson(path.join(root, AUX, 'manifest.json'), manifest),
+        atomicJson(path.join(root, AUX, 'graph.json'), graph),
+        ...(protectStatements ? [atomicJson(locksFile, locks)] : [])
+      ]);
+    }
   }
-  return { root, config, manifest, graph, diagnostics, summary, ok: summary.errors === 0 };
+  return { root, config, manifest, graph, diagnostics, summary, ok };
 }
 
 export function theoremBundle(compilation, requested) {
@@ -289,7 +337,7 @@ export function theoremBundle(compilation, requested) {
   const seen = new Set();
   const limit = 100;
   function visit(current) {
-    for (const dependency of current.uses) {
+    for (const dependency of current.dependencies) {
       if (closure.length >= limit) return;
       if (seen.has(dependency)) continue;
       seen.add(dependency);

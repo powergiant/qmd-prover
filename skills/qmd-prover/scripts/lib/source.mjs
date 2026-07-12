@@ -5,66 +5,84 @@ function parseFence(line) {
   return match ? { indent: match[1].length, length: match[2].length, attrs: match[3] ?? '' } : null;
 }
 
-function attrId(attrs) {
-  return attrs.match(/(?:^|\s)#([^\s}]+)/)?.[1] ?? '';
+function parseAttrs(source = '') {
+  const tokens = source.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) ?? [];
+  const id = tokens.find((token) => token.startsWith('#'))?.slice(1) ?? '';
+  const classes = tokens.filter((token) => token.startsWith('.')).map((token) => token.slice(1));
+  const values = {};
+  for (const token of tokens) {
+    const equals = token.indexOf('=');
+    if (equals < 1) continue;
+    const key = token.slice(0, equals);
+    const raw = token.slice(equals + 1);
+    values[key] = raw.replace(/^(?:"([\s\S]*)"|'([\s\S]*)')$/, (_, double, single) => double ?? single);
+  }
+  return { id, classes, values };
 }
 
-export function locateDiv(source, id) {
+export function locateDivs(source) {
   const lines = source.split(/(?<=\n)/);
   let offset = 0;
   const stack = [];
+  const found = [];
   for (let lineNumber = 0; lineNumber < lines.length; lineNumber += 1) {
     const line = lines[lineNumber];
     const fence = parseFence(line.replace(/\r?\n$/, ''));
     if (fence) {
       if (!fence.attrs) {
         const open = stack.pop();
-        if (open?.id === id) return { start: open.offset, end: offset + line.length, startLine: open.line + 1, endLine: lineNumber + 1 };
-      } else stack.push({ id: attrId(fence.attrs), offset, line: lineNumber, fenceLength: fence.length });
+        if (open) found.push({ ...open, end: offset + line.length, endLine: lineNumber + 1 });
+      } else stack.push({ attrs: parseAttrs(fence.attrs), rawAttrs: fence.attrs, start: offset, startLine: lineNumber + 1, bodyStart: offset + line.length });
     }
     offset += line.length;
   }
-  return null;
+  return found.sort((left, right) => left.start - right.start);
 }
 
-export function sectionFromDiv(source, div, heading) {
-  const block = source.slice(div.start, div.end);
-  const pattern = new RegExp(`^([ \\t]*)#{1,6}[ \\t]+${heading}[ \\t]*\\r?$`, 'gmi');
-  const match = pattern.exec(block);
-  if (!match) return null;
-  const bodyStart = match.index + match[0].length + (block[match.index + match[0].length] === '\n' ? 1 : 0);
-  const next = /^\s*#{1,6}\s+[^\n]+\r?$/gm;
-  next.lastIndex = bodyStart;
-  const nextMatch = next.exec(block);
-  const closing = block.lastIndexOf(':::');
-  const bodyEnd = nextMatch ? nextMatch.index : closing;
-  return {
-    headingStart: div.start + match.index,
-    bodyStart: div.start + bodyStart,
-    bodyEnd: div.start + Math.max(bodyStart, bodyEnd),
-    text: block.slice(bodyStart, Math.max(bodyStart, bodyEnd)).trim()
-  };
+export function locateDiv(source, id) {
+  return locateDivs(source).find((div) => div.attrs.id === id) ?? null;
+}
+
+export function locateProof(source, target) {
+  return locateDivs(source).find((div) => div.attrs.classes.includes('proof') && div.attrs.values.of?.replace(/^@/, '') === target.replace(/^@/, '')) ?? null;
+}
+
+function body(source, div) {
+  if (!div) return null;
+  const raw = source.slice(div.bodyStart, div.end);
+  const closing = raw.lastIndexOf(':::');
+  const bodyEnd = div.bodyStart + Math.max(0, closing);
+  return { bodyStart: div.bodyStart, bodyEnd, text: source.slice(div.bodyStart, bodyEnd).trim() };
 }
 
 export async function readLocatedBlock(file, id) {
   const source = await readFile(file, 'utf8');
   const div = locateDiv(source, id);
   if (!div) return null;
+  const proofDiv = locateProof(source, id);
   return {
     source,
     div,
     raw: source.slice(div.start, div.end),
-    statement: sectionFromDiv(source, div, 'Statement'),
-    uses: sectionFromDiv(source, div, 'Uses'),
-    proof: sectionFromDiv(source, div, 'Proof')
+    statement: body(source, div),
+    proof: proofDiv ? body(source, proofDiv) : null,
+    proofDiv
   };
 }
 
-export function replaceProof(canonical, candidate) {
-  if (!canonical.proof || !candidate.proof) throw new Error('Both canonical target and proposal require a Proof section');
-  const replacement = candidate.source.slice(candidate.proof.bodyStart, candidate.proof.bodyEnd).replace(/^\s+|\s+$/g, '');
-  const rawPrefix = canonical.source.slice(0, canonical.proof.bodyStart);
-  const prefix = rawPrefix.endsWith('\n\n') ? rawPrefix : `${rawPrefix}\n`;
-  const suffix = canonical.source.slice(canonical.proof.bodyEnd);
-  return `${prefix}${replacement ? `${replacement}\n` : ''}${suffix.replace(/^\n*/, '\n')}`;
+export async function readLocatedProof(file, id) {
+  const source = await readFile(file, 'utf8');
+  const proofDiv = locateProof(source, id);
+  return proofDiv ? { source, proofDiv, proof: body(source, proofDiv), raw: source.slice(proofDiv.start, proofDiv.end) } : null;
+}
+
+export function mergeProof(canonical, candidate) {
+  if (!canonical?.div || !candidate?.proofDiv) throw new Error('Canonical result and linked proposal proof are required');
+  const proofText = candidate.source.slice(candidate.proofDiv.start, candidate.proofDiv.end).trim();
+  if (canonical.proofDiv) {
+    return `${canonical.source.slice(0, canonical.proofDiv.start)}${proofText}${canonical.source.slice(canonical.proofDiv.end)}`;
+  }
+  const before = canonical.source.slice(0, canonical.div.end).replace(/\s*$/, '');
+  const after = canonical.source.slice(canonical.div.end).replace(/^\s*/, '');
+  return `${before}\n\n${proofText}\n${after ? `\n${after}` : ''}`;
 }

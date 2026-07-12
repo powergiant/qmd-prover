@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
-import { copyFile, mkdir, readFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { appendEvent, atomicJson, atomicWrite, AUX, newId, readJson, sha256, withWriteLock } from './files.mjs';
 import { compileProject } from './compiler.mjs';
-import { readLocatedBlock, replaceProof } from './source.mjs';
+import { readLocatedBlock, readLocatedProof, mergeProof } from './source.mjs';
 
 function run(command, args, input) {
   return new Promise((resolve, reject) => {
@@ -59,12 +59,11 @@ function accepted(report) {
 }
 
 async function verifierPacket(root, target, candidate, compilation) {
-  const canonicalPath = path.join(root, target.file);
-  const canonical = await readLocatedBlock(canonicalPath, target.id);
-  const proposed = await readLocatedBlock(candidate.file, target.id);
+  const canonical = target.file ? await readLocatedBlock(path.join(root, target.file), target.id) : null;
+  const proposed = await readLocatedProof(candidate.file, target.id);
   const byId = new Map(compilation.manifest.results.map((result) => [result.id, result]));
   const dependencies = [];
-  for (const id of candidate.result.uses) {
+  for (const id of candidate.result.dependencies) {
     const result = byId.get(id);
     const located = result && await readLocatedBlock(path.join(root, result.file), id);
     dependencies.push({
@@ -81,9 +80,9 @@ async function verifierPacket(root, target, candidate, compilation) {
     target: {
       id: target.id,
       title: target.title,
-      statement: canonical?.statement?.text ?? '',
+      statement: canonical?.statement?.text ?? candidate.statement,
       proof: proposed?.proof?.text ?? '',
-      declared_uses: candidate.result.uses,
+      cited_dependencies: candidate.result.dependencies,
       hypotheses: []
     },
     dependencies,
@@ -94,27 +93,55 @@ async function verifierPacket(root, target, candidate, compilation) {
 export async function submitProof(root, proposalFile, options = {}) {
   root = path.resolve(root);
   proposalFile = path.resolve(proposalFile);
-  const initial = await compileProject(root, options);
+  const initial = await compileProject(root, { ...options, excludeFiles: [proposalFile] });
   if (!initial.ok) throw new Error('Project has structural errors; repair them before submitting a proof');
-  const proposalCompilation = await compileProject(root, { ...options, files: [proposalFile], write: false });
-  const proposalErrors = proposalCompilation.diagnostics.filter((item) => !['DEPENDENCY_UNAVAILABLE', 'IMPORT_FILE_MISSING', 'IMPORT_ID_MISSING'].includes(item.code));
+  const proposalCompilation = await compileProject(root, {
+    ...options,
+    files: [proposalFile],
+    externalTargets: initial.manifest.results.map((result) => result.id),
+    write: false
+  });
+  const proposalErrors = proposalCompilation.diagnostics.filter((item) => ![
+    'DEPENDENCY_UNAVAILABLE', 'DEPENDENCY_UNKNOWN', 'IMPORT_FILE_MISSING', 'IMPORT_ID_MISSING', 'IMPORT_NOT_EXPORTED'
+  ].includes(item.code));
   if (proposalErrors.length) throw new Error(`Proposal is structurally invalid: ${proposalErrors.map((item) => item.message).join('; ')}`);
-  if (proposalCompilation.manifest.results.length !== 1) throw new Error('A proof proposal must contain exactly one semantic result block');
-  const candidateResult = proposalCompilation.manifest.results[0];
-  const target = initial.manifest.results.find((result) => result.id === candidateResult.id);
-  if (!target) throw new Error(`Proposal target @${candidateResult.id} does not exist in canonical QMD`);
+  if (proposalCompilation.manifest.proofs.length !== 1 || proposalCompilation.manifest.results.length > 1) {
+    throw new Error('A proof proposal must contain exactly one linked proof and at most one new result');
+  }
+  const proposalProof = proposalCompilation.manifest.proofs[0];
+  const proposedResult = proposalCompilation.manifest.results[0] ?? null;
+  const canonicalTarget = initial.manifest.results.find((result) => result.id === proposalProof.target);
+  if (canonicalTarget && proposedResult) throw new Error(`Proposal must not redefine existing canonical result @${proposalProof.target}`);
+  if (proposedResult && proposedResult.id !== proposalProof.target) throw new Error(`Proposal proof must target its proposed result @${proposedResult.id}`);
+  if (!canonicalTarget && !proposedResult) throw new Error(`Proposal target @${proposalProof.target} does not exist in canonical QMD`);
+  const isNewResult = !canonicalTarget;
+  if (isNewResult && !options.destination) throw new Error('A new-result proposal requires a canonical destination');
+  const target = canonicalTarget ?? { ...proposedResult, file: null, status: 'open' };
+  const candidateResult = {
+    ...target,
+    proof_hash: proposalProof.proof_hash,
+    proof_present: proposalProof.proof_present,
+    dependencies: proposalProof.dependencies,
+    uses: proposalProof.dependencies
+  };
   if (!candidateResult.proof_present) throw new Error('Proposal proof is empty');
   if (target.status === 'verified') throw new Error(`@${target.id} is already verified; revoke it with a recorded reason before replacing its proof`);
-  if (target.statement_hash !== candidateResult.statement_hash || target.title_hash !== candidateResult.title_hash) {
-    throw new Error(`Proposal changes the protected title or statement of @${target.id}`);
+  const destination = isNewResult ? path.resolve(root, options.destination) : path.join(root, target.file);
+  const destinationRelative = path.relative(root, destination).split(path.sep).join('/');
+  if (isNewResult && (destinationRelative.startsWith('../') || destinationRelative === AUX || destinationRelative.startsWith(`${AUX}/`))) {
+    throw new Error('A new result must be promoted to canonical QMD outside .qmd-prover');
   }
-  for (const dependency of candidateResult.uses) {
+  const scopeFile = isNewResult
+    ? initial.manifest.files.find((item) => item.path === destinationRelative)
+    : initial.manifest.files.find((item) => item.path === target.file);
+  const proposalFileRecord = proposalCompilation.manifest.files[0];
+  for (const dependency of candidateResult.dependencies) {
     const result = initial.manifest.results.find((item) => item.id === dependency);
     if (!result) throw new Error(`Proposal dependency @${dependency} does not exist`);
-    if (result.file !== target.file) {
-      const file = initial.manifest.files.find((item) => item.path === target.file);
-      const imported = file.imports.some((item) => item.use.includes(dependency));
-      if (!imported) throw new Error(`Proposal dependency @${dependency} is not imported by ${target.file}`);
+    if (result.file !== destinationRelative) {
+      const declarations = scopeFile?.imports ?? (isNewResult ? proposalFileRecord?.imports ?? [] : []);
+      const imported = declarations.some((item) => item.use.includes(dependency));
+      if (!imported) throw new Error(`Proposal dependency @${dependency} is not imported by ${destinationRelative}`);
     }
     if (result.status !== 'verified') throw new Error(`Proposal dependency @${dependency} is not verified`);
   }
@@ -125,19 +152,25 @@ export async function submitProof(root, proposalFile, options = {}) {
   await mkdir(proposalDir, { recursive: true });
   const storedProposal = path.join(proposalDir, 'proposal.qmd');
   await copyFile(proposalFile, storedProposal);
-  const dependencySnapshot = Object.fromEntries(candidateResult.uses.map((id) => {
+  const dependencySnapshot = Object.fromEntries(candidateResult.dependencies.map((id) => {
     const item = initial.manifest.results.find((result) => result.id === id);
     return [id, sha256(`${item.statement_hash}:${item.proof_hash}:${item.status}`)];
   }));
   const metadata = {
     proposal_id: proposalId, submission_id: submissionId, target: target.id,
     created_at: new Date().toISOString(), statement_hash: candidateResult.statement_hash,
-    proof_hash: candidateResult.proof_hash, dependency_snapshot: dependencySnapshot
+    proof_hash: candidateResult.proof_hash, dependency_snapshot: dependencySnapshot,
+    mode: isNewResult ? 'new-result' : 'existing-result', destination: destinationRelative
   };
   await atomicJson(path.join(proposalDir, 'metadata.json'), metadata);
   await appendEvent(root, { type: 'proposal-stored', submission_id: submissionId, proposal_id: proposalId, target: target.id });
 
-  const packet = await verifierPacket(root, target, { file: storedProposal, result: candidateResult }, initial);
+  const proposedLocated = isNewResult ? await readLocatedBlock(storedProposal, target.id) : null;
+  const packet = await verifierPacket(root, target, {
+    file: storedProposal,
+    result: candidateResult,
+    statement: proposedLocated?.statement?.text ?? ''
+  }, initial);
   await appendEvent(root, { type: 'verification-started', submission_id: submissionId, target: target.id });
   const report = await invokeVerifier(packet, initial.config);
   const isAccepted = accepted(report);
@@ -156,30 +189,36 @@ export async function submitProof(root, proposalFile, options = {}) {
     await mkdir(rejectedDir, { recursive: true });
     await Promise.all([copyFile(storedProposal, path.join(rejectedDir, 'proposal.qmd')), atomicJson(path.join(rejectedDir, 'report.json'), reportRecord)]);
     await withWriteLock(root, async () => {
-      const current = await compileProject(root, options);
+      const current = await compileProject(root, { ...options, excludeFiles: [proposalFile] });
       const currentTarget = current.manifest.results.find((result) => result.id === target.id);
-      if (!currentTarget || currentTarget.statement_hash !== target.statement_hash || currentTarget.proof_hash !== target.proof_hash) {
+      const targetIsCurrent = isNewResult
+        ? !currentTarget
+        : currentTarget && currentTarget.statement_hash === target.statement_hash && currentTarget.proof_hash === target.proof_hash;
+      if (!targetIsCurrent) {
         await appendEvent(root, { type: 'submission-stale', submission_id: submissionId, target: target.id, reason: 'target-changed-before-rejection-recorded' });
         return;
       }
       const indexFile = path.join(root, AUX, 'verification', 'index.json');
       const index = await readJson(indexFile, {});
-      index[target.id] = {
+      if (!isNewResult) index[target.id] = {
         status: 'rejected', submission_id: submissionId, statement_hash: target.statement_hash,
         canonical_proof_hash: target.proof_hash, rejected_proof_hash: candidateResult.proof_hash
       };
       await atomicJson(indexFile, index);
       await appendEvent(root, { type: 'verification-rejected', submission_id: submissionId, target: target.id });
-      await compileProject(root, options);
+      await compileProject(root, { ...options, excludeFiles: [proposalFile] });
     });
     return { submission_id: submissionId, proposal_id: proposalId, target: target.id, status: 'rejected', report };
   }
 
   return withWriteLock(root, async () => {
-    const current = await compileProject(root, options);
+    const current = await compileProject(root, { ...options, excludeFiles: [proposalFile] });
     if (!current.ok) throw new Error('Project became structurally invalid while verification was running');
     const currentTarget = current.manifest.results.find((result) => result.id === target.id);
-    if (!currentTarget || currentTarget.statement_hash !== target.statement_hash || currentTarget.proof_hash !== target.proof_hash) {
+    const targetIsCurrent = isNewResult
+      ? !currentTarget
+      : currentTarget && currentTarget.statement_hash === target.statement_hash && currentTarget.proof_hash === target.proof_hash;
+    if (!targetIsCurrent) {
       await appendEvent(root, { type: 'submission-stale', submission_id: submissionId, target: target.id, reason: 'target-changed' });
       throw new Error(`Stale submission: @${target.id} changed while verification was running`);
     }
@@ -190,11 +229,20 @@ export async function submitProof(root, proposalFile, options = {}) {
         throw new Error(`Stale submission: dependency @${id} changed while verification was running`);
       }
     }
-    const targetFile = path.join(root, target.file);
-    const original = await readFile(targetFile, 'utf8');
-    const canonical = await readLocatedBlock(targetFile, target.id);
-    const proposed = await readLocatedBlock(storedProposal, target.id);
-    const merged = replaceProof(canonical, proposed);
+    let original = null;
+    try { original = await readFile(destination, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const proposed = await readLocatedProof(storedProposal, target.id);
+    let merged;
+    if (isNewResult) {
+      const fullProposal = await readFile(storedProposal, 'utf8');
+      const newResult = await readLocatedBlock(storedProposal, target.id);
+      const payload = `${newResult.raw.trim()}\n\n${proposed.raw.trim()}\n`;
+      const frontMatter = fullProposal.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/)?.[0].trim() ?? '';
+      merged = original == null ? `${frontMatter ? `${frontMatter}\n\n` : ''}${payload}` : `${original.replace(/\s*$/, '')}\n\n${payload}`;
+    } else {
+      const canonical = await readLocatedBlock(destination, target.id);
+      merged = mergeProof(canonical, proposed);
+    }
     const indexFile = path.join(root, AUX, 'verification', 'index.json');
     const previousIndex = await readJson(indexFile, {});
     const nextIndex = structuredClone(previousIndex);
@@ -204,15 +252,16 @@ export async function submitProof(root, proposalFile, options = {}) {
       formal_status: 'not-formal', human_review_status: 'not-reviewed'
     };
     try {
-      await atomicWrite(targetFile, merged);
+      await atomicWrite(destination, merged);
       await atomicJson(indexFile, nextIndex);
-      const rebuilt = await compileProject(root, options);
+      const rebuilt = await compileProject(root, { ...options, excludeFiles: [proposalFile] });
       const mergedTarget = rebuilt.manifest.results.find((result) => result.id === target.id);
       if (!rebuilt.ok || mergedTarget?.status !== 'verified') throw new Error('Post-merge inspection did not confirm a verified target');
     } catch (error) {
-      await atomicWrite(targetFile, original);
+      if (original == null) await rm(destination, { force: true });
+      else await atomicWrite(destination, original);
       await atomicJson(indexFile, previousIndex);
-      await compileProject(root, options);
+      await compileProject(root, { ...options, excludeFiles: [proposalFile] });
       throw error;
     }
     const acceptedDir = path.join(root, AUX, 'accepted', submissionId);

@@ -4,9 +4,9 @@ import path from 'node:path';
 const defaults = {
   project: { name: '', root: '..', 'discover-qmd-recursively': true, exclude: ['.qmd-prover'] },
   goals: { 'id-prefix': 'thm-main-', 'protect-statements': true },
-  semantic: { 'wildcard-imports': false, 'require-declared-uses': true },
+  semantic: { 'wildcard-imports': false },
   verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, 'require-zero-gaps': true },
-  render: { 'graph-engine': 'builtin', 'hover-previews': true, 'output-dir': '.qmd-prover/site' }
+  render: { 'graph-engine': 'builtin', 'output-dir': '.qmd-prover/generated' }
 };
 
 function scalar(text) {

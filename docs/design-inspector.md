@@ -7,7 +7,7 @@ the mechanically enforceable part of the discipline, finds proof obligations,
 and makes logical dependencies visible.
 
 It is a structural analyzer, not a mathematician. It can establish that a proof
-cites an undeclared lemma; it cannot establish that the cited lemma really
+cites an unavailable lemma; it cannot establish that the cited lemma really
 implies the next sentence.
 
 ## Inputs and outputs

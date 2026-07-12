@@ -5,11 +5,14 @@ import { AUX, cleanId, readJson } from './files.mjs';
 import { renderProject } from './render.mjs';
 import { readLocatedBlock } from './source.mjs';
 import { revokeVerification, showVerification, submitProof } from './verification.mjs';
+import { initializeWorkspace, inspectWorkspace } from './workspace.mjs';
 
 const usage = `Usage:
   qmd-prover inspect-project
   qmd-prover inspect-theorem @thm-main-ID
-  qmd-prover submit-proof PROPOSAL_FILE
+  qmd-prover workspace init @thm-main-ID
+  qmd-prover workspace inspect @thm-main-ID
+  qmd-prover submit-proof PROPOSAL_FILE [--to CANONICAL_QMD]
   qmd-prover verification show SUBMISSION_ID
   qmd-prover verification revoke @thm-ID --reason "..."
   qmd-prover render`;
@@ -52,9 +55,24 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
     return;
   }
   if (command === 'submit-proof') {
-    if (rest.length !== 1) throw new Error('submit-proof requires one proposal QMD file');
-    output(await submitProof(root, rest[0], options));
+    const destinationIndex = rest.indexOf('--to');
+    const proposal = rest[0];
+    const destination = destinationIndex >= 0 ? rest[destinationIndex + 1] : undefined;
+    if (!proposal || (rest.length !== 1 && !(rest.length === 3 && destinationIndex === 1 && destination))) throw new Error('submit-proof requires one proposal QMD file and optional --to CANONICAL_QMD');
+    output(await submitProof(root, proposal, { ...options, destination }));
     return;
+  }
+  if (command === 'workspace') {
+    const [subcommand, value, ...tail] = rest;
+    if (!value || tail.length) throw new Error('workspace requires init or inspect and one thm-main-* ID');
+    if (subcommand === 'init') { output(await initializeWorkspace(root, value, options)); return; }
+    if (subcommand === 'inspect') {
+      const result = await inspectWorkspace(root, value, options);
+      output(result);
+      if (!result.ok) process.exitCode = 2;
+      return;
+    }
+    throw new Error('Invalid workspace command');
   }
   if (command === 'verification') {
     const [subcommand, value, ...tail] = rest;
