@@ -89,6 +89,17 @@ written by a person or a model:
 - generated indexes and reports describe one of those spaces but are not
   mathematics themselves.
 
+In concrete terms, the canonical project workspace contains the QMD documents
+with the project's definitions, statements, accepted proofs, exposition,
+citations, and references, together with `AGENTS.md`, which defines the rules
+agents must follow in that project. qmd-prover stores each agent workspace and
+its supporting data inside the hidden `.qmd-prover/` directory. This directory
+contains tentative mathematics, protected workspace state, semantic indexes,
+dependency data, verification records, and generated inspection files; none of
+these are canonical project mathematics. Generated indexes and rendered output
+must be reproducible from the canonical QMD, retained agent workspaces, and
+verification records.
+
 ### Example: one theorem after prolonged work
 
 Suppose the canonical project gives the agent one open theorem,
@@ -231,11 +242,6 @@ The semantic format follows the way a mathematical document is normally read:
 - a result block contains its title and statement;
 - a proof block contains its proof; and
 - semantic references in the proof identify its logical dependencies.
-
-There are no `Statement`, `Uses`, or `Proof` subheadings. In particular,
-dependencies are not written twice in a separate list and then again in the
-argument. The inspector derives proof dependencies directly from semantic
-references at their points of use.
 
 The format has six structural rules:
 
@@ -602,98 +608,6 @@ generated QMD, a dependency-graph asset, or data consumed by a Quarto
 extension. These are inputs to the same `quarto render` pipeline. HTML may
 provide richer navigation than PDF, but correctness and verification do not
 depend on rendering.
-
-## Data ownership
-
-The mathematical project's QMD files and its `AGENTS.md` are canonical.
-Definitions, statements, proofs, exposition, citations, and semantic
-references live there.
-
-`.qmd-prover/` may contain persistent agent work and derived artifacts such as:
-
-- a shared mathematical workspace containing partial, candidate, and rejected
-  proofs, with protected state under `workspaces/.workspaces/`;
-- a semantic manifest and dependency graph;
-- dispatcher-owned verification JSON retaining accepted and rejected reports,
-  exact semantic identities, and review dates; and
-- generated QMD or data used for observability.
-
-Agent workspaces are valuable resumable state, but they are not canonical
-project mathematics. Generated indexes and rendered output must be
-reproducible from canonical QMD, retained workspaces, and verification records.
-
-## Verification and acceptance in detail
-
-Before verification, the proving utilities validate the candidate and record
-the identities of the target and every dependency. The verifier receives only
-the exact statement, candidate proof, relevant definitions, and statements of
-cited verified dependencies. It does not receive the proving agent's
-confidence or unrelated narrative.
-
-A typical informal verifier response contains:
-
-```json
-{
-  "verdict": "correct",
-  "summary": "The proof covers the quantified case.",
-  "critical_errors": [],
-  "gaps": [],
-  "repair_hints": ""
-}
-```
-
-Acceptance requires `verdict: correct` together with empty `critical_errors`
-and `gaps`. Any other response is a rejection.
-
-Verification JSON is the only dedicated auxiliary proof-development file type.
-Workspace records retain checks of provisional mathematics; project records
-identify exact mathematics accepted into canonical QMD. Both act as caches and
-ledgers for statements, proofs, dependencies, verdicts, gaps, repair guidance,
-and submission and review dates. They are fail-closed: a missing, corrupt,
-stale, or nonmatching record never makes a result verified. Only the dispatcher
-may write an accepted record or promote a workspace record to project scope.
-
-After an accepting verdict, the proving utilities inspect the project again.
-If the protected target or any dependency changed while verification was
-running, the candidate is stale and is not applied. Otherwise, only the
-permitted proof content and its matching verification record are written. A
-post-write inspection must confirm the accepted state; failure rolls the
-canonical source back.
-
-This mechanism separates authorship from judgment while keeping the host agent
-responsible for the proof-development loop.
-
-## Core invariants
-
-Every component preserves the following invariants:
-
-- A `thm-main-*` ID, title, hypotheses, quantifiers, and statement are
-  user-owned and protected.
-- Every logical dependency is explicit and available in the theorem's scope.
-- A proof candidate is not accepted merely because its author considers it
-  correct.
-- Independent verification is based on the exact statement, candidate, and
-  relevant dependencies.
-- Rejection never changes canonical mathematics.
-- Acceptance is rejected as stale if the target or a dependency changed during
-  verification.
-- Canonical proof updates are atomic.
-- QMD remains readable and renderable by Quarto without qmd-prover becoming a
-  second document system.
-
-## Non-goals
-
-qmd-prover does not define:
-
-- a dedicated autonomous agent;
-- a persistent worker or task model;
-- a scheduling or messaging system for sub-agents;
-- a public CLI product separate from the skill's Node utilities;
-- a custom HTML, PDF, or website renderer; or
-- a replacement for formal proof assistants.
-
-An independent LLM verifier establishes only the configured verification
-status. Formal verification and human review remain distinct claims.
 
 ## Further design documents
 

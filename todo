@@ -7,3 +7,78 @@
 出论文
 
 progress do not write theorem
+
+
+## Verification and acceptance in detail
+
+Before verification, the proving utilities validate the candidate and record
+the identities of the target and every dependency. The verifier receives only
+the exact statement, candidate proof, relevant definitions, and statements of
+cited verified dependencies. It does not receive the proving agent's
+confidence or unrelated narrative.
+
+A typical informal verifier response contains:
+
+```json
+{
+  "verdict": "correct",
+  "summary": "The proof covers the quantified case.",
+  "critical_errors": [],
+  "gaps": [],
+  "repair_hints": ""
+}
+```
+
+Acceptance requires `verdict: correct` together with empty `critical_errors`
+and `gaps`. Any other response is a rejection.
+
+Verification JSON is the only dedicated auxiliary proof-development file type.
+Workspace records retain checks of provisional mathematics; project records
+identify exact mathematics accepted into canonical QMD. Both act as caches and
+ledgers for statements, proofs, dependencies, verdicts, gaps, repair guidance,
+and submission and review dates. They are fail-closed: a missing, corrupt,
+stale, or nonmatching record never makes a result verified. Only the dispatcher
+may write an accepted record or promote a workspace record to project scope.
+
+After an accepting verdict, the proving utilities inspect the project again.
+If the protected target or any dependency changed while verification was
+running, the candidate is stale and is not applied. Otherwise, only the
+permitted proof content and its matching verification record are written. A
+post-write inspection must confirm the accepted state; failure rolls the
+canonical source back.
+
+This mechanism separates authorship from judgment while keeping the host agent
+responsible for the proof-development loop.
+
+
+## Core invariants
+
+Every component preserves the following invariants:
+
+- A `thm-main-*` ID, title, hypotheses, quantifiers, and statement are
+  user-owned and protected.
+- Every logical dependency is explicit and available in the theorem's scope.
+- A proof candidate is not accepted merely because its author considers it
+  correct.
+- Independent verification is based on the exact statement, candidate, and
+  relevant dependencies.
+- Rejection never changes canonical mathematics.
+- Acceptance is rejected as stale if the target or a dependency changed during
+  verification.
+- Canonical proof updates are atomic.
+- QMD remains readable and renderable by Quarto without qmd-prover becoming a
+  second document system.
+
+## Non-goals
+
+qmd-prover does not define:
+
+- a dedicated autonomous agent;
+- a persistent worker or task model;
+- a scheduling or messaging system for sub-agents;
+- a public CLI product separate from the skill's Node utilities;
+- a custom HTML, PDF, or website renderer; or
+- a replacement for formal proof assistants.
+
+An independent LLM verifier establishes only the configured verification
+status. Formal verification and human review remain distinct claims.
