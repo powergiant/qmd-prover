@@ -231,60 +231,30 @@ The files have different ownership:
   verification JSON retains accepted and rejected checks of provisional work.
 - Other `.qmd-prover/` files contain derived indexes and caches.
 
-## Semantic QMD
+## Workspace QMD format and inspection
 
-qmd-prover pays attention only to recognized semantic blocks. The rest of QMD
-remains ordinary Quarto content, including prose, equations, figures, code
-cells, and bibliographic citations.
+Workspace files remain ordinary QMD. The inspector parses them through Pandoc
+JSON and gives special meaning only to recognized semantic blocks and
+`qmd-prover` front matter. Prose, equations, figures, code cells, and
+bibliographic citations continue to behave as normal Quarto content.
 
-The semantic format follows the way a mathematical document is normally read:
+### What the inspector recognizes
 
-- a result block contains its title and statement;
-- a proof block contains its proof; and
-- semantic references in the proof identify its logical dependencies.
+- A definition or result block has a semantic ID and class, a `name`, an ISO
+  introduction `date="YYYY-MM-DD"`, and its statement as the body. Quarto uses
+  `name` as the caption. The date is informational and does not affect the
+  statement's identity or status.
+- A `.proof` block names the result it proves with `of`. Definitions use the
+  same metadata as results but are declarations rather than propositions that
+  require proof.
+- A semantic `@` reference inside a linked proof is a logical dependency.
+  References in ordinary exposition are only navigational, and bibliographic
+  citations remain Quarto citations.
+- The `qmd-prover.imports` field in QMD front matter declares which exported
+  results from other files are available to a proof.
 
-The format has six structural rules:
-
-1. A definition or result block has a semantic ID, semantic class, a `name`
-   attribute, an ISO `date="YYYY-MM-DD"` recording when the statement was
-   introduced, and the statement as its body. The date is informational: it is
-   not a truth-status label and does not affect statement or proof identity.
-   Quarto renders `name` as the caption.
-2. A proof is a `.proof` block whose `of` attribute names the result it proves.
-3. The first nonempty paragraph of a workspace proof may be exactly `OPEN` or
-   `REJECTED`. This reserved control paragraph is not part of the mathematical
-   proof and is excluded from proof identity and verifier input.
-4. A missing proof or a proof beginning with `OPEN` means an open result. A
-   proof beginning with `REJECTED` is an inactive rejected attempt. An
-   unmarked proof is a candidate until an exact accepted verification record
-   establishes it as verified. Source QMD has no `VERIFIED` marker.
-5. A workspace may retain multiple marked proof attempts for one result, but
-   at most one unmarked proof may be active. Canonical QMD may contain only its
-   one accepted, unmarked proof.
-6. Cross-file availability is declared in QMD front matter, while actual proof
-   dependencies are the semantic references found in the proof body.
-
-### Open main goal
-
-A user creates a top-level proof obligation with a protected `thm-main-*` ID.
-The result block itself is the statement. The absence of an associated proof
-block means that the goal is open:
-
-```markdown
-::: {#thm-main-even-square .theorem .goal name="Even squares" date="2026-07-12"}
-For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
-:::
-```
-
-The ID, title, hypotheses, quantifiers, and statement are user-owned. The host
-agent may supply a proof but may not make the goal easier by changing any of
-those protected parts.
-
-### Reusable result
-
-Definitions, lemmas, propositions, theorems, and corollaries use corresponding
-semantic classes and ID prefixes. A proof is a separate block linked to its
-result by `of`. Each semantic reference inside the proof becomes a dependency:
+For example, the inspector reads these blocks as one lemma with a linked proof
+and a direct dependency on `@def-even-integer`:
 
 ```markdown
 ::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12" export="square-of-double"}
@@ -292,22 +262,69 @@ If \(n=2k\) for integers \(n,k\), then \(n^2=4k^2\).
 :::
 
 ::: {.proof of="lem-square-of-double"}
-Using the representation from @def-even-integer, calculate
-\(n^2=(2k)^2=4k^2\).
+Using @def-even-integer, calculate \(n^2=(2k)^2=4k^2\).
 :::
 ```
 
-The `export` attribute makes the result eligible for explicit use from another
-file. The proof's reference to `@def-even-integer` is both readable mathematics
-and the dependency declaration. Results in the same file are locally available
-without an import. Definitions use the same introduction-date attribute, but
-are accepted or provisional declarations rather than proved propositions.
+Definitions, lemmas, propositions, theorems, and corollaries use their
+corresponding semantic classes and ID prefixes. The `export` attribute makes a
+result eligible for import by another file.
 
-### Cross-file dependency
+A top-level goal uses a protected `thm-main-*` ID and the `.goal` class. Its
+result block contains the user-owned title, hypotheses, quantifiers, and
+statement; the agent may add a proof but may not change those protected parts:
 
-A QMD file imports individual exported results through ordinary Quarto
-front-matter metadata. The metadata is visible in the source but does not
-become document content when rendered:
+```markdown
+::: {#thm-main-even-square .theorem .goal name="Even squares" date="2026-07-12"}
+For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
+:::
+```
+
+### How proof status is derived
+
+The inspector combines the current statement and proof with retained
+verification records. A workspace proof may begin with a first nonempty
+paragraph containing exactly `OPEN` or `REJECTED`. This control paragraph is
+not part of the proof and is excluded from proof identity and verifier input.
+There is no `VERIFIED` source marker, and neither control marker can assert
+success.
+
+- `open`: no proof is present, or the proof begins with `OPEN`.
+- `candidate`: an unmarked proof is present but no accepted record matches its
+  current identity.
+- `rejected`: the proof begins with `REJECTED`, or a matching rejection record
+  exists. A rejected submission does not change canonical QMD.
+- `verified`: the current statement and proof exactly match an accepted
+  verification record.
+- `revoked`: an earlier acceptance was withdrawn with a recorded reason.
+
+A workspace may retain several `OPEN` or `REJECTED` attempts for one result,
+but only one unmarked proof may be active. Canonical QMD may contain only the
+accepted unmarked proof. Adding a marker cannot establish a claim, and removing
+one cannot erase a verification record; changing the mathematical text creates
+a new proof identity. Formal verification and human review are recorded
+separately; an informal LLM verdict is neither.
+
+A candidate for a protected canonical goal therefore contains only the linked
+proof; it does not copy the statement into the workspace:
+
+```markdown
+::: {.proof of="thm-main-even-square"}
+Let \(n\) be even. By @def-even-integer, write \(n=2k\). Then
+@lem-square-of-double gives \(n^2=4k^2\), so \(4\) divides \(n^2\).
+:::
+```
+
+An agent-created intermediate result uses the same result-plus-proof structure
+as the lemma above. No separate proposal file type or directory is needed.
+
+### How dependencies are resolved
+
+A proof may use a result only when it cites the result with a semantic `@`
+reference, the result is available in the same file or through an explicit
+import, and its verification status is acceptable for the operation. A
+cross-file import names individual exported results in ordinary QMD front
+matter:
 
 ```markdown
 ---
@@ -321,116 +338,15 @@ qmd-prover:
 ---
 ```
 
-Wildcard imports are not part of the semantic model. An imported ID must exist
-in the named file and must be exported there. Import metadata controls which
-results are available; references in proofs determine which available results
-are actually used.
+Wildcard imports are not supported. Each imported ID must exist in the named
+file and be exported there; results in the same file need no import. Imports
+control availability, while references in the linked proof identify the
+dependencies actually used.
 
-### Candidate proof
-
-A candidate for an existing main goal needs only a linked proof block. The
-protected statement is read from canonical QMD instead of being copied into
-every attempt:
-
-```markdown
-::: {.proof of="thm-main-even-square"}
-Let \(n\) be even. By @def-even-integer, write \(n=2k\) for an integer
-\(k\). Then @lem-square-of-double gives \(n^2=4k^2\), so \(4\) divides
-\(n^2\).
-:::
-```
-
-The two semantic references are the candidate's direct dependencies. This text
-is still only a candidate. Acceptance requires a separate verification step.
-On acceptance, the proof block is placed next to the protected theorem block in
-canonical QMD.
-
-### Partial and rejected proofs
-
-A partial workspace proof begins with the reserved `OPEN` paragraph:
-
-```markdown
-::: {#proof-even-square-0001 .proof of="thm-main-even-square"}
-OPEN
-
-It remains to justify that the chosen representation is available uniformly.
-:::
-```
-
-The inspector retains the mathematical text but does not treat this block as a
-complete candidate. A proof retained after rejection begins with `REJECTED`:
-
-```markdown
-::: {#proof-even-square-0002 .proof of="thm-main-even-square"}
-REJECTED
-
-Choose \(k=n/2\), then conclude that \(n^2\) is divisible by \(4\).
-:::
-```
-
-The complete dispatcher-owned verification report remains authoritative. The
-marker is a readable, conservative annotation: adding it cannot establish a
-claim, and removing it cannot erase a matching rejection record. Repairing the
-mathematical proof changes its identity; the repaired, unmarked proof is then a
-new candidate.
-
-### New result candidate
-
-When the agent develops a new intermediate result, the mathematical QMD
-contains the new result block followed by its proof block:
-
-```markdown
-::: {#lem-product-positive .lemma name="Product of positive elements" date="2026-07-12"}
-If \(a>0\) and \(b>0\) in an ordered field, then \(ab>0\).
-:::
-
-::: {.proof of="lem-product-positive"}
-Apply @thm-ordered-field-positive-product to \(a\) and \(b\).
-:::
-```
-
-No proposal file type or directory is required. Submission selects this active
-semantic result and proof. The result block can be promoted into canonical QMD
-only together with an accepted proof and valid dependencies.
-
-## Dependencies
-
-A logical dependency must satisfy all of the following:
-
-1. It is cited with a semantic `@` reference at the point of use in the proof.
-2. It is defined in the same file or individually imported through QMD
-   metadata.
-3. A proof being accepted relies only on dependencies with an acceptable
-   verification status.
-
-The inspector reads references only from the proof block associated through
-`of`. It checks their availability and status, then constructs a directed
-graph. An edge from theorem A to lemma B means that A's proof cites B. From
-this graph the inspector can provide both the dependency closure needed to
-understand A and the reverse dependencies that may be affected if B changes.
-
-Semantic references in ordinary exposition are navigational rather than
-logical dependencies. Bibliographic citations remain Quarto citations and are
-not confused with theorem IDs.
-
-## Result status
-
-Status is derived from the current QMD, the two conservative proof-control
-markers, and retained verification records. Neither marker can assert success.
-
-- `open` means no proof is present or the retained proof begins with `OPEN`.
-- `candidate` means an unmarked proof is present but has not been accepted for
-  its current identity.
-- `rejected` means the retained proof begins with `REJECTED` or an independently
-  checked candidate has a matching rejection record; canonical QMD was not
-  changed by that rejected submission.
-- `verified` means the current statement and proof match an accepted
-  verification record.
-- `revoked` means an earlier acceptance was explicitly withdrawn with a
-  recorded reason.
-
-Formal verification and human review are recorded independently. An informal
-LLM verdict must not be described as formal verification.
+After checking availability and status, the inspector constructs a directed
+graph. An edge from theorem A to lemma B means that A's proof cites B. The graph
+provides both the dependency closure needed to inspect A and the reverse
+dependencies that may be affected if B changes.
 
 ## How proof work proceeds
 
