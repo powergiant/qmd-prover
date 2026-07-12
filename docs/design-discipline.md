@@ -70,11 +70,13 @@ The inspector and proving utilities enforce rules whose truth follows from the
 project representation, including:
 
 - semantic block shape and unique IDs;
+- ISO introduction dates on definitions and result statements;
 - protected main-statement identity;
 - explicit imports and exports;
 - association of every proof with one semantic result;
+- recognition of the reserved leading `OPEN` and `REJECTED` proof markers;
 - availability and status of results cited by proofs;
-- isolation of proposals;
+- selection of one active, unmarked candidate for submission;
 - stale-submission checks; and
 - rejection-safe, atomic acceptance.
 
@@ -146,7 +148,8 @@ The skill instructs the host agent to:
 - keep proof attempts outside canonical QMD until accepted;
 - respond to every concrete verification gap;
 - produce a precise refutation when a statement appears false; and
-- keep search notes, confidence claims, and verifier metadata out of proofs.
+- keep search notes, confidence claims, and verifier metadata out of proofs,
+  except for the reserved leading `OPEN` or `REJECTED` control paragraph.
 
 These rules shape the reasoning loop even when they are not completely
 machine-decidable.
@@ -156,7 +159,7 @@ machine-decidable.
 Assume the user supplied:
 
 ```markdown
-::: {#thm-main-primes-odd .theorem .goal name="Every prime is odd"}
+::: {#thm-main-primes-odd .theorem .goal name="Every prime is odd" date="2026-07-12"}
 Every prime number is odd.
 :::
 ```
@@ -173,15 +176,19 @@ figures, equations, code cells, and bibliographic citations remain Quarto
 content. The discipline applies dependency semantics only to recognized
 definitions and results.
 
-Within a semantic result, the discipline distinguishes:
+Within semantic QMD, the discipline distinguishes:
 
-- the result block, whose `name` attribute and body say what is claimed; and
+- the definition or result block, whose `name`, introduction `date`, and body
+  record the declaration or claim; and
 - a linked proof block, whose semantic references declare the logical premises
   at their points of use.
 
 For `thm-main-*`, the title and statement originate with the user and are
-protected. The absence of a linked proof block means the result is open. A
-present proof block is still only a candidate until independently accepted.
+protected. The introduction date is informational and does not alter statement
+identity. The absence of a linked proof, or a proof whose first nonempty
+paragraph is `OPEN`, means the result is open. A proof beginning with `REJECTED`
+is inactive. An unmarked proof is still only a candidate until independently
+accepted; source QMD cannot assert `VERIFIED`.
 
 ### Example: semantic and nonsemantic references
 

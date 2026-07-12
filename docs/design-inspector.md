@@ -36,7 +36,7 @@ This script interface is not a separate CLI product.
 Consider two mathematical files. `foundations.qmd` exports a definition:
 
 ```markdown
-::: {#def-even-integer .definition name="Even integer" export="even-integer"}
+::: {#def-even-integer .definition name="Even integer" date="2026-07-12" export="even-integer"}
 An integer \(n\) is even if there is an integer \(k\) with \(n=2k\).
 :::
 ```
@@ -52,7 +52,7 @@ qmd-prover:
         - def-even-integer
 ---
 
-::: {#thm-main-even-square .theorem .goal name="Even squares"}
+::: {#thm-main-even-square .theorem .goal name="Even squares" date="2026-07-12"}
 For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
 :::
 ```
@@ -75,20 +75,28 @@ The inspector recognizes:
 - definitions, lemmas, theorems, propositions, and corollaries;
 - `thm-main-*` proof obligations;
 - `.proof` blocks linked to results through an `of` attribute;
+- ISO introduction dates on semantic statement blocks;
+- leading `OPEN` and `REJECTED` proof-control paragraphs;
 - qmd-prover import metadata in the QMD front matter;
 - exports; and
 - semantic `@def-*`, `@lem-*`, `@thm-*`, `@prp-*`, and `@cor-*` references.
 
 Nonsemantic QMD is left alone.
 
-For a result block, the `name` attribute supplies the display title and the
-block content is the statement. Quarto natively renders `name` as the theorem
-caption. A `.proof` block names its result with `of="semantic-id"`; its entire
-body is proof content. A canonical result may have at most one associated
-proof. A missing proof means `open`, while an empty, orphaned, ambiguous, or
-multiply associated proof is a structural error. In an isolated proposal,
-`of` may point to the protected canonical target rather than to a result block
-copied into the proposal file.
+For a definition or result block, the `name` attribute supplies the display
+title, `date` records its introduction date, and the block content is the
+statement. Quarto natively renders `name` as the caption. A `.proof` block names
+its result with `of="semantic-id"`. If its first nonempty paragraph is exactly
+`OPEN` or `REJECTED`, the inspector records that control marker separately and
+excludes it from mathematical proof identity and verifier input.
+
+A canonical result may have at most one associated, unmarked proof. A workspace
+may retain multiple marked proofs for the same result but at most one unmarked
+active proof. A missing proof or `OPEN` proof means `open`; a `REJECTED` proof is
+inactive; an unmarked proof is a candidate unless an exact verification record
+says otherwise. Empty, orphaned, ambiguous, or multiply active proofs are
+structural errors. A workspace proof may point through `of` to the protected
+canonical target without copying its statement into the working file.
 
 ## Inspection pipeline
 
@@ -104,9 +112,11 @@ For every recognized result, the inspector records at least:
 
 - semantic ID and kind;
 - title;
+- introduction date;
 - source file and location;
 - statement and proof identity;
 - whether a proof is present;
+- any reserved proof-control marker;
 - semantic dependencies cited by the associated proof; and
 - export information.
 
@@ -122,6 +132,7 @@ An abbreviated manifest entry for the open goal could look like:
   "kind": "theorem",
   "file": "main.qmd",
   "title": "Even squares",
+  "date": "2026-07-12",
   "statement_hash": "sha256:...",
   "proof_hash": "sha256:...",
   "proof_present": false,
@@ -161,7 +172,8 @@ lemma, or assume that a similarly titled theorem was intended.
 ### 4. Check dependencies
 
 The inspector associates each `.proof` block with the result named by its `of`
-attribute and extracts semantic references from that proof. It reports:
+attribute, separates any reserved leading marker, and extracts semantic
+references from the remaining mathematical proof. It reports:
 
 - a proof whose `of` target does not exist or is ambiguous;
 - a premise that does not exist;
@@ -202,8 +214,9 @@ dependency list needs editing.
 
 ### 5. Build the graph
 
-Each semantic result becomes a node. Each semantic result cited by its proof
-becomes a directed edge from the dependent result to the premise.
+Each semantic result becomes a node. Each semantic result cited by its active
+proof becomes a directed edge from the dependent result to the premise. Marked
+proofs may be inspected as history but do not create active dependency edges.
 
 The graph supports:
 
@@ -247,17 +260,18 @@ contains both results.
 
 ### 6. Determine status
 
-Status is derived from the current statement, proof, and retained verification
-record. Verification applies only when its stored identities still match the
-current semantic result.
+Status is derived from the current statement, proof marker, and retained
+verification record. Verification applies only when its stored identities still
+match the current semantic result.
 
 At minimum, the inspector distinguishes:
 
-- `open`: no proof is present;
-- `candidate`: a proof is present but not accepted for its current identity;
+- `open`: no proof is present or the proof begins with `OPEN`;
+- `candidate`: an unmarked proof is present but not accepted for its current
+  identity;
 - `verified`: the current statement and proof match an accepted record;
-- `rejected`: the latest relevant candidate was rejected while canonical
-  mathematics remained unchanged; and
+- `rejected`: the proof begins with `REJECTED` or the latest matching candidate
+  was rejected while canonical mathematics remained unchanged; and
 - `revoked`: prior acceptance was explicitly withdrawn.
 
 Formal-verification and human-review labels are separate metadata, not aliases
@@ -322,8 +336,8 @@ without reading unrelated QMD chapters.
 ## Inspecting an agent workspace
 
 Canonical-project inspection excludes `.qmd-prover/`, but the inspector also
-supports an explicit goal-workspace inspection. The two modes must not be
-confused:
+supports explicit inspection of the shared mathematical workspace. The two
+modes must not be confused:
 
 - canonical inspection reports accepted project mathematics;
 - workspace inspection reports provisional agent-generated mathematics plus
@@ -335,7 +349,7 @@ A workspace result records its origin and working status. For example:
 {
   "id": "lem-local-exponent-bound",
   "origin": "workspace",
-  "workspace": "thm-main-uniform-index",
+  "workspace": ".qmd-prover/workspaces",
   "file": "local-theory/exponent-bounds.qmd",
   "status": "workspace-candidate",
   "dependencies": [
@@ -350,14 +364,17 @@ result while the second is still an unproved workspace claim. It then exposes
 the latter as part of the proof frontier instead of reporting the parent lemma
 as established.
 
-The target theorem is a special intentional overlap: each main-proof attempt
+The target theorem is a special intentional overlap: each main-proof candidate
 uses the canonical target's semantic ID so statement protection can compare it
-with the original. Newly proposed intermediate IDs must not collide with
+with the original. Newly introduced intermediate IDs must not collide with
 canonical results or with other live workspace results.
 
-Workspace inspection may write its own manifest and graph inside the goal
-workspace. It never merges workspace files into the canonical manifest merely
-because they parse successfully or have plausible proofs.
+Workspace inspection writes protected target state, its graph, and provisional
+verification records only under `.qmd-prover/workspaces/.workspaces/`. It may
+read top-level and subject-local `progress.qmd` files for resumable context, but
+those files are mathematical project notes rather than machine authority. It
+never merges workspace files into the canonical manifest merely because they
+parse successfully or have plausible proofs.
 
 ## Writes and failure behavior
 

@@ -65,7 +65,7 @@ qmd-prover:
 
 We use the parity definition from @def-even-integer.
 
-::: {#thm-main-even-square .theorem .goal name="Even squares"}
+::: {#thm-main-even-square .theorem .goal name="Even squares" date="2026-07-12"}
 For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
 :::
 
@@ -128,9 +128,11 @@ the next inspection regenerates the page from authoritative records.
 
 ## Agent-workspace observability
 
-A long-running goal may have many noncanonical QMD files under its agent
-workspace. Rendering can expose that workspace separately from the canonical
-project. For example, a generated `progress.qmd` may contain:
+A long-running development may have many noncanonical QMD files under the
+shared mathematical workspace. Rendering can expose that workspace separately
+from the canonical project. Top-level `progress.qmd` summarizes the overall
+frontier, while subject directories may contain local `progress.qmd` files. For
+example, a progress page may contain:
 
 ```markdown
 ---
@@ -152,7 +154,7 @@ title: "Workspace: uniform index theorem"
 ## Abandoned route
 
 The uniform-generator approach is retained in
-`dead-ends/uniform-generator-strategy.qmd`.
+`local-theory/local-class-groups.qmd` as a proof beginning with `REJECTED`.
 ```
 
 This view describes the agent's working dependency graph; it does not publish
@@ -203,7 +205,8 @@ user-authored mathematics. They must not:
 
 - become the authoritative copy of a theorem or proof;
 - require users to edit generated status by hand;
-- embed verification metadata inside mathematical proof prose; or
+- embed verification metadata inside mathematical proof prose, other than the
+  reserved leading `OPEN` or `REJECTED` control paragraph; or
 - make canonical QMD unusable when the generated files are absent.
 
 Deleting generated rendering inputs must not lose mathematics or verification

@@ -74,12 +74,12 @@ mathematics that has passed the project's acceptance rules. It is the ordinary
 Quarto project that the user opens and renders. The agent reads it as its source
 of truth and does not use it as a scratch directory.
 
-An **agent workspace** is a persistent, goal-scoped area for proof development.
-If the agent works on one difficult theorem for a long time, it may introduce
-many tentative definitions, reductions, intermediate theorems, examples,
-counterexamples, proof attempts, and repair notes. Those files belong in the
-agent workspace until the relevant mathematics is independently verified and
-accepted into the canonical project.
+An **agent workspace** is a persistent mathematical area for proof development.
+It may serve one goal or a related family of goals. If the agent works on a
+difficult theorem for a long time, it may introduce many tentative definitions,
+reductions, intermediate theorems, examples, counterexamples, partial proofs,
+and repair notes. Those files belong in the agent workspace until the relevant
+mathematics is independently verified and accepted into the canonical project.
 
 The separation is about authority, not about whether a file was physically
 written by a person or a model:
@@ -105,45 +105,58 @@ uniform-index-project/                     # canonical project workspace
 └── .qmd-prover/
     ├── manifest.json
     ├── graph.json
-    ├── verification/
-    └── workspaces/
-        └── thm-main-uniform-index/         # agent workspace for this goal
-            ├── workspace.json              # target, base hashes, and status
-            ├── target.qmd                   # protected snapshot of the goal
-            ├── progress.qmd                 # current plan and proved frontier
-            ├── graph.json                   # workspace dependency graph
-            ├── context/
-            │   ├── imported-results.qmd     # bounded canonical context
-            │   └── external-results.qmd     # precisely recorded literature
-            ├── reductions/
-            │   ├── reduce-to-strata.qmd
-            │   ├── generic-fiber.qmd
-            │   └── specialization.qmd
-            ├── local-theory/
-            │   ├── local-class-groups.qmd
-            │   ├── exponent-bounds.qmd
-            │   └── completion-comparison.qmd
-            ├── global-theory/
-            │   ├── finite-stratification.qmd
-            │   ├── constructibility.qmd
-            │   └── lcm-argument.qmd
-            ├── examples/
-            │   ├── quotient-singularities.qmd
-            │   └── possible-counterexamples.qmd
-            ├── verification/
-            │   ├── lem-local-exponent-bound.json
-            │   └── thm-main-uniform-index.json
-            └── main-proof.qmd
+    ├── verification/                       # accepted canonical records
+    └── workspaces/                         # visible working mathematics
+        ├── .workspaces/                    # machine-managed workspace state
+        │   ├── workspace.json              # target, base hashes, and status
+        │   ├── verification/
+        │   │   ├── lem-local-exponent-bound.json
+        │   │   └── thm-main-uniform-index.json
+        │   ├── target.qmd                   # protected snapshot of the goal
+        │   └── graph.json                   # workspace dependency graph
+        ├── progress.qmd                    # overall plan and proved frontier
+        ├── context/
+        │   ├── progress.qmd
+        │   ├── imported-results.qmd     # bounded canonical context
+        │   └── external-results.qmd     # precisely recorded literature
+        ├── reductions/
+        │   ├── progress.qmd
+        │   ├── reduce-to-strata.qmd
+        │   ├── generic-fiber.qmd
+        │   └── specialization.qmd
+        ├── local-theory/
+        │   ├── progress.qmd
+        │   ├── local-class-groups.qmd
+        │   ├── exponent-bounds.qmd
+        │   └── completion-comparison.qmd
+        ├── global-theory/
+        │   ├── progress.qmd
+        │   ├── finite-stratification.qmd
+        │   ├── constructibility.qmd
+        │   └── lcm-argument.qmd
+        ├── examples/
+        │   ├── progress.qmd
+        │   ├── quotient-singularities.qmd
+        │   └── possible-counterexamples.qmd
+        └── main-proof.qmd
 ```
 
-This is an illustrative workspace, not a required list of directories. A short
-proof may need only `target.qmd` and one mathematical working file. A long proof
-may grow into a substantial mathematical development. The workspace should be
-organized for the agent to retrieve context, inspect dependencies, and resume
-work. Attempts, abandoned routes, and submission candidates remain ordinary
-mathematical QMD;
-they do not require dedicated file types or directories. Verification records
-are the only proof-development artifacts with a dedicated non-QMD format.
+This is an illustrative workspace, not a required list of subject directories.
+The visible files under `workspaces/` are ordinary mathematical QMD organized
+by the development itself. The hidden `workspaces/.workspaces/` directory is
+reserved for machine-managed state: the protected target, base identities,
+workspace graph, and workspace verification records. Project-level
+`.qmd-prover/verification/` records accepted canonical mathematics, while the
+workspace-local verification directory retains checks of provisional work.
+
+A short proof may need only the hidden target snapshot, a top-level
+`progress.qmd`, and one mathematical working file. A long proof may grow into a
+substantial mathematical development. Top-level `progress.qmd` records the
+overall frontier; a subject directory may carry its own `progress.qmd` when a
+local frontier is useful. Attempts, abandoned routes, and submission candidates
+remain ordinary mathematical QMD; they do not require dedicated file types or
+directories. Verification records are the only proof-development artifacts
+with a dedicated non-QMD format.
 
 The agent may group several closely related claims, partial proofs, rejected
 proofs, and explanatory prose in one QMD file or split a large line of argument
@@ -202,8 +215,9 @@ The files have different ownership:
 - QMD files outside `.qmd-prover/` are canonical mathematics and exposition.
 - `_quarto.yml` is the project's normal Quarto configuration.
 - `.qmd-prover/workspaces/` contains persistent but noncanonical mathematical
-  work organized around assigned goals.
-- Verification JSON contains dispatcher-owned accepted and rejected records.
+  work, with machine state isolated under its `.workspaces/` child.
+- Project verification JSON records accepted canonical results; workspace
+  verification JSON retains accepted and rejected checks of provisional work.
 - Other `.qmd-prover/` files contain derived indexes and caches.
 
 ## Semantic QMD
@@ -544,7 +558,7 @@ Submit the selected candidate from workspace QMD:
 
 ```bash
 node "$QMD_PROVER_ROOT/scripts/qmd-prover.mjs" \
-  submit-proof .qmd-prover/workspaces/thm-main-even-square/main-proof.qmd
+  submit-proof .qmd-prover/workspaces/main-proof.qmd
 ```
 
 Read a stored verification report:
@@ -597,8 +611,8 @@ references live there.
 
 `.qmd-prover/` may contain persistent agent work and derived artifacts such as:
 
-- goal-scoped workspaces containing mathematical QMD, including partial and
-  rejected proofs;
+- a shared mathematical workspace containing partial, candidate, and rejected
+  proofs, with protected state under `workspaces/.workspaces/`;
 - a semantic manifest and dependency graph;
 - dispatcher-owned verification JSON retaining accepted and rejected reports,
   exact semantic identities, and review dates; and
@@ -632,10 +646,12 @@ Acceptance requires `verdict: correct` together with empty `critical_errors`
 and `gaps`. Any other response is a rejection.
 
 Verification JSON is the only dedicated auxiliary proof-development file type.
-It acts as a retained cache and ledger for exact statements, proofs,
-dependencies, verdicts, gaps, repair guidance, and submission and review dates.
-It is fail-closed: a missing, corrupt, stale, or nonmatching record never makes
-a result verified. Only the dispatcher may write an accepted record.
+Workspace records retain checks of provisional mathematics; project records
+identify exact mathematics accepted into canonical QMD. Both act as caches and
+ledgers for statements, proofs, dependencies, verdicts, gaps, repair guidance,
+and submission and review dates. They are fail-closed: a missing, corrupt,
+stale, or nonmatching record never makes a result verified. Only the dispatcher
+may write an accepted record or promote a workspace record to project scope.
 
 After an accepting verdict, the proving utilities inspect the project again.
 If the protected target or any dependency changed while verification was
