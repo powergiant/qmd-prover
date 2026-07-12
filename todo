@@ -16,6 +16,8 @@ A `VERIFIED` marker is usable only when it matches the current cached statement,
 
 似乎还没添加import block
 
+proof block must follow the theorem immediately
+
 
 
 ## Verification and acceptance in detail
