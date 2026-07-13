@@ -19,6 +19,11 @@ A `VERIFIED` marker is usable only when it matches the current cached statement,
 proof block must follow the theorem immediately
 
 
+提供skill，帮助用户创建main Theorem
+
+条件开发，基于某些结果开发、写论文
+
+
 
 ## Verification and acceptance in detail
 
