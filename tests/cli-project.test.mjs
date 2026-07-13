@@ -164,7 +164,7 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const rootHelp = await run(['help']);
   assert.equal(rootHelp.error, null);
   assert.match(rootHelp.stdout, /^Usage:\n/);
-  assert.match(rootHelp.stdout, /Commands:\n  init\n  inspect\n  dependency/);
+  assert.match(rootHelp.stdout, /Commands:\n  init\n    Initialize or safely adopt a qmd-prover project\.\n  inspect\n  dependency/);
   assert.ok(HELP_COMMANDS.every((item) => ['description', 'arguments', 'options', 'examples', 'notes'].every((section) => Array.isArray(item.sections[section]))));
   for (const command of commands) {
     const result = await run([...command.split(' '), 'help']);
@@ -174,6 +174,11 @@ test('dispatcher provides help for every command group and leaf', async () => {
   }
   const inspectHelp = await run(['inspect', 'help']);
   assert.match(inspectHelp.stdout, /Commands:\n  project\n  fact\n  theorem\n  path/);
+  const initHelp = await run(['init', '--help']);
+  assert.match(initHelp.stdout, /Description:\n  Initialize the qmd-prover project contract/);
+  assert.match(initHelp.stdout, /Arguments:\n  This command accepts no positional arguments\./);
+  assert.match(initHelp.stdout, /Options:[\s\S]*--adopt-existing[\s\S]*--append-contract[\s\S]*--sync-contract/);
+  assert.match(initHelp.stdout, /Notes:[\s\S]*Use at most one mutation option/);
   assert.equal((await run(['help', 'inspect', 'fact'])).error, null);
   assert.equal((await run(['inspect', 'fact', '--help'])).error, null);
   assert.equal((await run(['inspect', 'fact', '-h'])).error, null);

@@ -6,11 +6,12 @@ const SECTION_ORDER = [
   ['notes', 'Notes']
 ];
 
-function command(path, usage, { acceptsPositionals = false } = {}) {
+function command(path, usage, { acceptsPositionals = false, summary = '', sections = {} } = {}) {
   return {
     path,
     usage,
     acceptsPositionals,
+    summary,
     // Populate these arrays as detailed command documentation is added.
     // Empty sections intentionally do not appear in --help output.
     sections: {
@@ -18,14 +19,42 @@ function command(path, usage, { acceptsPositionals = false } = {}) {
       arguments: [],
       options: [],
       examples: [],
-      notes: []
+      notes: [],
+      ...sections
     }
   };
 }
 
 export const HELP_COMMANDS = [
   command('', ['qmd-prover <command> [arguments]', 'qmd-prover help [COMMAND...]']),
-  command('init', ['qmd-prover init [--adopt-existing|--append-contract|--sync-contract]']),
+  command('init', ['qmd-prover init [--adopt-existing|--append-contract|--sync-contract]'], {
+    summary: 'Initialize or safely adopt a qmd-prover project.',
+    sections: {
+      description: [
+        'Initialize the qmd-prover project contract and ensure `.qmd-prover/workspaces/` exists.',
+        'Before writing, inspect existing `AGENTS.md`, QMD files, Quarto configuration, and qmd-prover state.',
+        'When existing material needs approval, preserve it and return the required next action instead of changing it.'
+      ],
+      arguments: [
+        'This command accepts no positional arguments.'
+      ],
+      options: [
+        '--adopt-existing',
+        '  Authorize adoption when mathematical project material exists but `AGENTS.md` is missing or empty.',
+        '--append-contract',
+        '  Append the canonical managed contract to an existing `AGENTS.md` without one; preserve all existing policy.',
+        '--sync-contract',
+        '  Replace one differing managed contract block with the canonical block; preserve text outside that block.',
+        'help, --help, -h',
+        '  Show this help without writing project files.'
+      ],
+      notes: [
+        'Use at most one mutation option: `--adopt-existing`, `--append-contract`, or `--sync-contract`.',
+        'Without a mutation option, existing material remains unchanged when approval is needed.',
+        'A successful response includes the discovered inventory and `workspace_root`; initialization creates no theorem QMD.'
+      ]
+    }
+  }),
   command('inspect', ['qmd-prover inspect <command> [arguments]']),
   command('inspect project', ['qmd-prover inspect project [--print]']),
   command('inspect fact', ['qmd-prover inspect fact @ID [--print]'], { acceptsPositionals: true }),
@@ -105,7 +134,13 @@ export function renderHelp(item) {
   }
 
   const children = childCommands(item);
-  if (children.length > 0) lines.push('', 'Commands:', ...children.map((child) => `  ${child.path.split(' ').at(-1)}`));
+  if (children.length > 0) {
+    lines.push('', 'Commands:');
+    for (const child of children) {
+      lines.push(`  ${child.path.split(' ').at(-1)}`);
+      if (child.summary) lines.push(`    ${child.summary}`);
+    }
+  }
 
   return lines.join('\n');
 }
