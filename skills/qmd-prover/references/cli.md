@@ -40,7 +40,9 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" veri
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" render
 ```
 
-`init-project` inventories existing policy, QMD sources, Quarto configuration, and `.qmd-prover` state. When project material exists but `AGENTS.md` is missing, it returns `intent-required` without writing; use `--adopt-existing` only after approval. It otherwise creates the canonical policy idempotently and fails closed on existing policy: use `--append-contract` only with approval to preserve that policy and append the block, or `--sync-contract` only with approval to replace an existing managed block while preserving everything outside it.
+`init-project` inventories existing policy, QMD sources, Quarto configuration, and `.qmd-prover` state. When project material exists but `AGENTS.md` is missing, it returns `intent-required` without writing; use `--adopt-existing` only after approval. It otherwise creates the canonical policy idempotently, ensures `.qmd-prover/workspaces/` exists, and returns that path as `workspace_root`. It fails closed on existing policy: use `--append-contract` only with approval to preserve that policy and append the block, or `--sync-contract` only with approval to replace an existing managed block while preserving everything outside it.
+
+`workspace init @thm-main-ID` creates or resumes `.qmd-prover/workspaces/thm-main-ID/` and returns the exact path. Proof development for that main goal belongs there; canonical QMD remains unchanged until accepted promotion.
 
 Inspection and dependency commands return schema-versioned JSON by default. Add `--print` to any inspection or dependency command for the same decision and snapshot as a human-readable report. Blocking diagnostics use exit code 2.
 

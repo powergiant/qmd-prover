@@ -27,6 +27,25 @@ Use @def-example at the point where the definition is needed.
 
 The `of` attribute must name exactly one declaration. Cite every logical dependency with `@id` at its point of use in a definition construction or proof. Do not add a separate dependency list. Ordinary exposition, examples, computations, figures, and bibliographic citations remain ordinary QMD content.
 
+## Proof-development workspace
+
+When the user asks to prove a `thm-main-*` goal, create or resume
+
+```text
+.qmd-prover/workspaces/<thm-main-ID>/
+```
+
+Treat the canonical QMD containing the main goal as read-only. Do not add proof attempts, agent-created definitions, lemmas, propositions, theorems, calculations, or planning notes to canonical project files.
+
+Put all proof-development material under the goal workspace:
+
+- `progress.qmd` records the current route, open dependencies, completed intermediate results, and abandoned approaches.
+- Subject QMD files contain precise semantic definitions and intermediate results with their linked proofs.
+- `main-proof.qmd` contains the candidate `.proof` block linked to the protected main goal; do not repeat or rewrite the main theorem block there.
+- Additional folders may group a growing theory by mathematical subject. Do not scatter working mathematics elsewhere in the repository.
+
+The purpose of the workspace is to build an auditable dependency-linked mathematical development ending in a proof of the main goal. Follow every unproved dependency until it has its own proof; a plausible plan or prose sketch is not completion. Leave all agent-generated mathematics in the workspace unless the user explicitly asks to move accepted material into canonical QMD.
+
 ## Mathematical discipline
 
 - Preserve every `thm-main-*` ID, `name`, hypothesis, quantifier, and statement body exactly. Do not weaken or repair a main goal without explicit user approval.
@@ -43,6 +62,7 @@ The `of` attribute must name exactly one declaration. Cite every logical depende
 
 ## Project-specific requirements
 
+- For the current goal, work under `.qmd-prover/workspaces/thm-main-godel-completeness/` and leave `completeness.qmd` unchanged.
 - Develop Gödel's completeness theorem from explicit foundations of first-order logic: signatures, terms, formulas, substitution, proof calculus, structures, assignments, satisfaction, and semantic consequence.
 - State useful intermediate definitions and results as semantic QMD blocks and cite every logical dependency at its point of use.
 - Do not assume completeness, compactness, or an equivalent model-existence theorem as an unproved black box.

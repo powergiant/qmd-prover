@@ -15,7 +15,7 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" init
 
 Read the returned `existing` inventory. If the status is `intent-required`, summarize the detected `AGENTS.md`, QMD files, Quarto configuration, and `.qmd-prover` state, then ask whether the user wants to adopt the files in place, inspect them first, or leave them unchanged. Run `init-project --adopt-existing` only after the user chooses adoption.
 
-If the status is `append-required`, explain that existing project policy will be preserved and ask before running `init-project --append-contract`. If it is `sync-required`, report the current and canonical contract versions and ask before running `init-project --sync-contract`. Never use any mutation flag without explicit approval. For `already-initialized`, tell the user setup is already complete, summarize existing project material, and ask whether to continue it, inspect it, or change local policy. A successful `created`, `adopted`, `appended`, or `synchronized` result completes setup; no QMD scaffold or initial theorem is required.
+If the status is `append-required`, explain that existing project policy will be preserved and ask before running `init-project --append-contract`. If it is `sync-required`, report the current and canonical contract versions and ask before running `init-project --sync-contract`. Never use any mutation flag without explicit approval. For `already-initialized`, tell the user setup is already complete, summarize existing project material, and ask whether to continue it, inspect it, or change local policy. A successful result returns `.qmd-prover/workspaces` as `workspace_root`; no QMD scaffold or initial theorem is required.
 
 ## Project contract preflight
 
@@ -34,16 +34,22 @@ Run the dispatcher from the project root:
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" <subcommand> [arguments]
 ```
 
+## Proof-development boundary
+
+When the user asks to prove an existing `thm-main-*` goal, run `workspace init @thm-main-ID` and use the returned `.qmd-prover/workspaces/<thm-main-ID>/` directory. Resume it if it already exists. This is mandatory even though the mathematical plan is flexible.
+
+Keep canonical QMD read-only while proving. Write all agent-created definitions, intermediate results, proof attempts, calculations, examples, counterexamples, and progress notes inside the goal workspace. Maintain `progress.qmd`; put the main candidate in `main-proof.qmd` as a linked `.proof` block without repeating the protected theorem. Follow unproved workspace dependencies instead of treating them as established, and promote accepted mathematics only through the protected path.
+
 ## Using the infrastructure
 
-Do not impose a fixed proving workflow. A request may concern one theorem, a family of results, an existing mathematical development, or an idea that first needs precise formulation. Decide which definitions, lemmas, propositions, theorems, examples, or counterexamples to develop and in what order.
+Do not impose a fixed mathematical strategy. A request may concern one theorem, a family of results, an existing mathematical development, or an idea that first needs precise formulation. Decide which definitions, lemmas, propositions, theorems, examples, or counterexamples to develop and in what order, while preserving the mandatory workspace boundary.
 
 Use the supplied tools when they help:
 
 - initialize or compare the project contract;
 - inspect a fact, path, project, workspace, or dependency graph;
 - search available mathematics and unresolved frontiers;
-- create a persistent noncanonical workspace for one result, related results, or an evolving theory;
+- inspect and resume the required noncanonical goal workspace;
 - check staleness before relying on `VERIFIED` mathematics;
 - submit a linked proof or a new declaration with its linked proof for mechanical and independent AI checking;
 - inspect rejection feedback and retry after repairing every critical error and gap;
