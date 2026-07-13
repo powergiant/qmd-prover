@@ -28,7 +28,7 @@ function command(path, usage, { acceptsPositionals = false, summary = '', sectio
 export const HELP_COMMANDS = [
   command('', ['qmd-prover <command> [arguments]', 'qmd-prover help [COMMAND...]']),
   command('init', ['qmd-prover init [--adopt-existing|--append-contract|--sync-contract]'], {
-    summary: 'Initialize or safely adopt a qmd-prover project.',
+    summary: 'Initialize a qmd-prover project.',
     sections: {
       description: [
         'Initialize the qmd-prover project contract and ensure `.qmd-prover/workspaces/` exists.',
