@@ -445,7 +445,9 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(skill, /Do not reread the files before every QMD read/);
   assert.match(skill, /Every independent worker must perform this preflight/);
   assert.match(skill, /Never create, replace, or synchronize `AGENTS\.md` without user approval/);
-  assert.match(contract, /<!-- qmd-prover-contract:start version=4 -->/);
+  assert.match(skill, /Do not impose a fixed proving workflow/);
+  assert.match(skill, /explicitly asks to initialize qmd-prover/);
+  assert.match(contract, /<!-- qmd-prover-contract:start version=5 -->/);
   assert.match(contract, /<!-- qmd-prover-contract:end -->/);
   assert.match(contract, /name="Uniform index theorem"/);
   assert.match(contract, /\.proof of="thm-main-uniform-index"/);
@@ -461,6 +463,9 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(contract, /`REJECTED`/);
   assert.match(contract, /`REVOKED`/);
   assert.match(contract, /inspector calls the Codex SDK/);
+  assert.match(contract, /does not prescribe a fixed proof workflow/);
+  assert.match(contract, /does not establish compliance by itself/);
+  assert.doesNotMatch(contract, /For each requested goal:/);
   assert.doesNotMatch(contract, /### Uses/);
   assert.match(contract, /Project-specific additions/);
 });

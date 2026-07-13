@@ -2,9 +2,14 @@
 
 ## Role
 
-The discipline defines what a valid qmd-prover mathematical project looks like
-and how a host agent must work on it. Its canonical form is the managed
-contract in `skills/qmd-prover/references/AGENTS.md`.
+The discipline defines valid semantic QMD and the safety boundaries for agents
+that write it. It does not prescribe a research plan or a fixed order for proof
+development. Its canonical form is the managed contract in
+`skills/qmd-prover/references/AGENTS.md`.
+
+The contract alone cannot establish that a project follows the discipline.
+The inspector parses the semantic blocks, checks their invariants, builds the
+dependency graph, exposes progress, and invokes independent verification.
 
 A matching project contract is a prerequisite for inspection and proof work.
 Before invoking the inspector, the host agent checks that the managed block in
@@ -13,6 +18,11 @@ unchanged. If that preflight fails, the host agent stops before inspection or
 mutation and asks whether the user wants to synchronize the project-owned
 contract. This is an agent preflight requirement, not a substitute for the
 inspector's source and mathematical checks.
+
+Normally the user installs the skill and asks an agent in natural language to
+initialize a project. That request authorizes creation of a missing root
+`AGENTS.md` from the canonical contract; replacing or synchronizing existing
+project policy still requires explicit approval.
 
 ## Canonical and local policy
 
@@ -55,7 +65,7 @@ mechanism never implies that the other two have passed.
 |---|---|---|
 | Mechanically enforceable | Inspector and proving utilities | The QMD structure, references, records, and writes satisfy decidable invariants. |
 | Mathematically judged | Inspector's independent AI verifier | The exact construction or proof is mathematically sufficient. |
-| Agent conduct | Host-agent instructions | The agent follows project ownership and proof-development workflow rules. |
+| Agent conduct | Host-agent instructions | The agent follows project ownership, semantic-writing, and acceptance boundaries. |
 
 The first category is checked by code. For the second, the inspector calls the
 Codex SDK only after its programmatic checks pass, using a fresh bounded
@@ -143,7 +153,9 @@ agent to keep computation or evidence distinct from a general proof.
 
 ### Agent conduct rules
 
-The skill instructs the host agent to:
+The host agent may work from one theorem, a family of results, or an idea that
+needs formulation. It may introduce and order intermediate mathematics however
+the argument requires. The skill instructs it to:
 
 - preserve user-owned statements;
 - introduce precise intermediate results only when useful;
@@ -153,8 +165,8 @@ The skill instructs the host agent to:
 - keep search notes, confidence claims, and verifier metadata out of proofs,
   except for reserved qmd-prover control markers.
 
-These rules shape the reasoning loop even when they are not completely
-machine-decidable.
+These rules constrain representation and acceptance, not the agent's
+mathematical strategy.
 
 #### Example: correct behavior when a goal looks false
 

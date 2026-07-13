@@ -2,7 +2,7 @@
 
 Copy the managed block below into the root `AGENTS.md` of every mathematical project that uses qmd-prover. Keep the block unchanged. Add project-specific organization, notation, and writing rules outside the managed block.
 
-<!-- qmd-prover-contract:start version=4 -->
+<!-- qmd-prover-contract:start version=5 -->
 
 ## Contents
 
@@ -89,20 +89,13 @@ Apply these rules:
 
 ## Agent workflow
 
-Load the globally installed `qmd-prover` skill before proof work. The user interacts in natural language; translate their request into dispatcher operations rather than requiring them to learn commands.
+Load the `qmd-prover` skill and let the user work in natural language. qmd-prover does not prescribe a fixed proof workflow: the user may supply one theorem, a family of goals, or an idea from which the agent formulates precise definitions and results. Choose the order and granularity of the mathematics from the developing argument.
 
-For each requested goal:
+Whenever writing semantic QMD, follow this contract. Introduce useful intermediate results, revise rejected arguments, and continue a development for as long as the user's request requires. Keep tentative mathematics in a noncanonical workspace; a workspace may serve one result, several related results, or an evolving theory.
 
-1. Check staleness, then inspect the canonical project and the target theorem.
-2. Create or resume its goal workspace and read the protected target snapshot, imports, verified dependency closure, prior proposals, accepted mathematics, and verifier reports.
-3. Develop mathematics only in the goal workspace. Never experiment by editing canonical QMD.
-4. Inspect the workspace graph and do not treat an open, candidate, rejected, revoked, or stale workspace claim as established.
-5. Inspect one linked proof, or one new definition or result with its linked proof, through qmd-prover. Programmatic reference checks and independent AI sufficiency checks must both pass.
-6. If rejected, repair every concrete critical error and gap in workspace QMD, then inspect again.
-7. Promote only exact mathematics whose `VERIFIED` marker still matches its current record and dependency snapshot.
-8. Stop only when the goal is verified, precisely refuted, genuinely blocked, cancelled, or explicitly stopped.
+This contract tells agents how to write; it does not establish compliance by itself. Use the skill's inspector and other infrastructure as needed to initialize or compare project policy, enforce semantic structure, check references and staleness, analyze dependencies, view frontiers and progress, verify candidates, retain feedback, promote accepted mathematics safely, and render project views. These tools support the work; they do not determine the mathematical plan.
 
-Each independent worker must read this project `AGENTS.md`, load the skill, inspect its own target, and preserve useful notes in the goal workspace. Workers may propose mathematics but may not add, restore, or preserve `VERIFIED` against a staleness decision, and may not merge mathematics directly.
+The safety gates remain mandatory: do not use stale or unverified claims as established, do not edit protected user statements, respond to every critical verification error or gap, and accept canonical mathematics only through qmd-prover's checked atomic path. Each independent worker must load the skill, read this project `AGENTS.md`, and obey the same block discipline and verification boundary.
 
 <!-- qmd-prover-contract:end -->
 
