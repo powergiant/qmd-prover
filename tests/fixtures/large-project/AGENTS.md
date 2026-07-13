@@ -46,6 +46,8 @@ Put all proof-development material under the goal workspace:
 
 The purpose of the workspace is to build an auditable dependency-linked mathematical development ending in a proof of the main goal. Follow every unproved dependency until it has its own proof; a plausible plan or prose sketch is not completion. Leave all agent-generated mathematics in the workspace unless the user explicitly asks to move accepted material into canonical QMD.
 
+Until an independent inspector accepts the exact main candidate and its dependency closure, describe it as a candidate rather than a complete or accepted proof. `progress.qmd` must not turn the agent's own confidence into completion status.
+
 ## Mathematical discipline
 
 - Preserve every `thm-main-*` ID, `name`, hypothesis, quantifier, and statement body exactly. Do not weaken or repair a main goal without explicit user approval.
@@ -53,16 +55,18 @@ The purpose of the workspace is to build an auditable dependency-linked mathemat
 - Introduce notation before using it. State the scope of every variable and every nontrivial hypothesis.
 - State agent-created definitions and results precisely enough to be reused independently.
 - Justify reductions, existence and uniqueness claims, finiteness arguments, case splits, and limit passages.
-- Identify any external theorem precisely and check all of its hypotheses. Do not use the desired conclusion or an equivalent result as a black box.
+- Identify any external theorem by a precise statement or source and check all of its hypotheses. Project results use `@id`; external background results are cited normally unless developed inside the project. Do not use the desired conclusion or an equivalent result as a black box.
 - Do not treat an unproved intermediate claim as established. Follow its dependencies until every required result has a proof.
 - Distinguish examples, computations, and intuition from proofs of general statements.
 - Prefer a useful reusable intermediate result over hiding a substantial argument inside prose, but do not fragment a proof into vacuous lemmas.
 - Keep mathematical declarations and proofs readable. Keep planning notes, search logs, confidence claims, and process commentary outside them.
+- Do not replace a requested foundational definition or a nontrivial proof step with “usual”, “standard”, “clear”, or similar shorthand; expand it or mark the point open.
 - Organize definitions, results, and proofs in project QMD files according to their mathematical subject. The order of exploration and proof development is otherwise flexible.
 
 ## Project-specific requirements
 
 - For the current goal, work under `.qmd-prover/workspaces/thm-main-godel-completeness/` and leave `completeness.qmd` unchanged.
 - Develop Gödel's completeness theorem from explicit foundations of first-order logic: signatures, terms, formulas, substitution, proof calculus, structures, assignments, satisfaction, and semantic consequence.
+- Classical set theory, including choice, may be used as ambient metatheory; every other external logical or model-theoretic result must be stated and proved in the workspace.
 - State useful intermediate definitions and results as semantic QMD blocks and cite every logical dependency at its point of use.
 - Do not assume completeness, compactness, or an equivalent model-existence theorem as an unproved black box.
