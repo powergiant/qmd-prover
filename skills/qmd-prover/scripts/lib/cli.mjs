@@ -1,5 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { findHelpCommand, hasExactHelpCommand, isHelpGroup, renderHelp, rootUsage } from './cli-help.mjs';
 import { AUX, cleanId, readJson } from './files.mjs';
 import { analyzeDependencies, inspectFact, inspectPath, inspectProject, printReport } from './inspector.mjs';
 import { renderProject } from './render.mjs';
@@ -8,87 +9,7 @@ import { checkStaleness } from './staleness.mjs';
 import { revokeVerification, showVerification, submitProof } from './verification.mjs';
 import { initializeWorkspace, inspectWorkspace } from './workspace.mjs';
 
-const usage = `Usage:
-  qmd-prover help [COMMAND...]
-  qmd-prover init [--adopt-existing|--append-contract|--sync-contract]
-  qmd-prover inspect project [--print]
-  qmd-prover inspect fact @ID [--print]
-  qmd-prover inspect theorem @ID [--print]
-  qmd-prover inspect path FILE_OR_FOLDER [--print]
-  qmd-prover dependency dependencies|impact|frontier @ID [--print]
-  qmd-prover dependency reverse dependencies @ID [--print]
-  qmd-prover dependency path @FROM @TO [--print]
-  qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]
-  qmd-prover dependency cycles [--print]
-  qmd-prover dependency findings|isolated|unreachable [--print]
-  qmd-prover dependency unused imports|exports [--print]
-  qmd-prover dependency ready for ai [--print]
-  qmd-prover dependency reused [--limit N] [--print]
-  qmd-prover dependency search QUERY [--kind KIND] [--status STATUS] [--origin ORIGIN] [--path PATH]
-      [--used-by @ID|--depends-on @ID|--affected-by @ID|--stale-affected-by @ID]
-      [--frontier-of @ID] [--cycle-participant] [--direct] [--print]
-  qmd-prover check staleness [--print]
-  qmd-prover workspace init @thm-main-ID
-  qmd-prover workspace inspect @thm-main-ID [--print]
-  qmd-prover submit proof PROPOSAL_FILE [--to CANONICAL_QMD]
-  qmd-prover verification show SUBMISSION_ID
-  qmd-prover verification revoke @thm-ID --reason "..."
-  qmd-prover render`;
-
-const help = new Map([
-  ['', usage],
-  ['init', `Usage:\n  qmd-prover init [--adopt-existing|--append-contract|--sync-contract]`],
-  ['inspect', `Usage:\n  qmd-prover inspect project [--print]\n  qmd-prover inspect fact @ID [--print]\n  qmd-prover inspect theorem @ID [--print]\n  qmd-prover inspect path FILE_OR_FOLDER [--print]`],
-  ['inspect project', `Usage:\n  qmd-prover inspect project [--print]`],
-  ['inspect fact', `Usage:\n  qmd-prover inspect fact @ID [--print]`],
-  ['inspect theorem', `Usage:\n  qmd-prover inspect theorem @ID [--print]`],
-  ['inspect path', `Usage:\n  qmd-prover inspect path FILE_OR_FOLDER [--print]`],
-  ['dependency', usage.split('\n').filter((line) => line.includes('qmd-prover dependency')).reduce((text, line) => `${text}\n${line}`, 'Usage:')],
-  ['dependency dependencies', `Usage:\n  qmd-prover dependency dependencies @ID [--print]`],
-  ['dependency reverse', `Usage:\n  qmd-prover dependency reverse dependencies @ID [--print]`],
-  ['dependency reverse dependencies', `Usage:\n  qmd-prover dependency reverse dependencies @ID [--print]`],
-  ['dependency impact', `Usage:\n  qmd-prover dependency impact @ID [--print]`],
-  ['dependency frontier', `Usage:\n  qmd-prover dependency frontier @ID [--print]`],
-  ['dependency path', `Usage:\n  qmd-prover dependency path @FROM @TO [--print]`],
-  ['dependency alternative', `Usage:\n  qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]`],
-  ['dependency alternative paths', `Usage:\n  qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]`],
-  ['dependency cycles', `Usage:\n  qmd-prover dependency cycles [--print]`],
-  ['dependency findings', `Usage:\n  qmd-prover dependency findings [--print]`],
-  ['dependency unused', `Usage:\n  qmd-prover dependency unused imports [--print]\n  qmd-prover dependency unused exports [--print]`],
-  ['dependency unused imports', `Usage:\n  qmd-prover dependency unused imports [--print]`],
-  ['dependency unused exports', `Usage:\n  qmd-prover dependency unused exports [--print]`],
-  ['dependency isolated', `Usage:\n  qmd-prover dependency isolated [--print]`],
-  ['dependency unreachable', `Usage:\n  qmd-prover dependency unreachable [--print]`],
-  ['dependency ready', `Usage:\n  qmd-prover dependency ready for ai [--print]`],
-  ['dependency ready for', `Usage:\n  qmd-prover dependency ready for ai [--print]`],
-  ['dependency ready for ai', `Usage:\n  qmd-prover dependency ready for ai [--print]`],
-  ['dependency reused', `Usage:\n  qmd-prover dependency reused [--limit N] [--print]`],
-  ['dependency search', usage.slice(usage.indexOf('  qmd-prover dependency search'), usage.indexOf('  qmd-prover check staleness')).trimEnd().replace(/^/, 'Usage:\n')],
-  ['check', `Usage:\n  qmd-prover check staleness [--print]`],
-  ['check staleness', `Usage:\n  qmd-prover check staleness [--print]`],
-  ['workspace', `Usage:\n  qmd-prover workspace init @thm-main-ID\n  qmd-prover workspace inspect @thm-main-ID [--print]`],
-  ['workspace init', `Usage:\n  qmd-prover workspace init @thm-main-ID`],
-  ['workspace inspect', `Usage:\n  qmd-prover workspace inspect @thm-main-ID [--print]`],
-  ['submit', `Usage:\n  qmd-prover submit proof PROPOSAL_FILE [--to CANONICAL_QMD]`],
-  ['submit proof', `Usage:\n  qmd-prover submit proof PROPOSAL_FILE [--to CANONICAL_QMD]`],
-  ['verification', `Usage:\n  qmd-prover verification show SUBMISSION_ID\n  qmd-prover verification revoke @thm-ID --reason "..."`],
-  ['verification show', `Usage:\n  qmd-prover verification show SUBMISSION_ID`],
-  ['verification revoke', `Usage:\n  qmd-prover verification revoke @thm-ID --reason "..."`],
-  ['render', `Usage:\n  qmd-prover render`]
-]);
-
-const helpGroups = new Set([
-  'inspect', 'dependency', 'dependency reverse', 'dependency alternative',
-  'dependency unused', 'dependency ready', 'dependency ready for', 'check',
-  'workspace', 'submit', 'verification'
-]);
-
-const helpPositionals = new Set([
-  'inspect fact', 'inspect theorem', 'inspect path',
-  'dependency dependencies', 'dependency reverse dependencies', 'dependency impact',
-  'dependency frontier', 'dependency path', 'dependency alternative paths', 'dependency search',
-  'workspace init', 'workspace inspect', 'submit proof', 'verification show', 'verification revoke'
-]);
+const usage = rootUsage;
 
 function emitHelp(args) {
   let pathArgs;
@@ -99,18 +20,15 @@ function emitHelp(args) {
     if (index < 0) return false;
     pathArgs = args.slice(0, index);
   }
-  let selected = '';
-  for (let length = 1; length <= pathArgs.length; length += 1) {
-    const candidate = pathArgs.slice(0, length).join(' ');
-    if (help.has(candidate)) selected = candidate;
-  }
+  const selected = findHelpCommand(pathArgs);
   const requested = pathArgs.join(' ');
-  const extra = pathArgs.slice(selected ? selected.split(' ').length : 0);
-  const hasUnexpectedPositional = extra.some((item) => !item.startsWith('--')) && !helpPositionals.has(selected);
-  if (pathArgs.length && (!selected || (direct && !help.has(requested)) || (helpGroups.has(selected) && requested !== selected) || hasUnexpectedPositional)) {
+  const selectedLength = selected.path ? selected.path.split(' ').length : 0;
+  const extra = pathArgs.slice(selectedLength);
+  const hasUnexpectedPositional = extra.some((item) => !item.startsWith('--')) && !selected.acceptsPositionals;
+  if (pathArgs.length && ((direct && !hasExactHelpCommand(requested)) || (isHelpGroup(selected) && requested !== selected.path) || hasUnexpectedPositional)) {
     throw new Error(`Unknown command: ${pathArgs.join(' ')}\n${usage}`);
   }
-  process.stdout.write(`${help.get(selected)}\n`);
+  process.stdout.write(`${renderHelp(selected)}\n`);
   return true;
 }
 

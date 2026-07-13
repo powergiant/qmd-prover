@@ -3,6 +3,7 @@ import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
+import { HELP_COMMANDS } from '../skills/qmd-prover/scripts/lib/cli-help.mjs';
 import { readExternalPolicy } from '../skills/qmd-prover/scripts/lib/external.mjs';
 import { initializeProject } from '../skills/qmd-prover/scripts/lib/project.mjs';
 import { bareProject, fakePandoc, here, options, proof, result, verifier } from './support.mjs';
@@ -163,12 +164,16 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const rootHelp = await run(['help']);
   assert.equal(rootHelp.error, null);
   assert.match(rootHelp.stdout, /^Usage:\n/);
+  assert.match(rootHelp.stdout, /Commands:\n  init\n  inspect\n  dependency/);
+  assert.ok(HELP_COMMANDS.every((item) => ['description', 'arguments', 'options', 'examples', 'notes'].every((section) => Array.isArray(item.sections[section]))));
   for (const command of commands) {
     const result = await run([...command.split(' '), 'help']);
     assert.equal(result.error, null, `${command} help failed: ${result.stderr}`);
     assert.match(result.stdout, /^Usage:\n/);
     assert.match(result.stdout, new RegExp(`qmd-prover ${command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
   }
+  const inspectHelp = await run(['inspect', 'help']);
+  assert.match(inspectHelp.stdout, /Commands:\n  project\n  fact\n  theorem\n  path/);
   assert.equal((await run(['help', 'inspect', 'fact'])).error, null);
   assert.equal((await run(['inspect', 'fact', '--help'])).error, null);
   assert.equal((await run(['inspect', 'fact', '-h'])).error, null);
