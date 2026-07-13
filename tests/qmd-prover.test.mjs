@@ -417,11 +417,16 @@ test('accepted verifier output is rejected as stale after a concurrent target ed
 
 test('project initialization inventories, adopts, preserves, appends, and synchronizes safely', async () => {
   const canonicalSource = await readFile(path.join(here, '..', 'skills', 'qmd-prover', 'references', 'AGENTS.md'), 'utf8');
-  const canonicalBlock = canonicalSource.match(/<!-- qmd-prover-contract:start version=7 -->[\s\S]*?<!-- qmd-prover-contract:end -->/)[0];
+  const canonicalBlock = canonicalSource.match(/<!-- qmd-prover-contract:start version=9 -->[\s\S]*?<!-- qmd-prover-contract:end -->/)[0];
+  assert.match(canonicalBlock, /Describe an unverified main proof as a candidate/);
+  assert.match(canonicalBlock, /state the allowed ambient logic and metatheory/);
+  assert.match(canonicalBlock, /Do not replace a requested foundational definition/);
 
   const fresh = await bareProject();
   const created = await initializeProject(fresh);
-  assert.deepEqual({ ok: created.ok, status: created.status, version: created.contract_version }, { ok: true, status: 'created', version: 7 });
+  assert.deepEqual({ ok: created.ok, status: created.status, version: created.contract_version }, { ok: true, status: 'created', version: 9 });
+  assert.equal(created.workspace_root, '.qmd-prover/workspaces');
+  assert.equal((await stat(path.join(fresh, '.qmd-prover', 'workspaces'))).isDirectory(), true);
   assert.match(await readFile(path.join(fresh, 'AGENTS.md'), 'utf8'), /## Project-specific additions/);
   assert.equal((await initializeProject(fresh)).status, 'already-initialized');
 
@@ -451,7 +456,7 @@ test('project initialization inventories, adopts, preserves, appends, and synchr
   assert.ok(appended.includes(canonicalBlock));
 
   const stale = await bareProject();
-  const oldBlock = canonicalBlock.replace('version=7', 'version=1');
+  const oldBlock = canonicalBlock.replace('version=9', 'version=1');
   await writeFile(path.join(stale, 'AGENTS.md'), `# Local before\n\n${oldBlock}\n\n## Local after\n`);
   const syncRequired = await initializeProject(stale);
   assert.deepEqual({ ok: syncRequired.ok, status: syncRequired.status, current: syncRequired.current_contract_version }, { ok: false, status: 'sync-required', current: 1 });
@@ -470,7 +475,8 @@ test('dispatcher preserves JSON commands and adds workspace operations', async (
     cwd: root
   }, (error, stdout, stderr) => error ? reject(error) : resolve(JSON.parse(stdout))));
   assert.equal(initialized.status, 'created');
-  assert.equal(initialized.contract_version, 7);
+  assert.equal(initialized.contract_version, 9);
+  assert.equal(initialized.workspace_root, '.qmd-prover/workspaces');
   const policyRoot = await bareProject();
   await writeFile(path.join(policyRoot, 'AGENTS.md'), '# Existing policy\n');
   const guarded = await new Promise((resolve) => execFile(process.execPath, [cli, 'init-project'], {
@@ -511,11 +517,12 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(skill, /Do not reread the files before every QMD read/);
   assert.match(skill, /Every independent worker must perform this preflight/);
   assert.match(skill, /Never create, replace, or synchronize `AGENTS\.md` without user approval/);
-  assert.match(skill, /Do not impose a fixed proving workflow/);
+  assert.match(skill, /Do not impose a fixed mathematical strategy/);
+  assert.match(skill, /workspace init @thm-main-ID/);
   assert.match(skill, /asks to initialize qmd-prover/);
   assert.match(skill, /init-project --append-contract/);
   assert.match(skill, /init-project --sync-contract/);
-  assert.match(contract, /<!-- qmd-prover-contract:start version=7 -->/);
+  assert.match(contract, /<!-- qmd-prover-contract:start version=9 -->/);
   assert.match(contract, /<!-- qmd-prover-contract:end -->/);
   assert.match(contract, /name="Uniform index theorem"/);
   assert.match(contract, /\.proof of="thm-main-uniform-index"/);
@@ -535,6 +542,8 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(contract, /does not establish compliance by itself/);
   assert.match(contract, /init-project/);
   assert.match(contract, /intent-required/);
+  assert.match(contract, /\.qmd-prover\/workspaces\/<thm-main-ID>\//);
+  assert.match(contract, /canonical QMD as read-only/);
   assert.doesNotMatch(contract, /For each requested goal:/);
   assert.doesNotMatch(contract, /### Uses/);
   assert.match(contract, /Project-specific additions/);

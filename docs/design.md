@@ -124,50 +124,44 @@ uniform-index-project/                     # canonical project workspace
     ├── manifest.json
     ├── graph.json
     ├── verification/                       # accepted canonical records
-    └── workspaces/                         # visible working mathematics
-        ├── .workspaces/                    # machine-managed workspace state
-        │   ├── workspace.json              # target, base hashes, and status
-        │   ├── verification/
-        │   │   ├── lem-local-exponent-bound.json
-        │   │   └── thm-main-uniform-index.json
-        │   ├── target.qmd                   # protected snapshot of the goal
-        │   └── graph.json                   # workspace dependency graph
-        ├── progress.qmd                    # overall plan and proved frontier
-        ├── context/
-        │   ├── progress.qmd
-        │   ├── imported-results.qmd     # bounded canonical context
-        │   └── external-results.qmd     # precisely recorded literature
-        ├── reductions/
-        │   ├── progress.qmd
-        │   ├── reduce-to-strata.qmd
-        │   ├── generic-fiber.qmd
-        │   └── specialization.qmd
-        ├── local-theory/
-        │   ├── progress.qmd
-        │   ├── local-class-groups.qmd
-        │   ├── exponent-bounds.qmd
-        │   └── completion-comparison.qmd
-        ├── global-theory/
-        │   ├── progress.qmd
-        │   ├── finite-stratification.qmd
-        │   ├── constructibility.qmd
-        │   └── lcm-argument.qmd
-        ├── examples/
-        │   ├── progress.qmd
-        │   ├── quotient-singularities.qmd
-        │   └── possible-counterexamples.qmd
-        └── main-proof.qmd
+    └── workspaces/
+        └── thm-main-uniform-index/          # noncanonical goal workspace
+            ├── workspace.json              # target, base hashes, and status
+            ├── verification/
+            │   ├── lem-local-exponent-bound.json
+            │   └── thm-main-uniform-index.json
+            ├── target.qmd                   # protected snapshot of the goal
+            ├── graph.json                   # workspace dependency graph
+            ├── progress.qmd                 # overall route and proved frontier
+            ├── context/
+            │   ├── imported-results.qmd     # bounded canonical context
+            │   └── external-results.qmd     # precisely recorded literature
+            ├── reductions/
+            │   ├── reduce-to-strata.qmd
+            │   ├── generic-fiber.qmd
+            │   └── specialization.qmd
+            ├── local-theory/
+            │   ├── local-class-groups.qmd
+            │   ├── exponent-bounds.qmd
+            │   └── completion-comparison.qmd
+            ├── global-theory/
+            │   ├── finite-stratification.qmd
+            │   ├── constructibility.qmd
+            │   └── lcm-argument.qmd
+            ├── examples/
+            │   ├── quotient-singularities.qmd
+            │   └── possible-counterexamples.qmd
+            └── main-proof.qmd
 ```
 
 This is an illustrative workspace, not a required list of subject directories.
-The visible files under `workspaces/` are ordinary mathematical QMD organized
-by the development itself. The hidden `workspaces/.workspaces/` directory is
-reserved for machine-managed state: the protected target, base identities,
-workspace graph, and workspace verification records. Project-level
-`.qmd-prover/verification/` records accepted canonical mathematics, while the
-workspace-local verification directory retains checks of provisional work.
+Each `workspaces/<thm-main-ID>/` directory contains ordinary working QMD plus
+the protected target, base identities, graph, and workspace verification
+records for that goal. Project-level `.qmd-prover/verification/` records
+accepted canonical mathematics, while the goal-local verification directory
+retains checks of provisional work.
 
-A short proof may need only the hidden target snapshot, a top-level
+A short proof may need only the protected target snapshot, a top-level
 `progress.qmd`, and one mathematical working file. A long proof may grow into a
 substantial mathematical development. Top-level `progress.qmd` records the
 overall frontier; a subject directory may carry its own `progress.qmd` when a
@@ -232,8 +226,8 @@ The files have different ownership:
   qmd-prover contract plus optional local rules.
 - QMD files outside `.qmd-prover/` are canonical mathematics and exposition.
 - `_quarto.yml` is the project's normal Quarto configuration.
-- `.qmd-prover/workspaces/` contains persistent but noncanonical mathematical
-  work, with machine state isolated under its `.workspaces/` child.
+- `.qmd-prover/workspaces/<thm-main-ID>/` contains persistent but noncanonical
+  mathematical work and state for one protected main goal.
 - Project verification JSON records accepted canonical results; workspace
   verification JSON retains accepted and rejected checks of provisional work.
 - Other `.qmd-prover/` files contain derived indexes and caches.
@@ -363,6 +357,12 @@ staleness, verify a candidate, retain rejection feedback, promote accepted work
 atomically, or render progress. These capabilities inform and protect the
 agent's work; they do not choose its next mathematical step.
 
+For an existing protected main goal, workspace placement is mandatory rather
+than advisory: the host creates or resumes
+`.qmd-prover/workspaces/<thm-main-ID>/`, treats canonical QMD as read-only, and
+writes every tentative mathematical artifact for that goal inside the returned
+directory.
+
 Only the safety gates have a required order: mechanical checks precede the
 inspector's independent AI check, and canonical acceptance follows both. The
 agent must also check staleness before relying on `VERIFIED` mathematics and
@@ -405,6 +405,9 @@ If it finds a partial or complete project without the contract, the agent
 summarizes that material and asks whether to adopt it, inspect it first, or
 leave it unchanged. The explicit `--adopt-existing`, `--append-contract`, and
 `--sync-contract` forms are used only after user approval.
+
+Successful setup ensures the visible `.qmd-prover/workspaces/` root exists;
+goal-specific directories are created when proof work begins.
 
 Initialization establishes the discipline and inspection infrastructure; it
 does not require the user to choose a theorem or learn tool commands. Later the
@@ -523,7 +526,7 @@ Submit the selected candidate from workspace QMD:
 
 ```bash
 node "$QMD_PROVER_ROOT/scripts/qmd-prover.mjs" \
-  submit-proof .qmd-prover/workspaces/main-proof.qmd
+  submit-proof .qmd-prover/workspaces/thm-main-even-square/main-proof.qmd
 ```
 
 Read a stored verification report:

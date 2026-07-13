@@ -22,33 +22,29 @@ occur only after both pass.
 
 ## Mathematical agent workspace
 
-Tentative proof development takes place in persistent mathematical workspaces,
-not in the canonical Quarto sources. A workspace may support one goal, a
-related family, or an evolving theory formulated from a user's idea. This
-matters when one short request expands into a large body of agent-generated
-mathematics.
+Tentative proof development takes place in persistent goal workspaces, not in
+the canonical Quarto sources. Proving `@thm-main-ID` requires
+`.qmd-prover/workspaces/thm-main-ID/`; the host may organize its mathematical
+contents freely. This matters when one short request expands into a large body
+of agent-generated mathematics.
 
 For example, work on `@thm-main-uniform-index` may eventually contain:
 
 ```text
-.qmd-prover/workspaces/
-├── .workspaces/
-│   ├── workspace.json
-│   ├── target.qmd
-│   ├── graph.json
-│   └── verification/
-│       ├── lem-local-exponent-bound.json
-│       └── thm-main-uniform-index.json
+.qmd-prover/workspaces/thm-main-uniform-index/
+├── workspace.json
+├── target.qmd
+├── graph.json
+├── verification/
+│   ├── lem-local-exponent-bound.json
+│   └── thm-main-uniform-index.json
 ├── progress.qmd
 ├── context/
-│   ├── progress.qmd
 │   └── imported-results.qmd
 ├── reductions/
-│   ├── progress.qmd
 │   ├── reduce-to-strata.qmd
 │   └── specialization.qmd
 ├── local-theory/
-│   ├── progress.qmd
 │   ├── local-class-groups.qmd
 │   └── exponent-bounds.qmd
 └── main-proof.qmd
@@ -59,12 +55,11 @@ definitions, lemmas, theorems, examples, partial proofs, rejected proofs, or
 alternative routes. Top-level `progress.qmd` records the overall frontier; a
 subject directory may add its own `progress.qmd` for local context.
 
-The hidden `.workspaces/` directory separates machine-managed state from that
-mathematics. `target.qmd` preserves the assigned statement, `workspace.json`
-records the canonical identities on which work began, `graph.json` records the
-provisional dependency graph, and `verification/` retains exact checks of
-workspace candidates. Accepted canonical records remain in the project-level
-`.qmd-prover/verification/` cache.
+Within the goal directory, `target.qmd` preserves the assigned statement,
+`workspace.json` records the canonical identities on which work began,
+`graph.json` records the provisional dependency graph, and `verification/`
+retains exact checks of workspace candidates. Accepted canonical records remain
+in the project-level `.qmd-prover/verification/` cache.
 
 The inspector maintains a provisional dependency graph for this workspace. A
 workspace result may depend on verified canonical results or other workspace
@@ -325,10 +320,10 @@ historical records remain but are marked stale. Staleness does not add
 The proving utilities may retain under `.qmd-prover/`:
 
 - a persistent mathematical workspace containing agent-generated QMD;
-- hidden workspace state under `workspaces/.workspaces/`;
+- goal workspace state under `workspaces/<thm-main-ID>/`;
 - the bounded packet sent to the verifier or its stable identity;
 - complete workspace verifier reports and accepted or rejected submission
-  records under `workspaces/.workspaces/verification/`; and
+  records under `workspaces/<thm-main-ID>/verification/`; and
 - project verification records relating exact canonical proofs to status under
   `.qmd-prover/verification/`.
 
@@ -355,7 +350,7 @@ candidate with:
 
 ```bash
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" \
-  submit-proof .qmd-prover/workspaces/main-proof.qmd
+  submit-proof .qmd-prover/workspaces/thm-main-uniform-index/main-proof.qmd
 ```
 
 A rejected JSON response directs the host agent to the stored report. An

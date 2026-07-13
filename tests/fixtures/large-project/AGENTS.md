@@ -1,116 +1,72 @@
-# Mathematical project instructions
+# Mathematical project discipline
 
-<!-- qmd-prover-contract:start version=7 -->
+## Semantic QMD format
 
-## Contents
+Write every mathematical declaration as a fenced Div with one stable ID, one kind class, a descriptive `name`, and an ISO introduction `date`.
 
-- [qmd-prover contract](#qmd-prover-contract)
-- [Project setup](#project-setup)
-- [Verification discipline](#verification-discipline)
-- [Agent workflow](#agent-workflow)
-
-## Project setup
-
-The user normally adds the `qmd-prover` skill and asks the agent in natural language to initialize the current project. From the project root, run:
-
-```bash
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" init-project
-```
-
-The command reports any existing `AGENTS.md`, QMD sources, Quarto configuration, and `.qmd-prover` state. If it returns `intent-required`, summarize what exists and ask whether the user wants to adopt those files in place, inspect them first, or leave them unchanged. Run `--adopt-existing` only after the user chooses adoption.
-
-With no existing project content, the command creates a root `AGENTS.md` with the canonical managed block. It is idempotent when the current block is already present; report that state and ask what the user wants to do next. If `AGENTS.md` exists without the block, preserve it and ask before rerunning with `--append-contract`. If it contains an older or different managed block, ask before using `--sync-contract`; synchronization replaces only that block. Put local project rules outside the managed block.
-
-Setup requires no QMD scaffold or initial theorem. Afterward, the user may provide one or more theorems, existing QMD, or an idea for the agent to formulate.
-
-## qmd-prover contract
-
-QMD outside recognized semantic blocks remains ordinary Quarto content. A semantic declaration is a fenced Div with one stable ID, exactly one kind class, a human-readable `name`, and an ISO introduction `date`. Its ID prefix must match its kind:
-
-| Block | ID | Discipline |
+| Declaration | Required form | Use |
 |---|---|---|
-| `.definition` | `def-*` | Introduce a term, object, or notation. The body is its construction; `@id` references there are construction dependencies. Put any well-definedness, existence, or uniqueness argument in a linked proof. |
-| `.lemma` | `lem-*` | State an auxiliary result. A lemma has the same proof standard as every other result. |
-| `.proposition` | `prp-*` | State a useful standalone result that is not presented as a principal theorem. The distinction is expository only. |
-| `.theorem` | `thm-*` | State a principal result and justify it in a separate linked proof. |
-| `.corollary` | `cor-*` | State a quick consequence, but cite the earlier result explicitly in its linked proof. The label creates no dependency. |
-| `.theorem .goal` | `thm-main-*` | Record a user-owned main goal. Preserve its ID, `name`, hypotheses, quantifiers, and statement body exactly; without a linked proof it is open. The `.goal` class refines `.theorem`, not a sixth kind. |
-| `.proof` | none | Justify exactly one declaration. Give it no ID; set `of` to the declaration ID and cite every logical dependency with `@id` at its point of use. |
+| Definition | `#def-* .definition` | Introduce a term, object, construction, or notation. |
+| Lemma | `#lem-* .lemma` | State an auxiliary result used later. |
+| Proposition | `#prp-* .proposition` | State a useful standalone result. |
+| Theorem | `#thm-* .theorem` | State a principal result. |
+| Corollary | `#cor-* .corollary` | State a direct consequence of earlier results. |
+| Main goal | `#thm-main-* .theorem .goal` | State a theorem supplied by the user. |
 
-Use `export` when another file must import a declaration. Import exported IDs individually in the target QMD front matter; wildcards are forbidden:
-
-```yaml
----
-qmd-prover:
-  imports:
-    - from: foundations/local-groups.qmd
-      use:
-        - def-local-class-group
-        - thm-local-class-group-finite
----
-```
-
-The references inside a definition construction or linked proof are the dependency declaration; do not add a `Uses` list. References in surrounding prose are navigational, and bibliographic citations such as `[@rudin1976]` remain ordinary Quarto citations.
-
-Use this shape for declarations and linked proofs:
+Keep each proof in a separate block with no ID:
 
 ```markdown
-::: {#thm-main-uniform-index .theorem .goal name="Uniform index theorem" date="2026-07-12"}
-Let \(\pi\colon X\to B\) satisfy the stated hypotheses. There exists an
-integer \(I>0\) such that every admissible fiber has total Cartier index
-dividing \(I\).
+::: {#lem-example .lemma name="Example lemma" date="2026-07-12"}
+State the lemma precisely, including its hypotheses and quantifiers.
 :::
 
-::: {.proof of="thm-main-uniform-index"}
-By @lem-finite-stratification there are finitely many strata. Apply
-@lem-local-exponent-bound on each stratum and take the least common multiple.
+::: {.proof of="lem-example"}
+Use @def-example at the point where the definition is needed.
 :::
 ```
 
-A workspace proposal for an existing declaration contains only its linked `.proof`; do not repeat or edit the declaration. A declaration has at most one active proof. The first nonempty proof paragraph may be one reserved marker:
+The `of` attribute must name exactly one declaration. Cite every logical dependency with `@id` at its point of use in a definition construction or proof. Do not add a separate dependency list. Ordinary exposition, examples, computations, figures, and bibliographic citations remain ordinary QMD content.
 
-| Marker | Meaning |
-|---|---|
-| `OPEN` | Incomplete active attempt. |
-| `REJECTED` | Inactive failed attempt. |
-| no marker | Candidate awaiting independent verification. |
-| `VERIFIED` | Accepted proof backed by matching protected records. |
-| `REVOKED` | Previously accepted proof backed by a matching revocation record and reason. |
+## Proof-development workspace
 
-Never add or restore `VERIFIED` manually. Only qmd-prover may write `VERIFIED` or `REVOKED`. Use only results available in the current file or explicitly imported, and never treat an open, candidate, rejected, revoked, or stale result as established.
+When the user asks to prove a `thm-main-*` goal, create or resume
 
-## Verification discipline
+```text
+.qmd-prover/workspaces/<thm-main-ID>/
+```
 
-Passing one layer does not imply passing another:
+Treat the canonical QMD containing the main goal as read-only. Do not add proof attempts, agent-created definitions, lemmas, propositions, theorems, calculations, or planning notes to canonical project files.
 
-| Layer | Enforced by | Covers |
-|---|---|---|
-| Mechanical | Inspector and proving utilities | Block shape, dates, IDs, imports, references, proof association and state, protected statements, staleness, and rejection-safe atomic writes. |
-| Mathematical | Inspector's independent AI verifier | Valid inferences, hypotheses, theorem applicability, complete case coverage, and proof sufficiency. |
-| Agent conduct | This contract | Project ownership, protected goals, workspace-only development, and response to verification findings. |
+Put all proof-development material under the goal workspace:
 
-After mechanical checks pass, the inspector calls the Codex SDK in a fresh bounded context, independent of the proving agent, to judge whether the exact declaration is established by its construction or proof. Acceptance requires a correct verdict with no critical errors or gaps.
+- `progress.qmd` records the current route, open dependencies, completed intermediate results, and abandoned approaches.
+- Subject QMD files contain precise semantic definitions and intermediate results with their linked proofs.
+- `main-proof.qmd` contains the candidate `.proof` block linked to the protected main goal; do not repeat or rewrite the main theorem block there.
+- Additional folders may group a growing theory by mathematical subject. Do not scatter working mathematics elsewhere in the repository.
 
-Apply these rules:
+The purpose of the workspace is to build an auditable dependency-linked mathematical development ending in a proof of the main goal. Follow every unproved dependency until it has its own proof; a plausible plan or prose sketch is not completion. Leave all agent-generated mathematics in the workspace unless the user explicitly asks to move accepted material into canonical QMD.
 
-1. State agent-created mathematics precisely: introduce notation, scope variables, include every nontrivial hypothesis, and justify reductions, existence, finiteness, and limit passages.
-2. Identify external theorems precisely enough to check their applicability. Keep examples, computations, and intuition distinct from a general proof.
-3. If a main goal appears false, preserve it and produce a precise refutation. Change it only with explicit user approval.
-4. Keep prose mathematical and readable. Except for reserved markers, keep verifier metadata, worker strategy, search notes, and confidence claims out of declarations and proofs.
-5. Before relying on `VERIFIED`, run the staleness check. Let qmd-prover remove stale markers from the changed fact and every direct or transitive dependent, then re-run all checks.
-6. Put mathematics where nearby sources and local policy indicate; qmd-prover imposes no subject-directory layout.
+Until an independent inspector accepts the exact main candidate and its dependency closure, describe it as a candidate rather than a complete or accepted proof. `progress.qmd` must not turn the agent's own confidence into completion status.
 
-## Agent workflow
+## Mathematical discipline
 
-Load the `qmd-prover` skill and let the user work in natural language. qmd-prover does not prescribe a fixed proof workflow: the user may supply one theorem, a family of goals, or an idea from which the agent formulates precise definitions and results. Choose the order and granularity of the mathematics from the developing argument.
+- Preserve every `thm-main-*` ID, `name`, hypothesis, quantifier, and statement body exactly. Do not weaken or repair a main goal without explicit user approval.
+- If a main goal appears false, preserve it and give a precise counterexample or refutation.
+- Introduce notation before using it. State the scope of every variable and every nontrivial hypothesis.
+- State agent-created definitions and results precisely enough to be reused independently.
+- Justify reductions, existence and uniqueness claims, finiteness arguments, case splits, and limit passages.
+- Identify any external theorem by a precise statement or source and check all of its hypotheses. Project results use `@id`; external background results are cited normally unless developed inside the project. Do not use the desired conclusion or an equivalent result as a black box.
+- Do not treat an unproved intermediate claim as established. Follow its dependencies until every required result has a proof.
+- Distinguish examples, computations, and intuition from proofs of general statements.
+- Prefer a useful reusable intermediate result over hiding a substantial argument inside prose, but do not fragment a proof into vacuous lemmas.
+- Keep mathematical declarations and proofs readable. Keep planning notes, search logs, confidence claims, and process commentary outside them.
+- Do not replace a requested foundational definition or a nontrivial proof step with “usual”, “standard”, “clear”, or similar shorthand; expand it or mark the point open.
+- Organize definitions, results, and proofs in project QMD files according to their mathematical subject. The order of exploration and proof development is otherwise flexible.
 
-Whenever writing semantic QMD, follow this contract. Introduce useful intermediate results, revise rejected arguments, and continue a development for as long as the user's request requires. Keep tentative mathematics in a noncanonical workspace; a workspace may serve one result, several related results, or an evolving theory.
+## Project-specific requirements
 
-This contract tells agents how to write; it does not establish compliance by itself. Use the skill's inspector and other infrastructure as needed to initialize or compare project policy, enforce semantic structure, check references and staleness, analyze dependencies, view frontiers and progress, verify candidates, retain feedback, promote accepted mathematics safely, and render project views. These tools support the work; they do not determine the mathematical plan.
-
-The safety gates remain mandatory: do not use stale or unverified claims as established, do not edit protected user statements, respond to every critical verification error or gap, and accept canonical mathematics only through qmd-prover's checked atomic path. Each independent worker must load the skill, read this project `AGENTS.md`, and obey the same block discipline and verification boundary.
-
-<!-- qmd-prover-contract:end -->
-
-## Project-specific additions
-
+- For the current goal, work under `.qmd-prover/workspaces/thm-main-godel-completeness/` and leave `completeness.qmd` unchanged.
+- Develop Gödel's completeness theorem from explicit foundations of first-order logic: signatures, terms, formulas, substitution, proof calculus, structures, assignments, satisfaction, and semantic consequence.
+- Classical set theory, including choice, may be used as ambient metatheory; every other external logical or model-theoretic result must be stated and proved in the workspace.
+- State useful intermediate definitions and results as semantic QMD blocks and cite every logical dependency at its point of use.
+- Do not assume completeness, compactness, or an equivalent model-existence theorem as an unproved black box.

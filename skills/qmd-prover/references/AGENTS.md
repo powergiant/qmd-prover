@@ -2,12 +2,13 @@
 
 Copy the managed block below into the root `AGENTS.md` of every mathematical project that uses qmd-prover. Keep the block unchanged. Add project-specific organization, notation, and writing rules outside the managed block.
 
-<!-- qmd-prover-contract:start version=7 -->
+<!-- qmd-prover-contract:start version=9 -->
 
 ## Contents
 
 - [qmd-prover contract](#qmd-prover-contract)
 - [Project setup](#project-setup)
+- [Proof-development workspace](#proof-development-workspace)
 - [Verification discipline](#verification-discipline)
 - [Agent workflow](#agent-workflow)
 
@@ -21,7 +22,7 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" init
 
 The command reports any existing `AGENTS.md`, QMD sources, Quarto configuration, and `.qmd-prover` state. If it returns `intent-required`, summarize what exists and ask whether the user wants to adopt those files in place, inspect them first, or leave them unchanged. Run `--adopt-existing` only after the user chooses adoption.
 
-With no existing project content, the command creates a root `AGENTS.md` with the canonical managed block. It is idempotent when the current block is already present; report that state and ask what the user wants to do next. If `AGENTS.md` exists without the block, preserve it and ask before rerunning with `--append-contract`. If it contains an older or different managed block, ask before using `--sync-contract`; synchronization replaces only that block. Put local project rules outside the managed block.
+With no existing project content, the command creates a root `AGENTS.md` with the canonical managed block and ensures `.qmd-prover/workspaces/` exists. It is idempotent when the current block is already present; report that state and ask what the user wants to do next. If `AGENTS.md` exists without the block, preserve it and ask before rerunning with `--append-contract`. If it contains an older or different managed block, ask before using `--sync-contract`; synchronization replaces only that block. Put local project rules outside the managed block.
 
 Setup requires no QMD scaffold or initial theorem. Afterward, the user may provide one or more theorems, existing QMD, or an idea for the agent to formulate.
 
@@ -81,6 +82,25 @@ A workspace proposal for an existing declaration contains only its linked `.proo
 
 Never add or restore `VERIFIED` manually. Only qmd-prover may write `VERIFIED` or `REVOKED`. Use only results available in the current file or explicitly imported, and never treat an open, candidate, rejected, revoked, or stale result as established.
 
+## Proof-development workspace
+
+When the user asks to prove an existing `thm-main-*` goal, create or resume its workspace with `workspace init @thm-main-ID`. Use the returned directory, normally:
+
+```text
+.qmd-prover/workspaces/<thm-main-ID>/
+```
+
+Treat canonical QMD as read-only during proof development. Put every agent-created definition, intermediate result, proof attempt, calculation, example, counterexample, and planning note for the goal inside its workspace; do not scatter working mathematics elsewhere in the repository.
+
+- Keep the protected target snapshot unchanged.
+- Use `progress.qmd` to record the active route, proved frontier, open dependencies, and abandoned approaches.
+- Put semantic definitions and intermediate results with their linked proofs in subject QMD files.
+- Put the candidate proof of the protected main goal in `main-proof.qmd` as a `.proof` block only; do not repeat or rewrite the main theorem block.
+- Follow every unproved dependency until it has its own proof. A plan, example, computation, or prose sketch is not a completed proof.
+- Describe an unverified main proof as a candidate, not as complete or accepted. Claim completion only after the inspector's mechanical checks and independent verification accept the exact candidate and its dependency closure.
+
+The order of mathematical exploration is flexible; this workspace boundary is not. Move mathematics into canonical QMD only through qmd-prover's accepted promotion path.
+
 ## Verification discipline
 
 Passing one layer does not imply passing another:
@@ -96,17 +116,18 @@ After mechanical checks pass, the inspector calls the Codex SDK in a fresh bound
 Apply these rules:
 
 1. State agent-created mathematics precisely: introduce notation, scope variables, include every nontrivial hypothesis, and justify reductions, existence, finiteness, and limit passages.
-2. Identify external theorems precisely enough to check their applicability. Keep examples, computations, and intuition distinct from a general proof.
+2. Identify external theorems by a precise statement or source and check their hypotheses. `@id` is required for project semantic dependencies; an external background theorem is cited normally unless the project develops it as a semantic result. When “from foundations” is requested, state the allowed ambient logic and metatheory instead of silently importing background results.
 3. If a main goal appears false, preserve it and produce a precise refutation. Change it only with explicit user approval.
 4. Keep prose mathematical and readable. Except for reserved markers, keep verifier metadata, worker strategy, search notes, and confidence claims out of declarations and proofs.
 5. Before relying on `VERIFIED`, run the staleness check. Let qmd-prover remove stale markers from the changed fact and every direct or transitive dependent, then re-run all checks.
 6. Put mathematics where nearby sources and local policy indicate; qmd-prover imposes no subject-directory layout.
+7. Do not replace a requested foundational definition or a nontrivial proof step with “usual”, “standard”, “clear”, or similar shorthand. Expand it or mark the point open.
 
 ## Agent workflow
 
 Load the `qmd-prover` skill and let the user work in natural language. qmd-prover does not prescribe a fixed proof workflow: the user may supply one theorem, a family of goals, or an idea from which the agent formulates precise definitions and results. Choose the order and granularity of the mathematics from the developing argument.
 
-Whenever writing semantic QMD, follow this contract. Introduce useful intermediate results, revise rejected arguments, and continue a development for as long as the user's request requires. Keep tentative mathematics in a noncanonical workspace; a workspace may serve one result, several related results, or an evolving theory.
+Whenever writing semantic QMD, follow this contract. Introduce useful intermediate results, revise rejected arguments, and continue a development for as long as the user's request requires. For a proof request, the proof-development workspace section is mandatory; flexibility concerns mathematical strategy, not file placement.
 
 This contract tells agents how to write; it does not establish compliance by itself. Use the skill's inspector and other infrastructure as needed to initialize or compare project policy, enforce semantic structure, check references and staleness, analyze dependencies, view frontiers and progress, verify candidates, retain feedback, promote accepted mathematics safely, and render project views. These tools support the work; they do not determine the mathematical plan.
 

@@ -1,6 +1,6 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { mkdir, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { atomicWrite, exists, relativePosix, withWriteLock } from './files.mjs';
+import { atomicWrite, AUX, exists, relativePosix, withWriteLock } from './files.mjs';
 
 const START = '<!-- qmd-prover-contract:start version=';
 const END = '<!-- qmd-prover-contract:end -->';
@@ -28,6 +28,12 @@ function result(root, version, status, extra = {}) {
 
 function projectPolicy(block) {
   return `# Mathematical project instructions\n\n${block}\n\n## Project-specific additions\n\n`;
+}
+
+async function successfulResult(root, version, status, extra = {}) {
+  const workspaceRoot = path.join(root, AUX, 'workspaces');
+  await mkdir(workspaceRoot, { recursive: true });
+  return result(root, version, status, { workspace_root: relativePosix(root, workspaceRoot), ...extra });
 }
 
 async function findQmdFiles(root, directory = root) {
@@ -79,13 +85,13 @@ export async function initializeProject(root, { adoptExisting = false, appendCon
   return withWriteLock(root, async () => {
     if (!await exists(policyFile)) {
       await atomicWrite(policyFile, projectPolicy(canonical.block));
-      return result(root, canonical.version, hasMathematicalProject(existing) ? 'adopted' : 'created', { existing });
+      return successfulResult(root, canonical.version, hasMathematicalProject(existing) ? 'adopted' : 'created', { existing });
     }
 
     const source = await readFile(policyFile, 'utf8');
     if (!source.trim()) {
       await atomicWrite(policyFile, projectPolicy(canonical.block));
-      return result(root, canonical.version, hasMathematicalProject(existing) ? 'adopted' : 'created', { existing });
+      return successfulResult(root, canonical.version, hasMathematicalProject(existing) ? 'adopted' : 'created', { existing });
     }
 
     const matches = [...source.matchAll(BLOCK)];
@@ -108,12 +114,12 @@ export async function initializeProject(root, { adoptExisting = false, appendCon
       }
       const separator = source.endsWith('\n') ? '\n' : '\n\n';
       await atomicWrite(policyFile, `${source}${separator}${canonical.block}\n`);
-      return result(root, canonical.version, 'appended', { existing });
+      return successfulResult(root, canonical.version, 'appended', { existing });
     }
 
     const current = matches[0][0];
     const currentVersion = Number(matches[0][1]);
-    if (current === canonical.block) return result(root, canonical.version, 'already-initialized', { existing });
+    if (current === canonical.block) return successfulResult(root, canonical.version, 'already-initialized', { existing });
     if (!syncContract) {
       return result(root, canonical.version, 'sync-required', {
         existing,
@@ -124,6 +130,6 @@ export async function initializeProject(root, { adoptExisting = false, appendCon
     }
 
     await atomicWrite(policyFile, source.replace(current, () => canonical.block));
-    return result(root, canonical.version, 'synchronized', { existing, previous_contract_version: currentVersion });
+    return successfulResult(root, canonical.version, 'synchronized', { existing, previous_contract_version: currentVersion });
   });
 }

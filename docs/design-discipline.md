@@ -66,7 +66,7 @@ mechanism never implies that the other two have passed.
 |---|---|---|
 | Mechanically enforceable | Inspector and proving utilities | The QMD structure, references, records, and writes satisfy decidable invariants. |
 | Mathematically judged | Inspector's independent AI verifier | The exact construction or proof is mathematically sufficient. |
-| Agent conduct | Host-agent instructions | The agent follows project ownership, semantic-writing, and acceptance boundaries. |
+| Agent conduct | Host-agent instructions | The agent follows project ownership, goal-workspace, semantic-writing, and acceptance boundaries. |
 
 The first category is checked by code. For the second, the inspector calls the
 Codex SDK only after its programmatic checks pass, using a fresh bounded
@@ -159,6 +159,17 @@ needs formulation. It may introduce and order intermediate mathematics however
 the argument requires. The skill instructs it to:
 
 - preserve user-owned statements;
+- create or resume `.qmd-prover/workspaces/<thm-main-ID>/` when asked to prove a
+  protected main goal;
+- keep canonical QMD read-only during development and put every tentative
+  definition, result, proof, example, and progress note in that goal workspace;
+- maintain an explicit dependency-linked development rather than stopping at a
+  plan or prose sketch;
+- call an unverified main proof a candidate, never complete or accepted merely
+  from the proving agent's own judgment;
+- state the ambient logic and metatheory when a request asks for development
+  “from foundations,” and do not hide requested foundations behind “standard”
+  or “usual” shorthand;
 - introduce precise intermediate results only when useful;
 - keep proof attempts outside canonical QMD until accepted;
 - respond to every concrete verification gap;
@@ -166,8 +177,8 @@ the argument requires. The skill instructs it to:
 - keep search notes, confidence claims, and verifier metadata out of proofs,
   except for reserved qmd-prover control markers.
 
-These rules constrain representation and acceptance, not the agent's
-mathematical strategy.
+These rules constrain representation, file placement, and acceptance, not the
+agent's mathematical strategy.
 
 #### Example: correct behavior when a goal looks false
 
