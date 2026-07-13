@@ -2,7 +2,7 @@
 
 Copy the managed block below into the root `AGENTS.md` of every mathematical project that uses qmd-prover. Keep the block unchanged. Add project-specific organization, notation, and writing rules outside the managed block.
 
-<!-- qmd-prover-contract:start version=9 -->
+<!-- qmd-prover-contract:start version=8 -->
 
 ## Contents
 
@@ -97,7 +97,6 @@ Treat canonical QMD as read-only during proof development. Put every agent-creat
 - Put semantic definitions and intermediate results with their linked proofs in subject QMD files.
 - Put the candidate proof of the protected main goal in `main-proof.qmd` as a `.proof` block only; do not repeat or rewrite the main theorem block.
 - Follow every unproved dependency until it has its own proof. A plan, example, computation, or prose sketch is not a completed proof.
-- Describe an unverified main proof as a candidate, not as complete or accepted. Claim completion only after the inspector's mechanical checks and independent verification accept the exact candidate and its dependency closure.
 
 The order of mathematical exploration is flexible; this workspace boundary is not. Move mathematics into canonical QMD only through qmd-prover's accepted promotion path.
 
@@ -116,12 +115,11 @@ After mechanical checks pass, the inspector calls the Codex SDK in a fresh bound
 Apply these rules:
 
 1. State agent-created mathematics precisely: introduce notation, scope variables, include every nontrivial hypothesis, and justify reductions, existence, finiteness, and limit passages.
-2. Identify external theorems by a precise statement or source and check their hypotheses. `@id` is required for project semantic dependencies; an external background theorem is cited normally unless the project develops it as a semantic result. When “from foundations” is requested, state the allowed ambient logic and metatheory instead of silently importing background results.
+2. Identify external theorems precisely enough to check their applicability. Keep examples, computations, and intuition distinct from a general proof.
 3. If a main goal appears false, preserve it and produce a precise refutation. Change it only with explicit user approval.
 4. Keep prose mathematical and readable. Except for reserved markers, keep verifier metadata, worker strategy, search notes, and confidence claims out of declarations and proofs.
 5. Before relying on `VERIFIED`, run the staleness check. Let qmd-prover remove stale markers from the changed fact and every direct or transitive dependent, then re-run all checks.
 6. Put mathematics where nearby sources and local policy indicate; qmd-prover imposes no subject-directory layout.
-7. Do not replace a requested foundational definition or a nontrivial proof step with “usual”, “standard”, “clear”, or similar shorthand. Expand it or mark the point open.
 
 ## Agent workflow
 

@@ -165,11 +165,6 @@ the argument requires. The skill instructs it to:
   definition, result, proof, example, and progress note in that goal workspace;
 - maintain an explicit dependency-linked development rather than stopping at a
   plan or prose sketch;
-- call an unverified main proof a candidate, never complete or accepted merely
-  from the proving agent's own judgment;
-- state the ambient logic and metatheory when a request asks for development
-  “from foundations,” and do not hide requested foundations behind “standard”
-  or “usual” shorthand;
 - introduce precise intermediate results only when useful;
 - keep proof attempts outside canonical QMD until accepted;
 - respond to every concrete verification gap;

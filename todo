@@ -1,14 +1,3 @@
-idea file/main theorem -> detail file -> paper 
-
-0. ideation
-1. AGENTS.md => discipline 
-2. inspector
-3. develop render
-4. develop prover
-5. paper composer
-
-
-
 数据库组织原则，重构 （需要把相近的定理放在一起）
 
 引入idea，类型类的概念
