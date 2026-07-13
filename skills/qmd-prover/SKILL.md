@@ -1,6 +1,6 @@
 ---
 name: qmd-prover
-description: Inspect, coordinate, propose, independently verify, repair, report, and render mathematical proofs in projects that use semantic QMD blocks and thm-main-* goals. Use when a user asks to prove one or all QMD goals, resume proof work, inspect proof status or dependencies, submit a candidate, review verification feedback, revoke an accepted proof, or render theorem navigation.
+description: Initialize and inspect semantic-QMD mathematical projects; formulate definitions and results from ideas; develop, independently verify, repair, report, and render proofs. Use when a user asks to initialize qmd-prover, state or prove one or more results, grow a mathematical development, inspect dependencies or progress, submit or review a candidate, revoke an accepted proof, or render theorem navigation.
 ---
 
 # qmd-prover
@@ -16,26 +16,31 @@ Before drafting mathematics, changing project files or state, creating a proposa
 
 Every independent worker must perform this preflight for itself because workers do not share context. Treat a successful preflight as a prerequisite for proof work, not as a compiler check.
 
+If the user explicitly asks to initialize qmd-prover in the current project, treat that request as approval to create a missing root `AGENTS.md` from the canonical contract. Do not overwrite or synchronize existing project policy without explicit approval.
+
 Run the dispatcher from the project root:
 
 ```bash
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.mjs" <subcommand> [arguments]
 ```
 
-## Proving workflow
+## Using the infrastructure
 
-1. Complete the project contract preflight, run `check-staleness`, then run `inspect-project`. Stop and repair blocking errors before proving.
-2. Run `inspect-theorem @thm-main-ID` for each requested goal.
-3. Run `workspace init @thm-main-ID`, then develop the argument only under the returned goal workspace. Use isolated workers only when the user or local policy requests parallel work.
-4. Read the protected target snapshot, exact statement, imports, verified dependency closure, accepted mathematics, prior proposals, and verification reports.
-5. Run `workspace inspect @thm-main-ID` as the development grows. Follow open workspace dependencies instead of treating candidate lemmas as established.
-6. For an existing result, write a proposal containing exactly one nonempty `.proof` block with `of="semantic-id"`. Do not copy or redefine the protected result. Semantic references inside the proof are its dependency declarations.
-7. For a new result, write exactly one result block and its linked proof, then submit it with an explicit canonical destination consistent with project policy.
-8. Run `submit-proof PROPOSAL_FILE` (or `submit-proof PROPOSAL_FILE --to CANONICAL_QMD` for a new result). Never edit a canonical proof directly and never declare your own proposal verified.
-9. On rejection, read `verification show SUBMISSION_ID`, repair every critical error and gap in workspace QMD, and resubmit.
-10. Continue until verified, precisely refuted, genuinely blocked, cancelled, or explicitly stopped. Preserve useful notes in the goal workspace.
+Do not impose a fixed proving workflow. A request may concern one theorem, a family of results, an existing mathematical development, or an idea that first needs precise formulation. Decide which definitions, lemmas, propositions, theorems, examples, or counterexamples to develop and in what order.
 
-Only a `correct` verdict with empty critical errors and gaps is accepted. Treat `verified`, `formally verified`, and `human reviewed` as distinct states.
+Use the supplied tools when they help:
+
+- initialize or compare the project contract;
+- inspect a fact, path, project, workspace, or dependency graph;
+- search available mathematics and unresolved frontiers;
+- create a persistent noncanonical workspace for one result, related results, or an evolving theory;
+- check staleness before relying on `VERIFIED` mathematics;
+- submit a linked proof or a new declaration with its linked proof for mechanical and independent AI checking;
+- inspect rejection feedback and retry after repairing every critical error and gap;
+- promote accepted mathematics through the protected atomic path; and
+- render status, dependency, or ordinary Quarto views.
+
+Whenever writing QMD, follow the canonical block discipline. Never redefine a protected result in a proposal, treat a candidate workspace claim as established, edit a canonical proof directly, or declare your own work verified. Only a `correct` verdict with no critical errors or gaps is accepted. Treat `verified`, `formally verified`, and `human reviewed` as distinct states.
 
 ## Status and rendering
 

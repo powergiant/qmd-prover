@@ -1,4 +1,4 @@
 interface:
   display_name: "QMD Prover"
-  short_description: "Coordinate and verify semantic QMD proofs"
-  default_prompt: "Use $qmd-prover to inspect this project and prove the requested open main theorem without changing its statement."
+  short_description: "Develop and verify semantic QMD mathematics"
+  default_prompt: "Use $qmd-prover to initialize or continue this mathematical project from my natural-language request."

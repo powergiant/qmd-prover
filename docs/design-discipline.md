@@ -2,44 +2,41 @@
 
 ## Role
 
-The discipline defines what a valid qmd-prover mathematical project looks like
-and how a host agent must work on it. Its canonical form is the managed contract
-in `skills/qmd-prover/references/AGENTS.md`.
+The discipline defines valid semantic QMD and the safety boundaries for agents
+that write it. It does not prescribe a research plan or a fixed order for proof
+development. Its canonical form is the managed contract in
+`skills/qmd-prover/references/AGENTS.md`.
 
-This document describes the role and enforcement model of that contract. It
-does not duplicate the contract's normative text.
+The contract alone cannot establish that a project follows the discipline.
+The inspector parses the semantic blocks, checks their invariants, builds the
+dependency graph, exposes progress, and invokes independent verification.
 
-## Why the discipline is separate
+A matching project contract is a prerequisite for inspection and proof work.
+Before invoking the inspector, the host agent checks that the managed block in
+the project's root `AGENTS.md` is present, has the canonical version, and is
+unchanged. If that preflight fails, the host agent stops before inspection or
+mutation and asks whether the user wants to synchronize the project-owned
+contract. This is an agent preflight requirement, not a substitute for the
+inspector's source and mathematical checks.
 
-Mathematical proof work combines rules of different kinds:
-
-- source-format rules that a program can decide;
-- mathematical requirements that require judgment; and
-- behavioral constraints on the agent editing the project.
-
-Keeping them in one visible project discipline gives the user, the host agent,
-the inspector, and the verifier a shared contract. Separating the discipline
-from the utilities also prevents implementation details from silently becoming
-mathematical policy.
+Normally the user installs the skill and asks an agent in natural language to
+initialize a project. That request authorizes creation of a missing root
+`AGENTS.md` from the canonical contract; replacing or synchronizing existing
+project policy still requires explicit approval.
 
 ## Canonical and local policy
 
-The skill ships one versioned managed contract. A mathematical project copies
-that managed block into its root `AGENTS.md` without modification. The project
-may add local rules outside the block for matters such as:
+Each project policy has two parts:
 
-- notation and terminology;
-- language and writing style;
-- subject-directory organization;
-- preferred foundational sources; and
-- restrictions on introducing new definitions or files.
+1. The **managed block** supplies qmd-prover's shared safety and proof rules.
+   The project copies this versioned block into its root `AGENTS.md` verbatim.
+2. **Local policy**, written outside the managed block, supplies rules specific
+   to that project, such as notation, language, directory layout, or preferred
+   sources.
 
-Local policy may strengthen the managed discipline but cannot weaken it.
-
-Before proof work, the host agent compares the project's managed block with the
-canonical copy. A missing, changed, or incompatible contract is a preflight
-failure. Synchronizing the project contract requires the user's approval
-because `AGENTS.md` is project-owned policy.
+Local rules may add constraints, but they may not change or weaken the managed
+rules. Because `AGENTS.md` belongs to the project, qmd-prover must ask the user
+before creating or synchronizing it.
 
 ### Example: project-local policy
 
@@ -51,18 +48,31 @@ here. A project can append local policy after it:
 
 ## Local project policy
 
-- Put shared algebra definitions in `algebra/foundations.qmd`.
 - Use \(\mathbb N=\{0,1,2,\ldots\}\).
-- State theorem titles in English and write proofs in Chinese.
-- Ask before introducing a new axiom or external theorem.
+- Put shared definitions in `foundations.qmd`.
 ```
 
-The directory and writing rules strengthen the project discipline without
-changing the managed contract. A local rule such as “agents may edit a
-`thm-main-*` statement when convenient” would conflict with the managed
-contract and must be rejected.
+These additions choose notation and file placement without changing how proofs
+are protected or verified. By contrast, a local rule saying “agents may edit a
+`thm-main-*` statement” contradicts statement protection and is invalid.
 
 ## Rule categories
+
+The discipline assigns rules to three enforcement mechanisms. Passing one
+mechanism never implies that the other two have passed.
+
+| Rule category | Enforced by | What it establishes |
+|---|---|---|
+| Mechanically enforceable | Inspector and proving utilities | The QMD structure, references, records, and writes satisfy decidable invariants. |
+| Mathematically judged | Inspector's independent AI verifier | The exact construction or proof is mathematically sufficient. |
+| Agent conduct | Host-agent instructions | The agent follows project ownership, semantic-writing, and acceptance boundaries. |
+
+The first category is checked by code. For the second, the inspector calls the
+Codex SDK only after its programmatic checks pass, using a fresh bounded
+context independent of the proving agent. The third is not generally decidable
+from the final QMD and has no separate automated checker: the skill instructs
+the AI host agent to follow it, while the user remains able to identify a
+violation.
 
 ### Mechanically enforceable rules
 
@@ -81,9 +91,9 @@ project representation, including:
 - cached-statement checks and transitive stale-verification invalidation; and
 - rejection-safe, atomic acceptance.
 
-Mechanical enforcement is deliberately conservative. If a required fact
-cannot be established from the semantic representation, the utility reports a
-diagnostic rather than guessing.
+Mechanical checking is deliberately conservative. If the program cannot
+establish a required fact from the semantic representation and protected
+records, it reports a diagnostic rather than guessing.
 
 #### Example: a mechanically detectable dependency error
 
@@ -113,7 +123,8 @@ proof is already the dependency declaration; no second `Uses` list is needed.
 
 ### Mathematically judged rules
 
-The independent verifier judges matters such as:
+The inspector's independent AI verifier calls the Codex SDK to judge whether
+the exact construction or proof establishes its declaration, including:
 
 - whether each inference is valid;
 - whether all hypotheses are used correctly;
@@ -121,7 +132,7 @@ The independent verifier judges matters such as:
 - whether a claimed reduction covers every case; and
 - whether examples or computations have been mistaken for a general proof.
 
-The verifier's judgment does not relax mechanical checks.
+The verifier's judgment does not relax the inspector's mechanical checks.
 
 #### Example: a mathematically detectable gap
 
@@ -133,8 +144,8 @@ Since \(ab=ac\), divide by \(a\) to obtain \(b=c\).
 
 The syntax may be perfectly valid and the proof may have no semantic
 dependencies. Nevertheless, the inference is invalid unless the hypotheses
-give \(a\ne0\). Detecting the missing hypothesis is the verifier's job rather
-than the inspector's.
+give \(a\ne0\). Detecting the missing hypothesis belongs to the inspector's AI
+verification stage rather than its programmatic stage.
 
 Likewise, checking finitely many values of \(n\) does not prove a statement
 quantified over all integers. The discipline requires the verifier and host
@@ -142,7 +153,9 @@ agent to keep computation or evidence distinct from a general proof.
 
 ### Agent conduct rules
 
-The skill instructs the host agent to:
+The host agent may work from one theorem, a family of results, or an idea that
+needs formulation. It may introduce and order intermediate mathematics however
+the argument requires. The skill instructs it to:
 
 - preserve user-owned statements;
 - introduce precise intermediate results only when useful;
@@ -152,8 +165,8 @@ The skill instructs the host agent to:
 - keep search notes, confidence claims, and verifier metadata out of proofs,
   except for reserved qmd-prover control markers.
 
-These rules shape the reasoning loop even when they are not completely
-machine-decidable.
+These rules constrain representation and acceptance, not the agent's
+mathematical strategy.
 
 #### Example: correct behavior when a goal looks false
 
@@ -177,12 +190,155 @@ figures, equations, code cells, and bibliographic citations remain Quarto
 content. The discipline applies dependency semantics only to recognized
 definitions and results.
 
-Within semantic QMD, the discipline distinguishes:
+## Recognized block types
 
-- the definition or result block, whose `name`, introduction `date`, and body
-  record the declaration or claim; and
-- a linked proof block, whose semantic references declare the logical premises
-  at their points of use.
+Every semantic declaration is a fenced Div with one stable ID and exactly one
+kind class. The ID prefix must agree with the class: `def-` for `.definition`,
+`lem-` for `.lemma`, `prp-` for `.proposition`, `thm-` for `.theorem`, and
+`cor-` for `.corollary`. The `name` is the human-readable title, `date` records
+the ISO introduction date, and `export` is optional unless another file must
+import the declaration. These common attributes do not make the five result
+kinds interchangeable; the kind communicates the declaration's mathematical
+role to readers and to dependency search.
+
+### Definition block
+
+A `.definition` block introduces a term, object, or piece of notation. Its body
+is the construction rather than a claim copied from a later proof. Semantic
+references in that body are construction dependencies, so every referenced
+fact must be local or explicitly imported. When well-definedness, existence,
+or uniqueness needs justification, put that argument in a separate linked
+proof block.
+
+```markdown
+::: {#def-even-integer .definition name="Even integer" date="2026-07-12" export="even-integer"}
+An integer \(n\) is **even** if there exists an integer \(k\) such that
+\(n=2k\).
+:::
+
+::: {.proof of="def-even-integer"}
+This predicate is a well-formed property of an integer \(n\).
+:::
+```
+
+### Lemma block
+
+A `.lemma` block states an auxiliary result intended to support later results.
+The label describes its role in the development, not a weaker verification
+standard: a lemma must be checked as rigorously as a theorem.
+
+```markdown
+::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12" export="square-of-double"}
+If \(n=2k\) for integers \(n,k\), then \(n^2=4k^2\).
+:::
+
+::: {.proof of="lem-square-of-double"}
+Expanding the product gives \(n^2=(2k)^2=4k^2\).
+:::
+```
+
+### Proposition block
+
+A `.proposition` block states a result that is useful in its own right but is
+not presented as one of the development's principal theorems. This distinction
+is expository; propositions use the same proof and verification machinery as
+lemmas and theorems.
+
+```markdown
+::: {#prp-even-sum .proposition name="Sums of even integers" date="2026-07-12"}
+The sum of two even integers is even.
+:::
+
+::: {.proof of="prp-even-sum"}
+By @def-even-integer, write \(a=2r\) and \(b=2s\). Then
+\(a+b=2(r+s)\), so @def-even-integer applies again.
+:::
+```
+
+### Theorem block
+
+A `.theorem` block states a principal result. An ordinary theorem uses a
+`thm-` ID and can be introduced by the project or by an agent in its workspace.
+Its proof remains separate, just like the proof of a lemma or proposition.
+
+```markdown
+::: {#thm-even-square .theorem name="Squares of even integers" date="2026-07-12" export="even-square"}
+If an integer \(n\) is even, then \(n^2\) is divisible by \(4\).
+:::
+
+::: {.proof of="thm-even-square"}
+By @def-even-integer, write \(n=2k\). Now @lem-square-of-double gives
+\(n^2=4k^2\).
+:::
+```
+
+### Corollary block
+
+A `.corollary` block states a result that follows quickly from an earlier
+result. The linked proof must still cite the result from which it follows;
+calling a statement a corollary does not create an implicit dependency.
+
+```markdown
+::: {#cor-even-square-not-two-mod-four .corollary name="Even squares modulo four" date="2026-07-12"}
+The square of an even integer is not congruent to \(2\pmod 4\).
+:::
+
+::: {.proof of="cor-even-square-not-two-mod-four"}
+By @thm-even-square, the square is congruent to \(0\pmod 4\), not
+\(2\pmod 4\).
+:::
+```
+
+### Main-goal theorem block
+
+A main goal is not a sixth result kind. It is a `.theorem` block refined by the
+`.goal` class and a protected `thm-main-*` ID. Its ID, `name`, hypotheses,
+quantifiers, and statement body originate with the user and must not be changed
+without explicit approval. With no linked proof, it is an open goal.
+
+```markdown
+::: {#thm-main-even-product .theorem .goal name="Even product theorem" date="2026-07-12"}
+If \(a\) is an even integer and \(b\) is an integer, then \(ab\) is even.
+:::
+```
+
+A workspace proposal for this goal contains only a linked `.proof` block; it
+does not repeat or edit the protected theorem block.
+
+### Proof block
+
+A `.proof` block supplies the construction or proof for exactly one semantic
+declaration. It has no semantic ID of its own. Instead, its `of` attribute must
+equal the target declaration's ID. Every `@id` inside the proof declares a
+logical dependency at its point of use.
+
+```markdown
+::: {.proof of="thm-main-even-product"}
+By @def-even-integer, write \(a=2k\). Then \(ab=2(kb)\), and \(kb\) is an
+integer, so @def-even-integer shows that \(ab\) is even.
+:::
+```
+
+The first nonempty paragraph may instead be one reserved control marker:
+
+```markdown
+::: {.proof of="thm-main-even-product"}
+OPEN
+
+It remains to show that the chosen witness is an integer.
+:::
+```
+
+`OPEN` marks an incomplete attempt, and `REJECTED` retains an inactive failed
+attempt. `VERIFIED` and `REVOKED` are valid only when qmd-prover has matching
+protected records. These words are proof-state markers, not additional block
+types, and an agent must never add or restore `VERIFIED` manually.
+
+Within semantic QMD, the declaration block records the definition or claim,
+while its linked proof block records the justification. A declaration has at
+most one active linked proof. Definitions may declare dependencies in their
+construction bodies; other result dependencies come from references in their
+linked proofs.
 
 For `thm-main-*`, the title and statement originate with the user and are
 protected. The introduction date is informational and does not alter statement

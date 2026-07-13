@@ -10,6 +10,15 @@ progress do not write theorem
 
 Ideation skill 只在side task触发
 
+skill需要描述清楚怎么set up project，init
+
+A `VERIFIED` marker is usable only when it matches the current cached statement, dependency snapshot, and verification record.
+
+似乎还没添加import block
+
+proof block must follow the theorem immediately
+
+
 
 ## Verification and acceptance in detail
 

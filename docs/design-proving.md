@@ -11,27 +11,22 @@ lemmas to introduce, when to explore examples, and how to repair a proof. The
 utilities provide bounded context, mechanical checks, independent verification,
 and a protected acceptance path.
 
-## Proof-development loop
+## Flexible proof development
 
-The skill instructs the host agent to repeat:
-
-```text
-inspect target
-    -> reason and draft outside canonical QMD
-    -> check candidate structure
-    -> independently verify
-    -> repair on rejection or accept safely
-```
-
-The loop ends when the selected goal is verified, precisely refuted, genuinely
-blocked, cancelled, or explicitly stopped by the user.
+The utilities do not prescribe a proof-development loop. The host agent may
+start from a theorem, a related family of goals, or an informal idea; introduce
+intermediate mathematics in any useful order; and inspect, search, verify, or
+render whenever those operations help. Only candidate acceptance is ordered:
+mechanical checks run before independent AI verification, and canonical writes
+occur only after both pass.
 
 ## Mathematical agent workspace
 
-Proof development takes place in the persistent mathematical workspace, not in
-the canonical Quarto sources. The workspace may support one goal or a related
-family of goals. This matters when one short user-given statement expands into
-a large body of agent-generated mathematics.
+Tentative proof development takes place in persistent mathematical workspaces,
+not in the canonical Quarto sources. A workspace may support one goal, a
+related family, or an evolving theory formulated from a user's idea. This
+matters when one short request expands into a large body of agent-generated
+mathematics.
 
 For example, work on `@thm-main-uniform-index` may eventually contain:
 
@@ -85,10 +80,10 @@ proof frontier.
 
 ## Preparing a candidate
 
-The host agent begins from the inspector's bounded theorem context. A utility
-may create a proof scaffold linked to the canonical result by semantic ID. The
-statement is not copied beside each proof, so the agent cannot accidentally
-rewrite protected content while drafting.
+The host agent may request bounded context from the inspector whenever useful.
+A utility may create a proof scaffold linked to a canonical result by semantic
+ID. The statement is not copied beside each proof, so the agent cannot
+accidentally rewrite protected content while drafting.
 
 An existing result needs an active `.proof` block with an `of` attribute. A new
 intermediate result needs one dated result block and its linked proof. Both live

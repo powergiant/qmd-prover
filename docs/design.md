@@ -13,6 +13,11 @@ A user asks Codex, Claude Code, or another compatible coding agent to use the
 skill. The host agent follows the discipline, calls the supplied Node tools,
 and edits the QMD project on the user's behalf.
 
+`AGENTS.md` supplies the writing discipline, not its enforcement. The inspector
+checks the semantic representation and turns it into dependency, status,
+frontier, and progress information; the other utilities make long-running
+development and safe acceptance smoother for the agent.
+
 Canonical mathematics remains ordinary, human-readable QMD, and Quarto remains
 the renderer.
 
@@ -45,14 +50,13 @@ user
   v
 Codex / Claude Code                                (outside qmd-prover)
   |
-  | loads the skill and runs the loop
+  | loads the skill and responds to natural-language requests
   v
 +-------------------------------------------------------+
 | qmd-prover skill                                      |
 |                                                       |
-| discipline -> inspector -> agent goal workspace       |
+| discipline + inspector + agent workspaces             |
 |                  |              |                     |
-|                  |              v                     |
 |                  +------> proving utilities           |
 |                                 | accepted work only   |
 |                                 v                     |
@@ -244,10 +248,10 @@ imports and exports, and the reserved `OPEN`, `REJECTED`, `VERIFIED`, and
 A semantic `@` reference inside a definition construction or linked proof is a
 logical dependency. The inspector first checks by program that the referenced
 fact exists, is unique, is available through local scope or an explicit import,
-and has usable status. It then asks an independent AI checker whether the
-referenced facts are sufficient for that exact construction or proof. A
-reference in ordinary exposition is navigational, and a bibliographic citation
-is not a theorem dependency.
+and has usable status. It then calls the Codex SDK in an independent bounded
+context to judge whether the referenced facts are sufficient for that exact
+construction or proof. A reference in ordinary exposition is navigational, and
+a bibliographic citation is not a theorem dependency.
 
 For example, the proof below has direct dependencies on both referenced facts:
 
@@ -343,38 +347,26 @@ recorded reason. The canonical mathematical-project `AGENTS.md` contract
 requires the stale check before using verified mathematics and forbids agents
 from manually adding or restoring `VERIFIED`.
 
-## How proof work proceeds
+## How agents use the infrastructure
 
-For a typical request, the host agent follows this loop:
+qmd-prover does not prescribe a proof loop. After loading the skill and project
+contract, the host agent follows the user's natural-language direction. The
+user may provide one theorem, many related goals, an existing development, or
+an idea that the agent must first formulate precisely. The agent decides which
+definitions and intermediate results to introduce and how to organize them as
+the mathematics evolves.
 
-1. Load the qmd-prover skill.
-2. Read the project's `AGENTS.md` and confirm that its managed qmd-prover
-   contract matches the canonical contract shipped with the skill.
-3. Run the stale check before relying on any `VERIFIED` fact.
-4. Inspect the selected fact, file or folder, or complete workspace. Stop on
-   programmatic reference errors or unsafe stale state.
-5. Create or resume the workspace for the selected goal, recording the exact
-   canonical target and dependency snapshot.
-6. Use dependency search and frontier analysis to choose the lowest useful
-   unresolved claim.
-7. Develop its construction or proof in workspace QMD, citing each dependency
-   with a semantic reference at its point of use.
-8. Inspect that fact. The programmatic reference check must pass before the
-   independent AI sufficiency check runs.
-9. If the AI check reports a critical error or gap, preserve the report, retain
-   the rejected attempt when useful, repair the mathematics, and inspect again.
-10. If both checks pass, atomically cache the exact mathematics and dependency
-    snapshot, store the matching record, add `VERIFIED`, and confirm the result
-    by reinspection.
-11. Use the proving utilities to promote accepted workspace mathematics into
-    canonical QMD through the protected atomic write path.
-12. Continue until the original main theorem is verified or the work reaches
-    another legitimate stopping condition.
-13. Run `quarto render` when the user wants a rendered document or project
-    view.
+The infrastructure is available at any point to initialize or compare project
+policy, inspect semantic QMD, discover dependencies, search existing results,
+show unresolved frontiers, preserve long-running workspace mathematics, check
+staleness, verify a candidate, retain rejection feedback, promote accepted work
+atomically, or render progress. These capabilities inform and protect the
+agent's work; they do not choose its next mathematical step.
 
-This is a loop performed by the host agent under skill instructions. It is not
-a loop implemented by a qmd-prover daemon or coordinator.
+Only the safety gates have a required order: mechanical checks precede the
+inspector's independent AI check, and canonical acceptance follows both. The
+agent must also check staleness before relying on `VERIFIED` mathematics and
+must never bypass statement protection or the atomic acceptance path.
 
 ## Installation and requirements
 
@@ -386,8 +378,7 @@ The expected environment provides:
 - Node.js 20 or later;
 - Pandoc on `PATH`, or `QMD_PROVER_PANDOC` pointing to a compatible executable;
 - Quarto when rendered output is wanted; and
-- an independent verifier configured through `QMD_PROVER_VERIFIER` or the
-  project's qmd-prover configuration.
+- Codex SDK access for the inspector's independent AI verification stage.
 
 From a source checkout, install the skill with:
 
@@ -401,20 +392,17 @@ instructions, canonical discipline reference, and Node utilities.
 
 ## Starting a mathematical project
 
-To use qmd-prover in a Quarto project:
+After installing the skill, the user normally asks the host agent in natural
+language to initialize the current mathematical project. The agent creates a
+missing root `AGENTS.md` by copying the canonical managed block unchanged and
+may add requested local notation, writing, or organization rules outside it.
+An existing or divergent project policy is not overwritten without explicit
+approval.
 
-1. Create or choose the project's root `AGENTS.md`.
-2. Copy the managed block from the installed skill's
-   `references/AGENTS.md` into the project file unchanged.
-3. Add any project-specific notation, writing, or organization rules outside
-   the managed block.
-4. Write one or more QMD files containing semantic definitions, results, and
-   open `thm-main-*` goals.
-5. Configure an independent verifier before asking for proof acceptance.
-
-The host agent checks the contract before it mutates QMD or qmd-prover state.
-If the contract is absent or different, it explains the mismatch and asks for
-permission before creating or synchronizing project policy.
+Initialization establishes the discipline and inspection infrastructure; it
+does not require the user to choose a theorem or learn tool commands. Later the
+user can supply semantic QMD, state one or more goals, or ask the agent to turn
+an idea into precise definitions and results.
 
 ## Using qmd-prover through Codex or Claude Code
 
@@ -422,9 +410,18 @@ Natural language is the normal interface. Once the skill is installed and the
 mathematical project is open, a user can ask:
 
 ```text
+Initialize qmd-prover in this project.
+```
+
+```text
 Use qmd-prover to inspect this project and prove @thm-main-even-square.
 Preserve the statement, verify the candidate independently, and repair any
 concrete gaps before accepting it.
+```
+
+```text
+Develop this idea into a precise family of results, then prove as much as you
+can. Follow the project's qmd-prover block discipline throughout.
 ```
 
 For project status and dependency analysis:
@@ -452,9 +449,10 @@ Node utilities, interprets their JSON, writes mathematical workspace QMD, and
 explains the result in ordinary language. The user does not need to memorize
 script operations.
 
-The host may use its own sub-agent mechanism for independent verification or
-parallel mathematical exploration when the user requests it. Those sub-agents
-belong to the host environment; qmd-prover does not maintain a worker runtime.
+The host may use its own sub-agent mechanism for parallel mathematical
+exploration when the user requests it. Those sub-agents belong to the host
+environment; qmd-prover does not maintain a worker runtime. Independent
+acceptance verification remains the inspector's Codex SDK stage.
 
 ## Using the Node utilities directly
 
