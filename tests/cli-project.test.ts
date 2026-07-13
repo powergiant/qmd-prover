@@ -3,9 +3,9 @@ import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
-import { HELP_COMMANDS } from '../skills/qmd-prover/src/lib/cli-help.js';
-import { readExternalPolicy } from '../skills/qmd-prover/src/lib/external.js';
-import { initializeProject } from '../skills/qmd-prover/src/lib/project.js';
+import { HELP_COMMANDS } from '../skills/qmd-prover/src/lib/application/help.js';
+import { initializeProject } from '../skills/qmd-prover/src/lib/application/project.js';
+import { readExternalPolicy } from '../skills/qmd-prover/src/lib/infrastructure/external.js';
 import { bareProject, fakePandoc, here, must, options, proof, result, verifier } from './support.js';
 
 interface CliError extends Error { code?: string | number | null }

@@ -1,0 +1,56 @@
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
+import { compileProject, theoremBundle } from '../semantic/compiler.js';
+import { atomicJson, atomicWrite, exists, readJson, relativePosix } from '../infrastructure/files.js';
+import { readLocatedBlock } from '../semantic/source.js';
+import { workspaceDirectory } from './support.js';
+export async function initializeWorkspace(root, requested, options = {}) {
+    root = path.resolve(root);
+    const { id, directory } = workspaceDirectory(root, requested);
+    const compilation = await compileProject(root, options);
+    if (!compilation.ok)
+        throw new Error('Project has structural errors; repair them before creating a goal workspace');
+    const target = compilation.manifest.results.find((result) => result.id === id);
+    if (!target)
+        throw new Error(`Unknown theorem: @${id}`);
+    if (target.origin !== 'user')
+        throw new Error(`@${id} is not a protected main goal`);
+    const metadataFile = path.join(directory, 'workspace.json');
+    if (await exists(metadataFile)) {
+        return { schema_version: 1, status: 'resumed', workspace: relativePosix(root, directory), metadata: await readJson(metadataFile) };
+    }
+    const located = await readLocatedBlock(path.join(root, target.file), id);
+    if (!located)
+        throw new Error(`Canonical source block for @${id} was not found`);
+    const targetFile = compilation.manifest.files.find((file) => file.path === target.file);
+    const availableIds = new Set([
+        ...theoremBundle(compilation, id).dependencies.map((result) => result.id),
+        ...(targetFile?.imports ?? []).flatMap((declaration) => declaration.use)
+    ]);
+    const dependencySnapshot = Object.fromEntries(compilation.manifest.results.filter((result) => availableIds.has(result.id)).map((result) => [result.id, {
+            statement_hash: result.statement_hash,
+            proof_hash: result.proof_hash,
+            status: result.status
+        }]));
+    await Promise.all(['context', 'attempts', 'dead-ends', 'proposals', 'verification'].map((name) => mkdir(path.join(directory, name), { recursive: true })));
+    const metadata = {
+        schema_version: 1,
+        target: id,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        canonical: {
+            file: target.file,
+            statement_hash: target.statement_hash,
+            title_hash: target.title_hash,
+            proof_hash: target.proof_hash,
+            status: target.status,
+            dependencies: dependencySnapshot
+        }
+    };
+    await Promise.all([
+        atomicJson(metadataFile, metadata),
+        atomicWrite(path.join(directory, 'target.qmd'), `${located.raw.trim()}\n`),
+        atomicWrite(path.join(directory, 'progress.qmd'), `---\ntitle: "Workspace: ${target.title}"\n---\n\n## Current frontier\n\n- @${id}: ${target.status}\n\n## Active route\n\nRecord the current proof route here.\n\n## Abandoned routes\n\nKeep detailed dead ends under \`dead-ends/\`.\n`)
+    ]);
+    return { schema_version: 1, status: 'created', workspace: relativePosix(root, directory), metadata };
+}

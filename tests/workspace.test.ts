@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { compileProject } from '../skills/qmd-prover/src/lib/compiler.js';
-import { readJson } from '../skills/qmd-prover/src/lib/files.js';
-import { initializeWorkspace, inspectWorkspace } from '../skills/qmd-prover/src/lib/workspace.js';
-import { submitProof } from '../skills/qmd-prover/src/lib/verification.js';
+import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
+import { compileProject } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
+import { submitProof } from '../skills/qmd-prover/src/lib/verification/submissions.js';
+import { initializeWorkspace } from '../skills/qmd-prover/src/lib/workspace/initialize.js';
+import { inspectWorkspace } from '../skills/qmd-prover/src/lib/workspace/inspect.js';
 import { document, must, options, project, proposalPath, proof, result, staleVerifier, verifier } from './support.js';
 
 test('goal workspaces preserve a protected target snapshot and report staleness', async () => {

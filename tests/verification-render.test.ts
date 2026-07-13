@@ -2,15 +2,15 @@ import assert from 'node:assert/strict';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { compileProject } from '../skills/qmd-prover/src/lib/compiler.js';
-import { readJson } from '../skills/qmd-prover/src/lib/files.js';
-import { analyzeDependencies, inspectFact, inspectProject } from '../skills/qmd-prover/src/lib/inspector.js';
-import { renderProject } from '../skills/qmd-prover/src/lib/render.js';
-import { checkStaleness } from '../skills/qmd-prover/src/lib/staleness.js';
-import { revokeVerification, submitProof } from '../skills/qmd-prover/src/lib/verification.js';
+import { renderProject } from '../skills/qmd-prover/src/lib/application/render.js';
+import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
+import { analyzeDependencies, inspectFact, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
+import { compileProject } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
+import { checkStaleness } from '../skills/qmd-prover/src/lib/verification/staleness.js';
+import { revokeVerification, submitProof } from '../skills/qmd-prover/src/lib/verification/submissions.js';
 import { document, options, project, proposalPath, proof, result, staleVerifier, verifier, malformedVerifier } from './support.js';
 import { must } from './support.js';
-import { asRecord } from '../skills/qmd-prover/src/lib/guards.js';
+import { asRecord } from '../skills/qmd-prover/src/lib/shared/core.js';
 
 test('inspection verifies ready facts in dependency order, caches exact checks, and marks definitions at block end', async () => {
   const root = await project();

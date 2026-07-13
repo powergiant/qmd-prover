@@ -23,6 +23,9 @@ the renderer.
 
 ## Components
 
+The maintainable TypeScript runtime and its dependency boundaries are
+documented separately in [Runtime architecture](architecture.md).
+
 The project has four components:
 
 1. [Discipline](design-discipline.md) defines the rules for mathematical QMD

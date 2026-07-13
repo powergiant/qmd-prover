@@ -1,5 +1,5 @@
-import type { inspectCanonicalScope } from '../skills/qmd-prover/src/lib/inspection-verification.js';
-import type { Compilation, JsonObject } from '../skills/qmd-prover/src/lib/types.js';
+import type { inspectCanonicalScope } from '../skills/qmd-prover/src/lib/verification/canonical.js';
+import type { Compilation, JsonObject } from '../skills/qmd-prover/src/lib/shared/types.js';
 
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 type Assert<T extends true> = T;

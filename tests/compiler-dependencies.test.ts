@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { compileProject, theoremBundle } from '../skills/qmd-prover/src/lib/compiler.js';
-import { readJson } from '../skills/qmd-prover/src/lib/files.js';
-import { analyzeDependencies, inspectFact, inspectPath, inspectProject } from '../skills/qmd-prover/src/lib/inspector.js';
+import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
+import { analyzeDependencies, inspectFact, inspectPath, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
+import { compileProject, theoremBundle } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
 import { document, must, options, project, result, proof } from './support.js';
 
 test('compiler reads metadata imports, linked proofs, and deterministic semantic indexes', async () => {
