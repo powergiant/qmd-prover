@@ -1,0 +1,34 @@
+---
+title: "Completeness proof progress"
+---
+
+## Current route
+
+A candidate proof proceeds by contraposition through a Henkin term model:
+
+1. `foundations.qmd` defines signatures, terms, formulas, and substitution.
+2. `calculus.qmd` defines the Hilbert calculus and establishes the deduction,
+   consistency, maximality, and fresh-witness lemmas.
+3. `semantics.qmd` defines satisfaction and proves the equality-aware
+   canonical truth lemma.
+4. `henkin.qmd` constructs witnesses and proves that every consistent theory
+   has a model.
+5. `main-proof.qmd` applies model existence to
+   \(\Gamma\cup\{\neg\varphi\}\).
+
+## Open dependencies
+
+No mathematical dependency is intentionally left open.  Mechanical inspection
+and independent mathematical verification of the exact candidate and its
+dependency closure are still pending.  Zorn's lemma, the well-ordering theorem,
+and transfinite recursion are allowed background set-theoretic principles;
+completeness, compactness, and model existence are not imported.
+
+## Completed intermediate results
+
+The four subject files contain the intended intermediate declarations and
+proofs.  This is a readiness claim for inspection, not an acceptance claim.
+
+## Abandoned approaches
+
+None.

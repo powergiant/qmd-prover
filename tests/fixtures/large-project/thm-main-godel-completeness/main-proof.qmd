@@ -1,0 +1,20 @@
+---
+title: "Proof of Gödel completeness"
+---
+
+::: {.proof of="thm-main-godel-completeness"}
+Fix a first-order signature \(L\), a set \(\Gamma\) of \(L\)-sentences, and
+an \(L\)-sentence \(\varphi\), exactly as in the protected main statement.
+Assume \(\Gamma\models_L\varphi\) in the sense of @def-satisfaction.
+
+Suppose for contradiction that \(\Gamma\nvdash_L\varphi\) in the calculus
+@def-hilbert-calculus.  By @lem-consistency-characterizations, the set
+\(\Sigma=\Gamma\cup\{\neg\varphi\}\) is syntactically consistent.
+@thm-consistent-model therefore supplies an \(L\)-structure
+\(\mathcal M\) satisfying every member of \(\Sigma\).  In particular,
+\(\mathcal M\models\Gamma\) and
+\(\mathcal M\models\neg\varphi\).  By the negation clause of
+@def-satisfaction, \(\mathcal M\not\models\varphi\), contradicting
+\(\Gamma\models_L\varphi\).  Hence
+\(\Gamma\vdash_L\varphi\), as required.
+:::

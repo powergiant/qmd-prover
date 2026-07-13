@@ -1,0 +1,195 @@
+---
+title: "Semantics and the canonical term model"
+---
+
+::: {#def-fol-structure .definition name="Structures and assignments" date="2026-07-12"}
+For a signature \(L\) from @def-fol-signature, an \(L\)-structure
+\(\mathcal M\) has a nonempty domain \(M\), interprets every
+\(f\in\mathcal F_n\) as a function \(M^n\to M\), and every
+\(R\in\mathcal R_n\) as a subset of \(M^n\).  Logical equality is interpreted
+as actual equality on \(M\).  An assignment is a function
+\(s:\mathrm{Var}\to M\); write \(s[x\mapsto a]\) for its update at \(x\).
+:::
+
+::: {#def-term-value .definition name="Value of a term" date="2026-07-12"}
+For @def-fol-structure, define recursively
+\(\llbracket x\rrbracket^{\mathcal M}_s=s(x)\) and
+\[
+\llbracket f(t_1,\ldots,t_n)\rrbracket^{\mathcal M}_s
+=f^{\mathcal M}(\llbracket t_1\rrbracket^{\mathcal M}_s,\ldots,
+\llbracket t_n\rrbracket^{\mathcal M}_s).
+\]
+For a closed term the value is independent of \(s\).
+:::
+
+::: {#def-satisfaction .definition name="Satisfaction" date="2026-07-12"}
+For @def-fol-formulas, @def-fol-structure, and @def-term-value, satisfaction is
+defined recursively by
+\[
+\begin{aligned}
+\mathcal M,s\models R(\bar t)&\iff
+ (\llbracket\bar t\rrbracket_s^{\mathcal M})\in R^{\mathcal M},\\
+\mathcal M,s\models t=u&\iff
+ \llbracket t\rrbracket_s^{\mathcal M}=\llbracket u\rrbracket_s^{\mathcal M},\\
+\mathcal M,s\models\neg A&\iff\mathcal M,s\not\models A,\\
+\mathcal M,s\models A\wedge B&\iff
+ \mathcal M,s\models A\text{ and }\mathcal M,s\models B,\\
+\mathcal M,s\models\exists xA&\iff
+ \text{some }a\in M\text{ satisfies }\mathcal M,s[x\mapsto a]\models A.
+\end{aligned}
+\]
+For a sentence \(A\), write \(\mathcal M\models A\); its truth is assignment
+independent.  Write \(\mathcal M\models\Gamma\) when it satisfies every member
+of \(\Gamma\), and \(\Gamma\models_L A\) when every \(L\)-structure satisfying
+\(\Gamma\) satisfies \(A\).
+:::
+
+::: {#lem-semantic-substitution .lemma name="Semantic substitution lemma" date="2026-07-12"}
+If \(t\) is free for \(x\) in \(A\), then
+\[
+ \mathcal M,s\models A[t/x]
+ \quad\Longleftrightarrow\quad
+ \mathcal M,s[x\mapsto\llbracket t\rrbracket_s^{\mathcal M}]\models A.
+\]
+The corresponding term-value identity also holds.
+:::
+
+::: {.proof of="lem-semantic-substitution"}
+Induct on the construction of terms in @def-fol-terms to prove the term-value
+identity.  Then induct on the construction of formulas in @def-fol-formulas.
+Atomic cases use that identity and @def-satisfaction; Boolean cases are
+immediate.  In the case \(\exists yB\), use @lem-fresh-variable and
+alpha-renaming to have \(y\ne x\) and \(y\notin\mathrm{Var}(t)\).  Updating
+an assignment at \(y\) then at \(x\) commutes, and the value of \(t\) is
+unchanged by the \(y\)-update, so the induction hypothesis under each
+candidate witness gives the equivalence.  This is exactly the capture
+avoidance required by @def-fol-substitution.
+:::
+
+::: {#def-henkin-theory .definition name="Henkin theory" date="2026-07-12"}
+A set \(T\) of sentences in a language with at least one constant is a
+*Henkin theory* if, for every sentence \(\exists xA(x)\), there is a closed
+term \(t\) such that
+\(\exists xA(x)\to A(t)\in T\).  Such a \(t\) is a witness term.
+:::
+
+::: {#lem-equality-congruence .lemma name="Provable equality is a congruence" date="2026-07-12"}
+Let \(T\) be deductively closed and consistent.  On closed terms put
+\(t\sim_Tu\) iff \(t=u\in T\).  Then \(\sim_T\) is an equivalence relation,
+is preserved by every function symbol, and replacement of \(\sim_T\)-equal
+arguments preserves membership in \(T\) of every atomic relation formula.
+:::
+
+::: {.proof of="lem-equality-congruence"}
+The equality axioms in @def-hilbert-calculus give \(t=t\) and, by taking
+appropriate instances of the replacement schema, symmetry
+\(t=u\to u=t\), transitivity
+\((t=u\wedge u=v)\to t=v\), function congruence, and relation
+substitutivity.  Apply modus ponens and deductive closure from
+@def-consistency.  Repeating one coordinate at a time proves the assertions
+for all finite arities.  Thus the relation and interpretations below do not
+depend on representatives.
+:::
+
+::: {#def-canonical-term-model .definition name="Canonical term model" date="2026-07-12"}
+Let \(T\) be a deductively closed consistent theory in a language \(L^*\)
+with a constant.  Its canonical term model \(\mathcal M_T\) has as domain the
+\(\sim_T\)-classes \([t]\) of closed \(L^*\)-terms, using
+@lem-equality-congruence.  Define
+\[
+ f^{\mathcal M_T}([t_1],\ldots,[t_n])=[f(t_1,\ldots,t_n)]
+\]
+and
+\[
+ ([t_1],\ldots,[t_n])\in R^{\mathcal M_T}
+ \quad\Longleftrightarrow\quad R(t_1,\ldots,t_n)\in T.
+\]
+The domain is nonempty because the language has a constant, and
+@lem-equality-congruence makes all interpretations well-defined.
+:::
+
+::: {#lem-term-model-evaluation .lemma name="Evaluation by closed representatives" date="2026-07-12"}
+Choose for every variable \(x\) a closed term \(r_x\), and define the
+assignment \(s(x)=[r_x]\) in @def-canonical-term-model.  For every term
+\(t(x_1,\ldots,x_k)\),
+\[
+ \llbracket t\rrbracket_s^{\mathcal M_T}
+   =[t[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]].
+\]
+:::
+
+::: {.proof of="lem-term-model-evaluation"}
+Structural induction on @def-fol-terms.  The variable case is the definition
+of \(s\); the function case follows from the function interpretation in
+@def-canonical-term-model.  Simultaneous substitution is the operation of
+@def-fol-substitution, and all substituted terms are closed, so no capture is
+possible.
+:::
+
+::: {#lem-existential-membership .lemma name="Existential membership in a complete Henkin theory" date="2026-07-12"}
+If \(T\) is consistent, deductively closed, negation-complete, and Henkin,
+then for every one-free-variable formula \(A(x)\),
+\[
+ \exists xA(x)\in T
+ \quad\Longleftrightarrow\quad
+ A(t)\in T\text{ for some closed term }t.
+\]
+:::
+
+::: {.proof of="lem-existential-membership"}
+For left-to-right, choose the witness term supplied by @def-henkin-theory and
+use modus ponens plus deductive closure from @def-consistency.  Conversely,
+quantifier axiom 5 in @def-hilbert-calculus directly gives
+\(A(t)\to\exists xA\).  Modus ponens and deductive closure put the
+existential in \(T\).
+:::
+
+::: {#lem-canonical-truth .lemma name="Canonical truth lemma" date="2026-07-12"}
+Let \(T\) be a consistent, deductively closed, negation-complete Henkin theory.
+Choose closed representatives \(r_x\) and the corresponding assignment \(s\)
+as in @lem-term-model-evaluation.  For every formula \(A\) whose free
+variables are among \(x_1,\ldots,x_k\),
+\[
+ \mathcal M_T,s\models A
+ \quad\Longleftrightarrow\quad
+ A[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]\in T.
+\]
+In particular, for every sentence \(A\),
+\(\mathcal M_T\models A\) iff \(A\in T\).
+:::
+
+::: {.proof of="lem-canonical-truth"}
+Induct on formulas generated by @def-fol-formulas.  For relation atoms, use
+@lem-term-model-evaluation and the relation interpretation in
+@def-canonical-term-model.  For equality atoms, the two evaluated classes are
+equal exactly when the substituted equality belongs to \(T\), by
+@lem-equality-congruence.  Negation and conjunction follow respectively from
+@def-satisfaction and @lem-complete-theory-boolean.
+
+For \(\exists xB\), alpha-rename using @lem-fresh-variable so \(x\) differs
+from the other displayed variables.  By @def-satisfaction, the existential is
+true exactly when it is true after updating \(s(x)\) to some domain element.
+Every domain element is \([t]\) for a closed term by
+@def-canonical-term-model.  The induction hypothesis says this is equivalent
+to membership of the corresponding closed instance \(B(t)\) in \(T\).
+By @lem-substitution-composition, that instance is the capture-avoiding
+instance of the formula after the other representatives were substituted.
+@lem-existential-membership now makes this equivalent to membership of the
+substituted existential.  This completes the induction.  Sentences require no
+representatives and are assignment-independent by @def-satisfaction.
+:::
+
+::: {#lem-reduct-satisfaction .lemma name="Reduct preserves old-language truth" date="2026-07-12"}
+If \(L\subseteq L^*\), \(\mathcal N\) is an \(L^*\)-structure, and
+\(\mathcal N\upharpoonright L\) is obtained by forgetting the new-symbol
+interpretations, then every \(L\)-formula has the same truth value in
+\(\mathcal N\) and in its reduct under the same assignment.
+:::
+
+::: {.proof of="lem-reduct-satisfaction"}
+Term induction using @def-term-value shows equal values because all symbols of
+an \(L\)-term retain their interpretations.  Formula induction using
+@def-satisfaction then gives the claim: atomic cases use those term values and
+unchanged relations, Boolean cases use the induction hypothesis, and the
+existential case quantifies over the same nonempty domain.
+:::

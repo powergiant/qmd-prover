@@ -1,7 +1,3 @@
-.qmd-prover/
-!tests/fixtures/large-project/.qmd-prover/
-tests/fixtures/large-project/.qmd-prover/*
-!tests/fixtures/large-project/.qmd-prover/.external.qmd
 node_modules/
 tests/.generated-fixtures/
 *.log
