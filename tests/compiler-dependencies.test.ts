@@ -5,6 +5,7 @@ import test from 'node:test';
 import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
 import { analyzeDependencies, inspectFact, inspectPath, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
 import { compileProject, theoremBundle } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
+import { initializeWorkspace } from '../skills/qmd-prover/src/lib/workspace/initialize.js';
 import { document, must, options, project, result, proof } from './support.js';
 
 test('compiler reads metadata imports, linked proofs, and deterministic semantic indexes', async () => {
@@ -70,8 +71,6 @@ test('compiler rejects semantic dependency cycles and legacy section layout', as
   const codes = new Set(compilation.diagnostics.map((item) => item.code));
   assert.ok(codes.has('DEPENDENCY_CYCLE'));
   assert.ok(codes.has('LEGACY_RESULT_SECTIONS'));
-  assert.deepEqual((await analyzeDependencies(root, 'cycles', [], options)).cycles, [['lem-left', 'lem-right', 'lem-left']]);
-  assert.deepEqual(must((await analyzeDependencies(root, 'frontier', ['@lem-left'], options)).frontier).map((item) => item.fact.id), ['lem-left', 'lem-right']);
 });
 
 test('compiler validates result names, semantic kinds, and main-goal classes', async () => {
@@ -145,18 +144,21 @@ test('definitions declare construction dependencies and unresolved graph edges r
 
 test('inspector supports fact, path, search, and lowest-frontier queries on a named snapshot', async () => {
   const root = await project();
-  await mkdir(path.join(root, 'foundations'));
-  await writeFile(path.join(root, 'foundations', 'base.qmd'), result('lem-frontier-base', 'The base obligation.', { title: 'Base frontier fact', exported: true }));
-  await writeFile(path.join(root, 'goal.qmd'), document(
+  await writeFile(path.join(root, 'goal.qmd'), result('thm-main-frontier', 'The final claim.'));
+  const created = await initializeWorkspace(root, '@thm-main-frontier', options);
+  const workspace = path.join(root, created.workspace);
+  await mkdir(path.join(workspace, 'foundations'));
+  await writeFile(path.join(workspace, 'foundations', 'base.qmd'), result('lem-frontier-base', 'The base obligation.', { title: 'Base frontier fact', exported: true }));
+  await writeFile(path.join(workspace, 'route.qmd'), document(
     [{ from: 'foundations/base.qmd', use: ['lem-frontier-base'] }],
-    `${result('lem-frontier-middle', 'The middle claim.', { proofText: 'Use @lem-frontier-base.' })}\n${result('thm-main-frontier', 'The final claim.', { proofText: 'Use @lem-frontier-middle.' })}`
+    `${result('lem-frontier-middle', 'The middle claim.', { proofText: 'Use @lem-frontier-base.' })}\n${proof('thm-main-frontier', 'Use @lem-frontier-middle.')}`
   ));
   const projectInspection = await inspectProject(root, options);
   assert.equal(projectInspection.ok, false);
   assert.equal(projectInspection.snapshot_published, true);
   const factInspection = await inspectFact(root, '@thm-main-frontier', options);
   assert.deepEqual(factInspection.graph.nodes.map((node) => node.id).sort(), ['lem-frontier-base', 'lem-frontier-middle', 'thm-main-frontier']);
-  const pathInspection = await inspectPath(root, 'goal.qmd', options);
+  const pathInspection = await inspectPath(root, path.relative(root, path.join(workspace, 'route.qmd')), options);
   assert.equal(must(pathInspection.graph.nodes.find((node) => node.id === 'lem-frontier-base')).scope, 'external');
   const frontier = await analyzeDependencies(root, 'frontier', ['@thm-main-frontier'], options);
   assert.deepEqual(must(frontier.frontier).map((item) => item.fact.id), ['lem-frontier-base']);
@@ -175,25 +177,27 @@ test('inspector supports fact, path, search, and lowest-frontier queries on a na
 
 test('dependency findings expose unused declarations, reachability, reuse, and deterministic alternative paths', async () => {
   const root = await project();
-  await writeFile(path.join(root, 'foundations.qmd'), [
+  await writeFile(path.join(root, 'main.qmd'), result('thm-main-paths', 'Both routes reach the goal.'));
+  const created = await initializeWorkspace(root, '@thm-main-paths', options);
+  const workspace = path.join(root, created.workspace);
+  await writeFile(path.join(workspace, 'foundations.qmd'), [
     result('def-path-base', 'A base construction.', { exported: true }),
     result('lem-unused-export', 'An unused exported fact.', { exported: true }),
     result('lem-never-imported', 'An export no file imports.', { exported: true }),
     result('lem-isolated', 'An isolated fact.')
   ].join('\n'));
-  await writeFile(path.join(root, 'goal.qmd'), document(
+  await writeFile(path.join(workspace, 'goal.qmd'), document(
     [{ from: 'foundations.qmd', use: ['def-path-base', 'lem-unused-export'] }],
     [
       result('lem-path-left', 'The left route.', { proofText: 'Use @def-path-base.' }),
       result('lem-path-right', 'The right route.', { proofText: 'Use @def-path-base.' }),
-      result('thm-main-paths', 'Both routes reach the goal.', { proofText: 'Use @lem-path-left and @lem-path-right.' })
+      proof('thm-main-paths', 'Use @lem-path-left and @lem-path-right.')
     ].join('\n')
   ));
-  await writeFile(path.join(root, 'invalid-metadata.qmd'), document(
+  await writeFile(path.join(workspace, 'invalid-metadata.qmd'), document(
     [{ from: 'missing.qmd', use: ['lem-missing-export'] }],
     result('def-file-error', 'A candidate blocked by a file-level error.')
   ));
-  await compileProject(root, options);
   const findings = must((await analyzeDependencies(root, 'findings', [], options)).findings);
   assert.deepEqual(findings.unused_imports.map((item) => item.id), ['lem-unused-export']);
   assert.deepEqual(findings.unused_exports.map((item) => item.id), ['lem-never-imported']);

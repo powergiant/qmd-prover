@@ -24,6 +24,7 @@ export interface Diagnostic {
   remediation?: string;
   repair_hints?: string;
   dependency?: string;
+  locations?: string[];
 }
 
 export type ResultKind = 'definition' | 'lemma' | 'theorem' | 'proposition' | 'corollary' | 'unknown';
@@ -109,7 +110,7 @@ export interface Manifest {
   results: SemanticResult[];
   proofs: ProofRecord[];
   stale?: boolean;
-  canonical_results?: GraphNode[];
+  protected_goal_results?: GraphNode[];
 }
 
 export interface GraphNode {
@@ -196,6 +197,7 @@ export interface CompilerOptions {
   excludeFiles?: string[];
   externalTargets?: string[];
   protectStatements?: boolean;
+  semanticMode?: 'full' | 'workspace' | 'project-goals';
 }
 
 export interface RuntimeOptions extends CompilerOptions {
@@ -219,6 +221,8 @@ export interface RuntimeOptions extends CompilerOptions {
   direct?: boolean;
   reverse?: boolean;
   cycleParticipant?: boolean;
+  /** Internal: the caller already performed the project-wide duplicate preflight. */
+  skipProjectPreflight?: boolean;
 }
 
 export interface CompilationSummary {
@@ -373,15 +377,6 @@ export interface GraphFindings {
   heavily_reused: Array<{ fact: GraphNode; direct_dependents: number; transitive_dependents: number; verified_dependents: number }>;
 }
 
-export interface CanonicalScopeInspection {
-  compilation: Compilation;
-  selected: SemanticResult[];
-  aiChecks: Map<string, AiCheck>;
-  staleness: StalenessReport;
-  diagnostics: Diagnostic[];
-  verification: InspectionVerificationSummary;
-}
-
 /** Stable CLI/API result. Individual operations refine the known fields they expose. */
 export interface OperationResult {
   schema_version?: number;
@@ -476,6 +471,7 @@ export interface InitializeProjectResult extends OperationResult {
 
 export interface WorkspaceInspectResult extends OperationResult {
   stale: boolean;
+  staleness: StalenessReport;
   manifest: Manifest;
   graph: DependencyGraph;
   diagnostics: Diagnostic[];
@@ -489,6 +485,8 @@ export interface WorkspaceInspectResult extends OperationResult {
     rejected: number;
     errors: number;
     not_run: number;
+    stopped_after?: string | null;
+    facts?: Array<{ id: string } & AiCheck>;
   };
   facts: Array<{
     id: string;
@@ -496,6 +494,13 @@ export interface WorkspaceInspectResult extends OperationResult {
     status: string;
     file: string;
     line?: number;
+    programmatic?: {
+      status: 'pass' | 'fail';
+      verification_mode: 'definition-construction' | 'proof';
+      references: ReferenceCheck[];
+      diagnostics: string[];
+      reason?: string;
+    };
     ai: AiCheck;
   }>;
 }

@@ -2,47 +2,51 @@
 
 ## Role
 
-The discipline defines valid semantic QMD and the safety boundaries for agents
-that write it. It does not prescribe a research plan or a fixed order for proof
-development. Its canonical form is the managed contract in
-`skills/qmd-prover/references/AGENTS.md`.
+The discipline defines which QMD is qmd-prover mathematics, what valid
+workspace semantic QMD looks like, and which safety boundaries apply to agents
+that write it. It does not prescribe a research plan or a fixed order for
+proof development. Its canonical agent-facing form is the versioned managed
+contract in `skills/qmd-prover/references/AGENTS.md`.
 
-The contract alone cannot establish that a project follows the discipline.
-The inspector parses the semantic blocks, checks their invariants, builds the
-dependency graph, exposes progress, and invokes independent verification.
+The contract alone cannot establish compliance. The compiler parses Pandoc
+JSON, the project index checks project-wide ownership and identity invariants,
+the inspector builds scoped and aggregate graphs, and the configured external
+verifier judges mathematical sufficiency.
 
-A matching project contract is a prerequisite for inspection and proof work.
-Before invoking the inspector, the host agent checks that the managed block in
-the project's root `AGENTS.md` is present, has the canonical version, and is
-unchanged. If that preflight fails, the host agent stops before inspection or
-mutation and asks whether the user wants to synchronize the project-owned
-contract. This is an agent preflight requirement, not a substitute for the
-inspector's source and mathematical checks.
+A matching project contract is a prerequisite for proof work. Before changing
+mathematics or qmd-prover state, the host agent compares the managed block in
+the project's root `AGENTS.md` with the canonical block byte-for-byte. If the
+preflight fails, the host stops before mutation and asks whether the user wants
+to create, append, or synchronize policy. This is an agent preflight, not a
+replacement for compiler and verifier checks.
 
 Normally the user installs the skill and asks an agent in natural language to
-initialize a project. That request authorizes creation of a missing root
-`AGENTS.md` through `init` only when no project material is already
-present. If setup discovers existing files or state, the agent reports them and
-asks the user's intention before adopting, appending, or synchronizing.
+initialize a project. `init` may create policy only when intent is sufficiently
+clear. When setup discovers existing project material, it inventories that
+material and asks before adopting or changing project-owned policy.
 
 ## Canonical and local policy
 
 Each project policy has two parts:
 
-1. The **managed block** supplies qmd-prover's shared safety and proof rules.
-   The project copies this versioned block into its root `AGENTS.md` verbatim.
+1. The **managed block** supplies qmd-prover's shared ownership, statement
+   protection, workspace, semantic-QMD, inspection, and verification rules.
+   The project copies the versioned block verbatim.
 2. **Local policy**, written outside the managed block, supplies rules specific
-   to that project, such as notation, language, directory layout, or preferred
+   to that project, such as notation, language, directory layout, or allowed
    sources.
 
-Local rules may add constraints, but they may not change or weaken the managed
-rules. Because `AGENTS.md` belongs to the project, qmd-prover must ask the user
-before creating or synchronizing it.
+"Canonical" in this section means the authoritative contract distributed by
+the skill. It no longer means that all user QMD is a canonical mathematical
+database.
+
+Local rules may strengthen the managed rules but may not weaken them. Because
+`AGENTS.md` belongs to the project, qmd-prover asks before creating or
+synchronizing it and preserves every byte outside the managed block.
 
 ### Example: project-local policy
 
-The managed block itself is copied verbatim from the skill and is not repeated
-here. A project can append local policy after it:
+The managed block is not repeated here. A project can append local policy:
 
 ```markdown
 <!-- The complete managed qmd-prover contract appears above. -->
@@ -50,105 +54,148 @@ here. A project can append local policy after it:
 ## Local project policy
 
 - Use \(\mathbb N=\{0,1,2,\ldots\}\).
-- Put shared definitions in `foundations.qmd`.
+- Put shared workspace definitions in `foundations.qmd`.
+- Leave `main.qmd` unchanged except at the user's explicit request.
 ```
 
-These additions choose notation and file placement without changing how proofs
-are protected or verified. By contrast, a local rule saying “agents may edit a
-`thm-main-*` statement” contradicts statement protection and is invalid.
+These additions choose notation and workspace organization without changing
+how protected goals, IDs, proof overlays, or verifier decisions work. A local
+rule saying “agents may edit a `thm-main-*` statement” conflicts with statement
+protection and is invalid.
+
+**Local-policy scope.**
+
+Local policy can answer questions that qmd-prover deliberately leaves open:
+
+- which notation is preferred;
+- which external sources are acceptable in prose;
+- how a large goal workspace is divided into subject files;
+- which language is used for theorem captions and exposition;
+- whether a project wants extra human review before relying on a result; and
+- how future paper tooling should select retained workspace material.
+
+Local policy must not redefine semantic block classes, weaken global ID
+uniqueness, permit cross-workspace dependencies, treat user-note theorems as
+workspace premises, bypass independent verification, or authorize proof writes
+into user notes.
 
 ## External mathematical basis
 
-The optional project-owned `.qmd-prover/.external.qmd` is ordinary QMD that
-controls which results may be taken from outside the project. Its three states
-are intentional: absence is unrestricted, a whitespace-only file permits no
-external results, and nonempty content describes the allowed results or
-classes of results. Initialization reports this state but never creates or
-rewrites the file.
+The optional project-owned `.qmd-prover/.external.qmd` controls which results
+may be taken from outside the project. Its three states are intentional:
 
-The host agent reads the policy before writing mathematics. The independent AI
-verifier receives its exact content with each candidate and judges whether an
-external use is allowed. The proving utilities snapshot the policy and reject
-acceptance if it changes during verification. This policy does not replace
-semantic `@id` dependencies between results defined inside the project.
+- absence permits outside mathematics, provided the agent identifies each
+  result precisely and checks its hypotheses;
+- a whitespace-only file permits no outside mathematics; and
+- nonempty content permits only the stated results or classes of results.
+
+Initialization reports this state but does not create the file. The host reads
+it before proof work. The independent verifier receives its exact mode and
+content with every candidate.
+
+The v14 model permits the agent to revise the external basis when the user's
+request or the proof context genuinely requires a different basis, but the
+change must be explicit. It changes the verifier context and therefore makes
+affected exact-cache keys miss. A current workspace snapshot includes the
+external-basis identity through its source signature.
+
+The external basis is not a namespace. It does not create `@id` nodes and
+cannot be used to smuggle in another workspace's lemma or a theorem-like block
+from user notes. Local semantic dependencies must still resolve to declarations
+inside the same workspace.
 
 ## Rule categories
 
 The discipline assigns rules to three enforcement mechanisms. Passing one
-mechanism never implies that the other two have passed.
+mechanism never implies that the other two passed.
 
 | Rule category | Enforced by | What it establishes |
 |---|---|---|
-| Mechanically enforceable | Inspector and proving utilities | The QMD structure, references, records, and writes satisfy decidable invariants. |
-| Mathematically judged | Inspector's independent AI verifier | The exact construction or proof is mathematically sufficient. |
-| Agent conduct | Host-agent instructions | The agent follows project ownership, goal-workspace, semantic-writing, and acceptance boundaries. |
+| Mechanically enforceable | Compiler, project index, and inspector | Source shape, identity, scope, graph, selection, and snapshot invariants are decidably satisfied. |
+| Mathematically judged | Independent external verifier | The exact construction or proof is mathematically sufficient. |
+| Agent conduct | Skill and project instructions | The host respects ownership, workspace placement, external basis, and verifier findings. |
 
-The first category is checked by code. For the second, the inspector calls the
-configured external verifier only after its programmatic checks pass, using a fresh bounded
-context independent of the proving agent. The third is not generally decidable
-from the final QMD and has no separate automated checker: the skill instructs
-the AI host agent to follow it, while the user remains able to identify a
-violation.
+The programmatic layer is deliberately conservative. When it cannot establish
+a required invariant from Pandoc JSON and protected state, it emits a
+diagnostic rather than guessing. The verifier runs only after the selected
+fact's mechanical checks pass. Host conduct remains necessary because not all
+bad actions are recoverable from the final files.
 
 ### Mechanically enforceable rules
 
-The inspector and proving utilities enforce rules whose truth follows from the
-project representation, including:
+Mechanically enforceable rules include:
 
-- semantic block shape and unique IDs;
-- ISO introduction dates on definitions and result statements;
-- protected main-statement identity;
-- explicit imports and exports;
-- association of every proof with one semantic result;
-- recognition of the reserved `OPEN`, `REJECTED`, `VERIFIED`, and `REVOKED`
-  control markers;
-- availability and status of results cited by proofs;
-- selection of one active, unmarked candidate for submission;
-- cached-statement checks and transitive stale-verification invalidation; and
-- rejection-safe, atomic acceptance.
+- only `thm-main-* .theorem .goal` blocks are registered in user notes;
+- main-goal class, name, statement, and protected snapshot identity;
+- workspace declaration shape, ID prefix, class, date, name, and body;
+- association of every linked proof with exactly one declaration;
+- explicit producer exports and consumer imports for cross-file dependencies;
+- duplicate IDs within one workspace and across project scopes;
+- prohibition of workspace-to-workspace and workspace-to-other-main-goal
+  dependencies;
+- dependency cycles, missing references, malformed imports, and unavailable
+  proof premises;
+- exact selection of a fact or path and its transitive local dependency
+  closure;
+- current workspace source, protected goal, external basis, checker contract,
+  and cache signatures; and
+- safe atomic publication of workspace and aggregate snapshots.
 
-Mechanical checking is deliberately conservative. If the program cannot
-establish a required fact from the semantic representation and protected
-records, it reports a diagnostic rather than guessing.
+The project index performs global-identity and scope preflight before any
+verifier call. A global duplicate is project-fatal because an aggregate graph
+cannot assign a unique owner or source to that node. A malformed individual
+workspace stays local so other workspaces can still be inspected and reported.
 
 #### Example: a mechanically detectable dependency error
 
-This proof cites a result that is neither local nor imported:
+This workspace proof cites a local result from another file:
 
 ```markdown
-::: {.proof of="thm-main-even-square"}
-By @lem-factor-even, write \(n=2k\). Applying @lem-square-of-double gives
-\(n^2=4k^2\).
+::: {.proof of="thm-uniform-bound"}
+By @lem-finite-stratification there are finitely many strata. Apply
+@lem-local-exponent-bound on each stratum.
 :::
 ```
 
-If only `@lem-factor-even` is available, the inspector reports
-`@lem-square-of-double` as unavailable. The file can import the exported lemma
-through its Quarto metadata:
+If `@lem-local-exponent-bound` is exported from `local/exponents.qmd` but the
+consumer imports only `@lem-finite-stratification`, the inspector reports the
+second citation as out of scope. The consumer repairs the front matter:
 
 ```yaml
+---
 qmd-prover:
   imports:
-    - from: foundations/parity.qmd
+    - from: local/exponents.qmd
       use:
-        - lem-square-of-double
+        - lem-local-exponent-bound
+---
 ```
 
-No mathematical judgment is required for this diagnostic. The reference in the
-proof is already the dependency declaration; no second `Uses` list is needed.
+No mathematical judgment is required. The citation already declares the
+logical dependency; the metadata controls only cross-file availability.
+
+If the same citation resolves to a declaration in another goal workspace, no
+import can repair it. The result must be adopted and proved locally, or the
+allowed outside premise must be described in `.external.qmd` without turning
+it into a cross-workspace graph node.
 
 ### Mathematically judged rules
 
-The inspector's independent AI verifier calls the configured external verifier to judge whether
-the exact construction or proof establishes its declaration, including:
+The independent verifier judges whether:
 
-- whether each inference is valid;
-- whether all hypotheses are used correctly;
-- whether an external theorem actually applies;
-- whether a claimed reduction covers every case; and
-- whether examples or computations have been mistaken for a general proof.
+- each inference is valid under the stated hypotheses;
+- every cited result actually applies;
+- a definition is meaningful, exists when claimed, and is well-defined;
+- a reduction covers all cases and preserves all hypotheses;
+- an induction covers its base and inductive steps;
+- a limit, compactness, choice, finiteness, or maximality argument is justified;
+- examples or computations have been mistaken for a universal proof; and
+- the proof establishes the exact protected statement rather than a weakened
+  or nearby variant.
 
-The verifier's judgment does not relax the inspector's mechanical checks.
+The verifier's judgment never relaxes programmatic scope checks. A proof cannot
+be accepted merely because the verifier recognizes an unstated theorem that
+the workspace was not allowed to use.
 
 #### Example: a mathematically detectable gap
 
@@ -158,37 +205,34 @@ Suppose a candidate contains:
 Since \(ab=ac\), divide by \(a\) to obtain \(b=c\).
 ```
 
-The syntax may be perfectly valid and the proof may have no semantic
-dependencies. Nevertheless, the inference is invalid unless the hypotheses
-give \(a\ne0\). Detecting the missing hypothesis belongs to the inspector's AI
-verification stage rather than its programmatic stage.
+The syntax may be valid and there may be no semantic dependencies, but the
+inference is invalid unless the hypotheses give \(a\ne0\). Detecting the
+missing hypothesis belongs to mathematical verification rather than parsing.
 
 Likewise, checking finitely many values of \(n\) does not prove a statement
-quantified over all integers. The discipline requires the verifier and host
-agent to keep computation or evidence distinct from a general proof.
+quantified over all integers. A valid verifier response identifies that as a
+gap and supplies repair guidance; the host retains the rejection and repairs
+the workspace proof.
 
 ### Agent conduct rules
 
-The host agent may work from one theorem, a family of results, or an idea that
-needs formulation. It may introduce and order intermediate mathematics however
-the argument requires. The skill instructs it to:
+The skill instructs the host agent to:
 
-- preserve user-owned statements;
-- create or resume `.qmd-prover/workspaces/<thm-main-ID>/` when asked to prove a
-  protected main goal;
-- keep canonical QMD read-only during development and put every tentative
-  definition, result, proof, example, and progress note in that goal workspace;
-- maintain an explicit dependency-linked development rather than stopping at a
-  plan or prose sketch;
-- introduce precise intermediate results only when useful;
-- keep proof attempts outside canonical QMD until accepted;
-- respond to every concrete verification gap;
-- produce a precise refutation when a statement appears false; and
-- keep search notes, confidence claims, and verifier metadata out of proofs,
-  except for reserved qmd-prover control markers.
+- preserve user-owned main-goal statements exactly;
+- create or resume `.qmd-prover/workspaces/<thm-main-ID>/` for requested proof
+  work and keep all created mathematics there;
+- maintain `progress.qmd` without allowing inspection to overwrite it;
+- follow unproved dependencies until they are justified;
+- distinguish an external theorem from a local semantic fact;
+- respond to every verifier critical error and gap;
+- keep search notes, confidence claims, and verifier metadata out of proofs;
+- retain useful failed routes as `REJECTED` rather than presenting them as
+  premises;
+- report a precise refutation when a protected goal appears false; and
+- leave verified mathematics in the workspace rather than copying it to user
+  notes.
 
-These rules constrain representation, file placement, and acceptance, not the
-agent's mathematical strategy.
+These rules constrain ownership and evidence, not the mathematical strategy.
 
 #### Example: correct behavior when a goal looks false
 
@@ -200,211 +244,162 @@ Every prime number is odd.
 :::
 ```
 
-The host agent must not silently change the statement to “Every prime greater
-than \(2\) is odd.” It should preserve the goal and report the counterexample
-\(2\), together with the corrected statement as a suggestion that requires
-the user's approval.
+The agent must not silently change the statement to “Every prime greater than
+\(2\) is odd.” It preserves the goal, reports the counterexample \(2\), and may
+offer the corrected statement as a suggestion requiring explicit approval.
 
 ## Semantic scope
 
-QMD remains unrestricted outside recognized semantic blocks. Ordinary prose,
-figures, equations, code cells, and bibliographic citations remain Quarto
-content. The discipline applies dependency semantics only to recognized
-definitions and results.
+The source tree has two semantic regimes.
+
+In the **user-note regime**, QMD remains unrestricted except that protected
+`thm-main-*` blocks must satisfy their narrow goal shape and statement locks.
+Other fenced Divs, imports, headings, proof-like prose, equations, code cells,
+figures, and bibliographic citations are ordinary Quarto content. They do not
+enter the qmd-prover graph and are not diagnosed as malformed semantic QMD.
+
+In the **workspace regime**, every recognized declaration and linked proof is
+semantic and receives the complete contract. Ordinary prose outside recognized
+blocks remains ordinary QMD, but references inside a definition construction
+or linked proof create dependency edges.
+
+This distinction prevents qmd-prover from imposing its schema on a user's
+research notes while giving agent-created mathematics a precise, inspectable
+representation.
 
 ## Recognized block types
 
-Every semantic declaration is a fenced Div with one stable ID and exactly one
-kind class. The ID prefix must agree with the class: `def-` for `.definition`,
-`lem-` for `.lemma`, `prp-` for `.proposition`, `thm-` for `.theorem`, and
-`cor-` for `.corollary`. The `name` is the human-readable title, `date` records
-the ISO introduction date, and `export` is optional unless another file must
-import the declaration. When present, `export` must equal the declaration's
-semantic ID exactly. These common attributes do not make the five result kinds
-interchangeable; the kind communicates the declaration's mathematical role to
-readers and to dependency search.
+Every workspace declaration is a fenced Div with one stable ID and exactly one
+kind class. The ID prefix must agree with the class: `def-`, `lem-`, `prp-`,
+`thm-`, or `cor-`. The `name` is the human-readable caption, `date` is the ISO
+introduction date, and optional `export` must equal the semantic ID exactly.
 
 ### Definition block
 
-A `.definition` block introduces a term, object, or piece of notation. Its body
-is the construction rather than a claim copied from a later proof. Semantic
-references in that body are construction dependencies, so every referenced
-fact must be local or explicitly imported. When well-definedness, existence,
-or uniqueness needs justification, put that argument in a separate linked
-proof block.
+A `.definition` block introduces a term, object, or notation. Its body is the
+construction, not a claim copied from a later proof. Citations in that body are
+construction dependencies. Existence, uniqueness, or well-definedness may be
+justified in a separate linked proof.
 
 ```markdown
 ::: {#def-even-integer .definition name="Even integer" date="2026-07-12" export="def-even-integer"}
-An integer \(n\) is **even** if there exists an integer \(k\) such that
-\(n=2k\).
-:::
-
-::: {.proof of="def-even-integer"}
-This predicate is a well-formed property of an integer \(n\).
+An integer \(n\) is even if \(n=2k\) for some integer \(k\).
 :::
 ```
 
 ### Lemma block
 
-A `.lemma` block states an auxiliary result intended to support later results.
-The label describes its role in the development, not a weaker verification
-standard: a lemma must be checked as rigorously as a theorem.
+A `.lemma` block states an auxiliary result. “Lemma” describes its role, not a
+weaker verification standard.
 
 ```markdown
-::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12" export="lem-square-of-double"}
-If \(n=2k\) for integers \(n,k\), then \(n^2=4k^2\).
+::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12"}
+If \(n=2k\), then \(n^2=4k^2\).
 :::
 
 ::: {.proof of="lem-square-of-double"}
-Expanding the product gives \(n^2=(2k)^2=4k^2\).
+Expand: \(n^2=(2k)^2=4k^2\).
 :::
 ```
 
 ### Proposition block
 
-A `.proposition` block states a result that is useful in its own right but is
-not presented as one of the development's principal theorems. This distinction
-is expository; propositions use the same proof and verification machinery as
-lemmas and theorems.
+A `.proposition` states a useful standalone result that is not presented as a
+principal theorem. It uses the same proof and verifier machinery.
 
 ```markdown
 ::: {#prp-even-sum .proposition name="Sums of even integers" date="2026-07-12"}
 The sum of two even integers is even.
 :::
-
-::: {.proof of="prp-even-sum"}
-By @def-even-integer, write \(a=2r\) and \(b=2s\). Then
-\(a+b=2(r+s)\), so @def-even-integer applies again.
-:::
 ```
 
 ### Theorem block
 
-A `.theorem` block states a principal result. An ordinary theorem uses a
-`thm-` ID and can be introduced by the project or by an agent in its workspace.
-Its proof remains separate, just like the proof of a lemma or proposition.
+A workspace `.theorem` states a principal local result and uses a `thm-*` ID.
+It is not a protected main goal merely because it is important.
 
 ```markdown
-::: {#thm-even-square .theorem name="Squares of even integers" date="2026-07-12" export="thm-even-square"}
-If an integer \(n\) is even, then \(n^2\) is divisible by \(4\).
-:::
-
-::: {.proof of="thm-even-square"}
-By @def-even-integer, write \(n=2k\). Now @lem-square-of-double gives
-\(n^2=4k^2\).
+::: {#thm-even-square .theorem name="Squares of even integers" date="2026-07-12"}
+If an integer \(n\) is even, then \(4\mid n^2\).
 :::
 ```
 
 ### Corollary block
 
-A `.corollary` block states a result that follows quickly from an earlier
-result. The linked proof must still cite the result from which it follows;
-calling a statement a corollary does not create an implicit dependency.
+A `.corollary` states a consequence. Its proof must cite the source theorem;
+the class itself creates no implicit edge.
 
 ```markdown
-::: {#cor-even-square-not-two-mod-four .corollary name="Even squares modulo four" date="2026-07-12"}
-The square of an even integer is not congruent to \(2\pmod 4\).
+::: {#cor-even-square-mod-four .corollary name="Even squares modulo four" date="2026-07-12"}
+An even square is congruent to \(0\pmod 4\).
 :::
 
-::: {.proof of="cor-even-square-not-two-mod-four"}
-By @thm-even-square, the square is congruent to \(0\pmod 4\), not
-\(2\pmod 4\).
+::: {.proof of="cor-even-square-mod-four"}
+This is the conclusion of @thm-even-square.
 :::
 ```
 
 ### Main-goal theorem block
 
-A main goal is not a sixth result kind. It is a `.theorem` block refined by the
-`.goal` class and a protected `thm-main-*` ID. Its ID, `name`, hypotheses,
-quantifiers, and statement body originate with the user and must not be changed
-without explicit approval. With no linked proof, it is an open goal.
+A main goal is not a sixth result kind. It is a `.theorem .goal` block with a
+protected `thm-main-*` ID in user QMD. Its ID, caption, classes, hypotheses,
+quantifiers, and statement body originate with the user. The workspace does
+not repeat it.
 
 ```markdown
 ::: {#thm-main-even-product .theorem .goal name="Even product theorem" date="2026-07-12"}
-If \(a\) is an even integer and \(b\) is an integer, then \(ab\) is even.
+If \(a\) is even and \(b\) is an integer, then \(ab\) is even.
 :::
 ```
 
-A workspace proposal for this goal contains only a linked `.proof` block; it
-does not repeat or edit the protected theorem block.
+The linked proof in that goal's workspace is an overlay. It participates in
+the workspace graph without becoming a duplicate declaration.
 
 ### Proof block
 
-A `.proof` block supplies the construction or proof for exactly one semantic
-declaration. It has no semantic ID of its own. Instead, its `of` attribute must
-equal the target declaration's ID. Every `@id` inside the proof declares a
-logical dependency at its point of use.
+A `.proof` has no semantic ID. Its `of` attribute names exactly one local
+declaration or the workspace's own protected main goal. Every `@id` in the
+proof is a dependency at its point of use.
 
 ```markdown
 ::: {.proof of="thm-main-even-product"}
-By @def-even-integer, write \(a=2k\). Then \(ab=2(kb)\), and \(kb\) is an
-integer, so @def-even-integer shows that \(ab\) is even.
+By @def-even-integer, write \(a=2k\). Then \(ab=2(kb)\), so
+@def-even-integer shows that \(ab\) is even.
 :::
 ```
 
-The first nonempty paragraph may instead be one reserved control marker:
-
-```markdown
-::: {.proof of="thm-main-even-product"}
-OPEN
-
-It remains to show that the chosen witness is an integer.
-:::
-```
-
-`OPEN` marks an incomplete attempt. `REJECTED`, `VERIFIED`, and `REVOKED` are
-valid only when qmd-prover has matching protected records. For theorem-like
-facts these words are proof-state markers, while a definition puts its marker
-at the end of its declaration block. They are not additional block types, and
-an agent must never add or restore `VERIFIED` manually.
-
-Within semantic QMD, the declaration block records the definition or claim,
-while its linked proof block records the justification. A declaration has at
-most one active linked proof. Definitions may declare dependencies in their
-construction bodies; other result dependencies come from references in their
-linked proofs.
-
-For `thm-main-*`, the title and statement originate with the user and are
-protected. The introduction date is informational and does not alter statement
-identity. The absence of a linked proof, or a proof whose first nonempty
-paragraph is `OPEN`, means the result is open. A proof beginning with `REJECTED`
-is inactive. An unmarked proof is still only a candidate until independently
-checked. `VERIFIED` is valid only with a matching record for the current
-statement, proof or construction, and dependency snapshot. `REVOKED` is valid
-only with a matching revocation record and concrete reason. Before relying on
-`VERIFIED`, the inspector checks the cached identities and removes stale
-markers transitively along reverse-dependency edges.
+The first nonempty proof paragraph may be `OPEN` for an incomplete active
+attempt or `REJECTED` for an inactive failed attempt. No marker means a
+candidate. `VERIFIED` and `REVOKED` are recognized only as legacy canonical
+markers; agents and current inspection never write them. A source marker alone
+does not establish workspace verification.
 
 ### Example: semantic and nonsemantic references
 
-In a semantic proof, the reference below creates a logical dependency:
+Inside a workspace proof, this creates a dependency:
 
 ```markdown
-::: {.proof of="thm-main-convergence"}
+::: {.proof of="thm-convergence"}
 Apply @lem-compact-subsequence to the bounded sequence.
 :::
 ```
 
-In surrounding exposition, the same reference can be navigational:
-
-```markdown
-The geometric motivation for @lem-compact-subsequence is discussed next.
-```
-
-The second sentence does not claim that an enclosing proof uses the lemma. A
-bibliographic citation such as `[@rudin1976]` remains a Quarto citation and is
-not interpreted as a semantic theorem dependency.
+In surrounding exposition, the same reference may be navigational. A
+bibliographic citation such as `[@rudin1976]` is always a Quarto citation, not
+a theorem dependency.
 
 ## Change process
 
-The managed contract is versioned. A discipline change should therefore:
+The managed contract is versioned. A discipline change should:
 
 1. state the new or changed invariant;
-2. identify whether it is enforced by the inspector, proving utilities,
-   verifier, or host-agent instructions;
-3. update the canonical contract;
-4. update affected tests and component documentation; and
-5. require explicit synchronization in existing projects.
+2. identify whether the compiler, index, inspector, verifier, or host-agent
+   instruction enforces it;
+3. update the canonical contract without compressing away existing guidance;
+4. synchronize every example managed block byte-for-byte;
+5. update affected tests, SKILL routing, CLI reference, and component design
+   documents; and
+6. require explicit synchronization in existing mathematical projects.
 
-This prevents a utility release from silently changing the meaning of an
-existing mathematical project.
+This process prevents a runtime release from silently changing the meaning of
+an existing project and keeps the human explanation aligned with enforcement.

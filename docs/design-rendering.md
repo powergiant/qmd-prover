@@ -2,15 +2,19 @@
 
 ## Role
 
-Rendering is Quarto's responsibility. qmd-prover produces and maintains
-semantic QMD; the project is rendered with the ordinary Quarto command:
+Rendering is Quarto's responsibility. qmd-prover recognizes protected main
+goals in user notes and maintains retained workspace mathematics, aggregate
+inspection data, and optional generated Quarto inputs. It does not maintain or
+rewrite the notes themselves. The project is rendered with the ordinary
+command:
 
 ```bash
 quarto render
 ```
 
 qmd-prover must not implement a parallel HTML site generator or replace
-Quarto's document model.
+Quarto's document model. Inspection and verification correctness do not depend
+on a successful render.
 
 ### Example Quarto project
 
@@ -25,114 +29,108 @@ website:
   navbar:
     left:
       - main.qmd
-      - proof-status.qmd
+      - .qmd-prover/generated/proof-status.qmd
 
 format:
   html:
     toc: true
 ```
 
-The mathematical source `main.qmd` and an optional generated
-`proof-status.qmd` are rendered by Quarto in the same way as any other project
-page.
+The user-authored note and an optional generated status page are ordinary
+Quarto inputs. The workspace itself may be rendered in a separate preview when
+the project wants to expose detailed proof development.
 
-## Canonical rendering input
+## User-note rendering input
 
-The mathematical QMD files already contain the material Quarto should render:
+QMD outside `.qmd-prover/` contains material the user chose to keep in notes:
 
-- exposition;
-- definitions and theorem statements;
-- proofs;
-- equations and figures;
+- exposition and informal derivations;
+- protected `thm-main-*` statements;
+- equations, figures, tables, and code;
 - bibliographic citations; and
-- semantic cross-references.
+- ordinary Quarto cross-references.
 
-The same QMD is both the canonical mathematical source used by the inspector
-and the document source used by Quarto. A proof accepted by the proving
-utilities becomes observable through the next normal Quarto render.
+qmd-prover does not copy a verified proof or a status marker into these files.
+A protected main goal therefore renders as the user's statement even when its
+current proof overlay and intermediate development live in a workspace.
 
-### Example canonical page
+### Example user page
 
 ```markdown
 ---
-title: "Main results"
-qmd-prover:
-  imports:
-    - from: foundations.qmd
-      use:
-        - def-even-integer
+title: "Main questions"
 ---
 
-We use the parity definition from @def-even-integer.
+We study parity and divisibility.
 
 ::: {#thm-main-even-square .theorem .goal name="Even squares" date="2026-07-12"}
 For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
 :::
-
-::: {.proof of="thm-main-even-square"}
-By @def-even-integer, write \(n=2k\). Then \(n^2=4k^2\).
-:::
 ```
 
-The inspector associates the proof through `of` and derives its dependency
-from the semantic reference. Quarto uses `name="Even squares"` as the theorem
-caption and renders the proof afterward. There are no theorem-title headings or
-`Statement`, `Uses`, and `Proof` section headings polluting the table of
-contents or visual hierarchy. qmd-prover does not translate this source into a
-separate document format.
+The theorem block remains stable and human-readable. Quarto uses the `name` as
+its caption. qmd-prover uses the same block as the protected statement but
+obtains its proof only from
+`.qmd-prover/workspaces/thm-main-even-square/main-proof.qmd`.
+
+User notes may also contain theorem-like Divs that are not `thm-main-*`. Quarto
+renders them normally. qmd-prover does not force those blocks into the
+workspace semantic contract or list them as project facts.
 
 ## Observability
 
-The inspector knows useful information that is not necessarily written into
-the mathematical prose, including:
+The inspector knows information that need not appear in mathematical prose:
 
-- open and verified goals;
-- rejected or revoked status;
-- dependencies cited by proofs;
-- reverse dependencies;
-- source-located diagnostics; and
-- verification summaries.
+- initialized, missing, stale, uninitialized, and orphan workspaces;
+- open, candidate, workspace-verified, and workspace-rejected facts;
+- dependency and reverse-dependency paths;
+- proof frontiers and cycles;
+- source-located diagnostics;
+- verifier calls, cache hits, rejections, and failures; and
+- legacy canonical records or markers that no longer establish current state.
 
-When the project wants this information in its rendered output, qmd-prover may
+When a project wants this information in rendered output, qmd-prover may
 prepare Quarto-compatible inputs such as:
 
 - a generated QMD status page;
 - a generated QMD dependency page;
-- a graph image referenced by QMD;
-- structured data consumed by a Quarto extension or filter; or
-- attributes that a Quarto extension presents as theorem status.
+- a dependency SVG referenced by QMD;
+- structured report data consumed by a Quarto extension; or
+- a future paper-selection manifest.
 
-Quarto still performs the rendering. qmd-prover's responsibility ends at
-producing valid inputs for the project's configured Quarto pipeline.
+Quarto still performs rendering. qmd-prover's responsibility ends at producing
+valid, reproducible inputs.
 
 ### Example generated status page
 
-The inspector may generate a disposable `proof-status.qmd` like:
+A generated page can show both protected goals and workspace evidence:
 
 ```markdown
 ---
 title: "Proof status"
 ---
 
-| Result | Status | Source |
-|---|---|---|
-| @thm-main-even-square | verified | `main.qmd` |
-| @thm-main-prime-bound | open | `primes.qmd` |
+| Main goal | Workspace | Status | Source |
+|---|---|---|---|
+| @thm-main-even-square | initialized | workspace-verified | .qmd-prover/workspaces/thm-main-even-square/ |
+| @thm-main-prime-bound | missing | open | primes.qmd |
 
-The open goal depends on @lem-finite-primes and @def-prime-counting.
+The first goal currently depends on @def-even-integer and
+@lem-square-of-double inside its own workspace.
 ```
 
-This page is a presentation of inspector data. Editing “open” to “verified” in
-the generated table cannot change the theorem's actual verification status;
-the next inspection regenerates the page from authoritative records.
+Editing this generated table cannot change verification state. The next render
+preparation regenerates it from current protected goals and workspace
+snapshots.
 
 ## Agent-workspace observability
 
-A long-running development may have many noncanonical QMD files under the
-shared mathematical workspace. Rendering can expose that workspace separately
-from the canonical project. Top-level `progress.qmd` summarizes the overall
-frontier, while subject directories may contain local `progress.qmd` files. For
-example, a progress page may contain:
+A long development may contain many semantic QMD files under one goal
+workspace. Rendering can expose that workspace separately from user notes.
+The top-level `progress.qmd` remains the human/agent summary; subject
+directories may add local progress pages.
+
+For example:
 
 ```markdown
 ---
@@ -141,90 +139,138 @@ title: "Workspace: uniform index theorem"
 
 ## Current frontier
 
-- @lem-finite-stratification: verified and promoted
-- @lem-local-exponent-bound: candidate under verification
-- @lem-completion-preserves-index: open workspace dependency
+- @lem-finite-stratification: workspace-verified
+- @lem-local-exponent-bound: candidate
+- @lem-completion-preserves-index: open
 
 ## Active route
 
 @thm-main-uniform-index depends on @lem-finite-stratification and
-@lem-local-exponent-bound. The latter is currently blocked on
+@lem-local-exponent-bound. The latter is blocked on
 @lem-completion-preserves-index.
 
 ## Abandoned route
 
-The uniform-generator approach is retained in
-`local-theory/local-class-groups.qmd` as a proof beginning with `REJECTED`.
+The uniform-generator route is retained in
+local-theory/local-class-groups.qmd as a proof beginning with REJECTED.
 ```
 
-This view describes the agent's working dependency graph; it does not publish
-workspace claims as accepted project theorems. A project may render the page in
-a separate preview or include a generated summary in its ordinary Quarto site.
+This page describes working mathematics and current evidence. It does not
+assert that the workspace has become part of the user's notes.
+
+**Current frontier.**
+
+A generated frontier view should be derived from the current aggregate graph,
+not copied from an old progress note. It reports the lowest unresolved
+dependencies of a selected goal and gives a path from the goal to each
+obligation.
+
+The hand-written `progress.qmd` and generated frontier have complementary
+roles. The former records strategy, explanations, and abandoned approaches;
+the latter records mechanically current graph state. Inspection never
+overwrites the former.
+
+**Active route.**
+
+Active-route presentation can group facts by subject file, dependency depth,
+or proof phase. It should display enough source provenance to distinguish:
+
+- the protected main-goal overlay;
+- intermediate declarations in the same workspace;
+- context nodes outside a selected path but inside the workspace; and
+- unresolved or forbidden references.
+
+It must not display another workspace's fact as an available premise merely
+because that node exists in the aggregate project graph.
+
+**Abandoned route.**
+
+Rejected or inactive attempts can be rendered for research history, but they
+must remain visibly non-authoritative. A generated view may link to the
+`REJECTED` proof and its verifier repair hints. It must not use a rejected fact
+as a premise or count it as proof progress.
+
+Legacy `VERIFIED` or `REVOKED` markers in old user files may be shown as legacy
+warnings, not as current workspace status.
 
 ## Dependency navigation
 
-Semantic `@` references should become ordinary navigable theorem references in
-the rendered document wherever Quarto supports them. Dependency summaries may
-link back to the corresponding theorem blocks.
+Semantic `@id` references inside workspace mathematics should become navigable
+theorem references where Quarto supports them. Generated dependency summaries
+may link to rendered workspace declaration locations and protected main-goal
+notes.
 
-A generated graph is an optional view of the inspector's dependency data, not
-an alternative semantic source. Nodes should identify the result and its
-status; edges should reflect declared proof dependencies. The graph should link
-to rendered theorem locations when the output format permits.
+The aggregate graph is an optional view, not an alternative semantic source.
+Each node should identify ID, kind, status, workspace or main-goal origin,
+source location, and selected/context scope when relevant. Edges must reflect
+actual local proof dependencies. Forbidden cross-workspace edges are
+diagnostics, not published graph edges.
 
 ### Example graph inclusion
 
-If an observability step produces `generated/dependencies.svg`, a QMD page can
-include it normally:
+If render preparation produces
+`.qmd-prover/generated/dependencies.svg`, a QMD page can include it normally:
 
 ```markdown
-![Proof dependency graph](generated/dependencies.svg){fig-alt="A directed graph from main theorems to the lemmas and definitions they use."}
+![Proof dependency graph](.qmd-prover/generated/dependencies.svg){fig-alt="A directed graph from protected goals to local workspace lemmas and definitions."}
 ```
 
-The SVG is derived from the inspector's graph. Quarto decides how the image is
-embedded in HTML or converted for another output format.
+The SVG is derived from a named schema-v3 snapshot. Quarto decides how it is
+embedded or converted.
 
 ## Separation of concerns
 
 The rendering boundary is:
 
 ```text
-QMD mathematics --------------------------+
-                                          |
-inspector data -> optional QMD/filter data +-> quarto render -> HTML/PDF/etc.
+user-note QMD -----------------------------------+
+                                                  |
+workspace QMD -> inspector -> generated QMD/data +-> quarto render
+                                                  |
+future paper selection --------------------------+
 ```
 
-The inspector computes facts. The proving utilities change canonical proofs
-only after acceptance. Optional integration prepares those facts for Quarto.
-Quarto chooses themes, layout, output formats, navigation, and final files.
+The compiler and inspector compute facts. Workspace verification changes only
+cache and snapshot state. Optional integration prepares views. Quarto chooses
+themes, layout, formats, navigation, and final files.
+
+Future paper tooling may select workspace-verified declarations and proofs,
+arrange them for exposition, and generate a separate paper artifact. That is a
+new publication workflow, not permission for inspection to rewrite user notes.
 
 ## Generated material
 
-Generated observability files should be visibly derived and kept separate from
-user-authored mathematics. They must not:
+Generated observability files are derived and kept separate from user-authored
+notes and workspace mathematics. They must not:
 
 - become the authoritative copy of a theorem or proof;
-- require users to edit generated status by hand;
-- embed verification metadata inside mathematical proof prose, other than
-  reserved `OPEN`, `REJECTED`, `VERIFIED`, or `REVOKED` control markers; or
-- make canonical QMD unusable when the generated files are absent.
+- require users to edit generated status manually;
+- embed verifier metadata into proof prose;
+- copy workspace proofs into protected user-note files;
+- treat legacy markers as current verification; or
+- make the underlying project unusable when generated files are absent.
 
-Deleting generated rendering inputs must not lose mathematics or verification
-records. They should be reproducible by rerunning inspection before
-`quarto render`.
+Deleting generated rendering inputs must not lose mathematics, exact verifier
+records, workspace snapshots, or protected goals. They are reproducible from
+the project and workspace state.
 
 ## Formats and graceful degradation
 
-Observability should follow Quarto's output capabilities. HTML may support
-interactive navigation or hover details, while PDF may use a static graph and
-plain dependency list. The underlying theorem text and proof must remain
-readable in every supported format.
+HTML may support interactive graph navigation, filters, or hover details. PDF
+may use a static graph and plain dependency list. The protected theorem and
+workspace proof text must remain readable in every chosen format.
 
-The design should not make correctness depend on a successful render. Rendering
-is how users observe and publish the project; inspection and verification
-remain valid independently of presentation.
+The design must not make correctness depend on rendering. A failed Quarto
+build does not invalidate an exact verifier decision; a successful attractive
+render does not establish mathematical correctness.
 
 ### Example render commands
+
+Prepare qmd-prover observability inputs:
+
+```bash
+node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" render
+```
 
 Render every configured format:
 
@@ -232,12 +278,8 @@ Render every configured format:
 quarto render
 ```
 
-Render only the main page as HTML while editing:
+Render only the generated status page as HTML while editing:
 
 ```bash
-quarto render main.qmd --to html
+quarto render .qmd-prover/generated/proof-status.qmd --to html
 ```
-
-For an HTML website, theorem links and graph navigation may be interactive. For
-PDF output, the same project may show a static dependency image followed by a
-plain list of dependencies. Both outputs present the same canonical proof.

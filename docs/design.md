@@ -10,33 +10,36 @@ candidates, and makes proof progress observable through ordinary Quarto
 rendering.
 
 A user asks Codex, Claude Code, or another compatible coding agent to use the
-skill. The host agent follows the discipline, calls the supplied Node tools,
-and edits the QMD project on the user's behalf.
+skill. The host follows project policy, writes mathematical workspace QMD, reads structured
+diagnostics and verifier reports, and explains results in natural language.
 
-`AGENTS.md` supplies the writing discipline, not its enforcement. The inspector
-checks the semantic representation and turns it into dependency, status,
-frontier, and progress information; the other utilities make long-running
-development and safe acceptance smoother for the agent.
+`AGENTS.md` supplies the agent-facing contract; it does not establish
+compliance by itself. The compiler and inspector turn Pandoc JSON into facts,
+graphs, diagnostics, frontiers, and current verification state. The external
+verifier supplies an independent mathematical judgment.
 
-Canonical mathematics remains ordinary, human-readable QMD, and Quarto remains
-the renderer.
+The design is workspace-centric. User QMD remains notes and protected
+main-goal storage. All complete agent-created definitions, intermediate
+results, and proofs remain under `.qmd-prover/workspaces/`, including after
+verification. qmd-prover no longer promotes proof text or status markers into
+user QMD.
 
 ## Components
 
-The maintainable TypeScript runtime and its dependency boundaries are
-documented separately in [Runtime architecture](architecture.md).
+The maintainable TypeScript runtime and dependency direction are documented in
+[Runtime architecture](architecture.md).
 
 The project has four components:
 
 1. [Discipline](design-discipline.md) defines the rules for mathematical QMD
-   and for agents working on it.
-2. [Inspector](design-inspector.md) checks individual facts, paths, and
-   workspaces; combines programmatic reference checks with an independent AI
-   sufficiency check; and supports dependency analysis, search, and staleness
-   invalidation.
-3. [Proving utilities](design-proving.md) prepare candidates and own protected
-   verification records, marker updates, promotion, and atomic canonical
-   writes.
+   and for agents working on it, including the user-note/main-goal boundary,
+   workspace semantic QMD, global identity, external basis, and agent conduct.
+2. [Inspector](design-inspector.md) builds the project index, checks facts,
+   paths, workspaces, and the project, invokes independent verification, and
+   exposes aggregate dependency analysis and read-only staleness.
+3. [Proving utilities](design-proving.md) protect the goal context, order local
+   dependencies, create bounded verifier packets, retain exact accepted and
+   rejected decisions, and publish workspace evidence safely.
 4. [Rendering](design-rendering.md) uses Quarto to present the QMD project and
    any generated observability material.
 
@@ -53,17 +56,19 @@ user
   v
 Codex / Claude Code                                (outside qmd-prover)
   |
-  | loads the skill and responds to natural-language requests
+  | loads skill and project policy
   v
 +-------------------------------------------------------+
 | qmd-prover skill                                      |
 |                                                       |
-| discipline + inspector + agent workspaces             |
-|                  |              |                     |
+| discipline                                            |
+|  + inspector (contract checker + independent verifier)|
+|  + agent workspaces                                   |
+|                  |                                    |
 |                  +------> proving utilities           |
-|                                 | accepted work only   |
+|                                 | accepted work only  |
 |                                 v                     |
-|                         canonical QMD project          |
+|                         canonical QMD project         |
 +-------------------------------------------------------+
                                   |
                                   v
@@ -71,74 +76,92 @@ Codex / Claude Code                                (outside qmd-prover)
 ```
 
 Codex or Claude Code is not a qmd-prover component. It decides how to reason,
-how long to continue, and whether to use host-provided sub-agents. Quarto is
-also not implemented by qmd-prover; it consumes the resulting QMD project.
+how long to continue, and whether to use host-provided sub-agents. Every such
+agent must load the skill and project contract for itself.
+
+Quarto is also outside qmd-prover. It renders user notes, optional workspace
+previews, and generated observability inputs. A successful render does not
+establish proof correctness.
+
+The independent verifier is an external boundary process. qmd-prover owns the
+packet contract, cache identity, freshness checks, and interpretation of the
+structured result, not the verifier's implementation.
 
 ## Mathematical project model
 
-A qmd-prover project separates the canonical project workspace from one or
-more agent workspaces.
+A managed project has three different kinds of mathematical material:
 
-The **canonical project workspace** contains the user-given statements and the
-mathematics that has passed the project's acceptance rules. It is the ordinary
-Quarto project that the user opens and renders. The agent reads it as its source
-of truth and does not use it as a scratch directory.
+1. **User notes** are QMD outside `.qmd-prover/`. They may contain arbitrary
+   prose, theorem-like blocks, informal proofs, metadata, equations, figures,
+   and bibliography. qmd-prover does not impose its full schema on them.
+2. **Protected main goals** are the `thm-main-* .theorem .goal` blocks inside
+   user notes. Their IDs, captions, classes, hypotheses, quantifiers, and
+   statements are locked.
+3. **Goal-workspace mathematics** is complete semantic QMD under
+   `.qmd-prover/workspaces/<thm-main-ID>/`. It contains agent-created
+   definitions, intermediate results, linked proofs, and the proof overlay for
+   that workspace's protected main goal.
 
-An **agent workspace** is a persistent mathematical area for proof development.
-It may serve one goal or a related family of goals. If the agent works on a
-difficult theorem for a long time, it may introduce many tentative definitions,
-reductions, intermediate theorems, examples, counterexamples, partial proofs,
-and repair notes. Those files belong in the agent workspace until the relevant
-mathematics is independently verified and accepted into the canonical project.
+The separation is about ownership and verification scope, not authorship.
+User-note text can be written by a person or an agent at the user's request,
+but qmd-prover treats it as notes unless it is a protected main goal.
+Workspace QMD receives the complete machine-enforced contract.
 
-The separation is about authority, not about whether a file was physically
-written by a person or a model:
+Verified workspace mathematics is persistent project state. It remains
+available for later inspection, dependency analysis, resuming proof work, and
+future paper tooling. It is not copied into user notes and does not acquire a
+`VERIFIED` source marker.
 
-- canonical QMD is accepted project mathematics;
-- workspace QMD is agent-generated working mathematics; and
-- generated indexes and reports describe one of those spaces but are not
-  mathematics themselves.
+Derived state under `.qmd-prover/` includes:
 
-In concrete terms, the canonical project workspace contains the QMD documents
-with the project's definitions, statements, accepted proofs, exposition,
-citations, and references, together with `AGENTS.md`, which defines the rules
-agents must follow in that project. qmd-prover stores each agent workspace and
-its supporting data inside the hidden `.qmd-prover/` directory. This directory
-contains tentative mathematics, protected workspace state, semantic indexes,
-dependency data, verification records, and generated inspection files; none of
-these are canonical project mathematics. Generated indexes and rendered output
-must be reproducible from the canonical QMD, retained agent workspaces, and
-verification records.
+- statement locks for protected main goals;
+- workspace metadata and target snapshots;
+- exact accepted and rejected verifier records;
+- workspace manifests, graphs, and immutable snapshots;
+- aggregate project manifest, graph, diagnostics, and snapshots; and
+- generated Quarto observability inputs.
+
+Old project-level verification records and old `VERIFIED` or `REVOKED` markers
+may still exist. They are legacy read-only state: inspection warns about them
+but neither migrates nor deletes them.
 
 ### Example: one theorem after prolonged work
 
-Suppose the canonical project gives the agent one open theorem,
-`@thm-main-uniform-index`:
+Suppose a user note contains `@thm-main-uniform-index`:
 
 ```text
-uniform-index-project/                     # canonical project workspace
+uniform-index-project/
 ├── AGENTS.md
 ├── _quarto.yml
 ├── index.qmd
 ├── notation.qmd
 ├── background.qmd
-├── uniform-index.qmd                      # contains @thm-main-uniform-index
+├── uniform-index.qmd                      # protected main goal, no managed proof
 └── .qmd-prover/
-    ├── manifest.json
-    ├── graph.json
-    ├── verification/                       # accepted canonical records
+    ├── .external.qmd                      # optional external-basis policy
+    ├── statement-locks.json
+    ├── manifest.json                      # aggregate schema-v3 manifest
+    ├── graph.json                         # aggregate all-workspace graph
+    ├── diagnostics.json
+    ├── graphs/
+    │   ├── latest.json
+    │   └── <snapshot>.json
+    ├── generated/
+    │   ├── proof-status.qmd
+    │   └── dependencies.svg
     └── workspaces/
-        └── thm-main-uniform-index/          # noncanonical goal workspace
-            ├── workspace.json              # target, base hashes, and status
+        └── thm-main-uniform-index/
+            ├── workspace.json             # target and protected identity
+            ├── target.qmd                 # initialization snapshot, inactive
+            ├── progress.qmd               # maintained route and frontier
+            ├── manifest.json
+            ├── graph.json
+            ├── latest.json
+            ├── snapshots/
+            │   └── <snapshot>.json
             ├── verification/
-            │   ├── lem-local-exponent-bound.json
-            │   └── thm-main-uniform-index.json
-            ├── target.qmd                   # protected snapshot of the goal
-            ├── graph.json                   # workspace dependency graph
-            ├── progress.qmd                 # overall route and proved frontier
-            ├── context/
-            │   ├── imported-results.qmd     # bounded canonical context
-            │   └── external-results.qmd     # precisely recorded literature
+            │   ├── checks/
+            │   └── failures/
             ├── reductions/
             │   ├── reduce-to-strata.qmd
             │   ├── generic-fiber.qmd
@@ -154,446 +177,471 @@ uniform-index-project/                     # canonical project workspace
             ├── examples/
             │   ├── quotient-singularities.qmd
             │   └── possible-counterexamples.qmd
-            └── main-proof.qmd
+            └── main-proof.qmd              # proof overlay only
 ```
 
-This is an illustrative workspace, not a required list of subject directories.
-Each `workspaces/<thm-main-ID>/` directory contains ordinary working QMD plus
-the protected target, base identities, graph, and workspace verification
-records for that goal. Project-level `.qmd-prover/verification/` records
-accepted canonical mathematics, while the goal-local verification directory
-retains checks of provisional work.
+This is an illustrative workspace, not a required directory taxonomy. A short
+proof may use one subject file plus `main-proof.qmd`. A large proof may grow
+into a substantial development.
 
-A short proof may need only the protected target snapshot, a top-level
-`progress.qmd`, and one mathematical working file. A long proof may grow into a
-substantial mathematical development. Top-level `progress.qmd` records the
-overall frontier; a subject directory may carry its own `progress.qmd` when a
-local frontier is useful. Attempts, abandoned routes, and submission candidates
-remain ordinary mathematical QMD; they do not require dedicated file types or
-directories. Verification records are the only proof-development artifacts
-with a dedicated non-QMD format.
+`workspace.json` and `target.qmd` protect the starting goal. Active semantic
+discovery excludes `target.qmd` and `progress.qmd`. The former is state, not a
+second declaration; the latter is strategic prose maintained by the agent or
+user and is never overwritten by inspection.
 
-The agent may group several closely related claims, partial proofs, rejected
-proofs, and explanatory prose in one QMD file or split a large line of argument
-across many files. It should follow the structure already present in the
-workspace rather than creating one file for every transient thought.
+The subject files contain ordinary semantic QMD. A declaration normally stays
+beside its linked proof. Attempts and counterexamples need no special file type.
+`OPEN` and `REJECTED` distinguish incomplete and inactive proof blocks.
 
 ### Workspace dependency model
 
-The inspector treats the agent workspace as a provisional mathematical
-project. Its graph may contain:
+The inspector treats each goal workspace as an isolated mathematical project.
+Its graph may contain:
 
-- verified results imported from the canonical project;
-- new workspace results that have been proved and independently checked;
-- conjectural intermediate results still awaiting proof;
-- alternative approaches to the same subgoal; and
-- a candidate proof of the original main theorem.
+- current workspace-verified definitions and results;
+- candidates that are mechanically ready but await verification;
+- open dependencies with incomplete proofs;
+- retained rejected attempts;
+- unresolved references needed to explain a failure; and
+- the protected main-goal overlay.
 
-For example, the workspace may discover the following chain:
+For example:
 
 ```text
 @thm-main-uniform-index
   -> @lem-finite-stratification
   -> @lem-local-exponent-bound
   -> @lem-completion-preserves-index
-  -> @thm-canonical-local-class-group-finite
+  -> @def-local-class-group
 ```
 
-The agent can work backward from an unproved dependency, replace a failed
-intermediate claim, or preserve a dead end without disturbing canonical QMD.
-The workspace graph makes the current proof frontier explicit after many
-sessions.
+Every edge stays inside the same goal workspace. A dependency in another
+workspace is not imported automatically, even if it has the same subject and a
+workspace-verified status. The agent must adopt and prove the needed claim in
+the current workspace, or state a permitted outside theorem in the external
+basis without creating a cross-workspace `@id` edge.
 
-### Promotion into the canonical project
+Cross-file scope within the workspace remains explicit. The producer exports
+the exact ID, the consumer imports it from a relative path, and the
+construction or proof cites the ID at its point of use.
 
-Workspace files are not automatically part of the user's Quarto project. A
-workspace result crosses the boundary only through the proving utilities:
+The aggregate project graph merges the isolated workspace graphs by globally
+unique node ID. It records workspace and goal provenance but omits forbidden
+cross-scope edges.
 
-1. Select one complete new result or one proof candidate from the workspace.
-2. Check it against the discipline and the dependencies cited in its proof.
-3. Verify it independently.
-4. Reject it without changing canonical QMD, or accept it atomically.
-5. Place an accepted new lemma in the canonical project according to project
-   policy, or apply an accepted proof to its existing canonical theorem.
-6. Reinspect both spaces so the workspace can depend on the newly accepted
-   canonical result.
+### Retention instead of canonical promotion
 
-Not every workspace theorem needs promotion. Auxiliary experiments, abandoned
-claims, and lemmas that are eventually inlined may remain in the workspace.
-Every dependency cited by the final canonical proof, however, must also be
-available in the canonical project and have the required verification status.
+The earlier design promoted accepted proofs and new results into a canonical
+QMD project. That model caused user notes to serve simultaneously as notes,
+proof database, and machine status store. It also made inspection depend on
+marker writes and canonical destination selection.
 
-The files have different ownership:
+The v14 model removes that boundary crossing:
 
-- `AGENTS.md` is project-owned policy. It contains the unchanged managed
-  qmd-prover contract plus optional local rules.
-- QMD files outside `.qmd-prover/` are canonical mathematics and exposition.
-- `_quarto.yml` is the project's normal Quarto configuration.
-- `.qmd-prover/workspaces/<thm-main-ID>/` contains persistent but noncanonical
-  mathematical work and state for one protected main goal.
-- Project verification JSON records accepted canonical results; workspace
-  verification JSON retains accepted and rejected checks of provisional work.
-- Other `.qmd-prover/` files contain derived indexes and caches.
+1. The user statement remains in its note.
+2. The agent creates complete mathematics in the goal workspace.
+3. The inspector verifies a selected dependency closure or complete workspace.
+4. Exact accepted and rejected decisions are cached.
+5. Current accepted facts remain `workspace-verified` in workspace snapshots.
+6. The aggregate project graph exposes those facts for search, dependency
+   analysis, progress reporting, and future paper selection.
+
+`submit proof` and `verification revoke` remain parseable only for compatibility
+and return structured `retired` results without modifying any file.
+
+This does not make verification weaker. Statement locks, dependency state,
+external basis, checker contract, source freshness, rejection safety, and
+atomic writes are still checked. The safest canonical write is now no proof
+write at all.
+
+The files therefore have distinct ownership:
+
+- `AGENTS.md` is project-owned policy with one managed block and optional local
+  additions.
+- QMD outside `.qmd-prover/` is user-owned notes and protected goals.
+- `_quarto.yml` is ordinary project configuration.
+- goal workspaces are persistent mathematical developments and evidence.
+- workspace and project JSON snapshots are derived machine state.
+- generated QMD and SVG files are disposable observability inputs.
 
 ## Semantic QMD and inspection
 
-The inspector parses ordinary canonical and workspace QMD through Pandoc JSON.
-It recognizes definitions, lemmas, theorems, their linked proofs, semantic
-imports and exports, and the reserved `OPEN`, `REJECTED`, `VERIFIED`, and
-`REVOKED` markers. All other Quarto content remains ordinary document content.
+The compiler has explicit modes.
 
-A semantic `@` reference inside a definition construction or linked proof is a
-logical dependency. The inspector first checks by program that the referenced
-fact exists, is unique, is available through local scope or an explicit import,
-and has usable status. It then calls the configured external verifier in an independent bounded
-context to judge whether the referenced facts are sufficient for that exact
-construction or proof. A reference in ordinary exposition is navigational, and
-a bibliographic citation is not a theorem dependency.
+`project-goals` parses user QMD through Pandoc JSON but retains only protected
+main goals. Other theorem-like content, note imports, and proof-like prose do
+not produce semantic diagnostics.
 
-For example, the proof below has direct dependencies on both referenced facts:
+`workspace` applies the complete declaration/proof/import/export/ID contract to
+active workspace QMD. A linked proof may target the workspace's own main goal
+through its protected overlay. Every other fact must be an explicit local
+declaration.
+
+Within workspace semantic QMD, an `@id` citation in a definition construction
+or linked proof is a dependency. The inspector first checks existence, global
+uniqueness, local ownership, import scope, dependency status, and cycles. It
+then sends the exact candidate and current local dependency evidence to the
+independent verifier.
+
+### Complete workspace QMD example
+
+The following is a complete active workspace file, not merely an isolated
+block. Suppose it is stored as
+`.qmd-prover/workspaces/thm-main-even-square/parity-results.qmd`, next to a
+producer file named `foundations.qmd`:
 
 ```markdown
-::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12" export="lem-square-of-double"}
-If \(n=2k\) for integers \(n,k\), then \(n^2=4k^2\).
-:::
-
-::: {.proof of="lem-square-of-double"}
-Using @def-even-integer and @lem-product-calculation, calculate
-\(n^2=(2k)^2=4k^2\).
-:::
-```
-
-Cross-file availability remains explicit and individual:
-
-```yaml
+---
+title: "Parity results"
 qmd-prover:
   imports:
     - from: foundations.qmd
       use:
         - def-even-integer
-        - lem-product-calculation
+---
+
+This file develops the local parity facts needed by the protected main goal.
+
+::: {#lem-square-of-even .lemma name="Square of an even integer" date="2026-07-14" export="lem-square-of-even"}
+For every even integer \(n\), there is an integer \(k\) such that
+\(n^2=4k^2\).
+:::
+
+::: {.proof of="lem-square-of-even"}
+By @def-even-integer, write \(n=2k\) for an integer \(k\). Squaring gives
+\(n^2=(2k)^2=4k^2\).
+:::
+
+::: {#cor-even-square-divisible-by-four .corollary name="Even squares are divisible by four" date="2026-07-14" export="cor-even-square-divisible-by-four"}
+For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
+:::
+
+::: {.proof of="cor-even-square-divisible-by-four"}
+By @lem-square-of-even, write \(n^2=4k^2\) for an integer \(k\). Therefore
+\(4\mid n^2\).
+:::
 ```
 
-The producer sets `export` to its exact semantic ID, and `from` is resolved
-relative to the importing QMD file. Wildcard imports are not supported. An
-`@id` citation alone does not grant cross-file scope: imports determine
-availability, while semantic references determine the dependency edges
-actually used.
+This one file demonstrates the complete workspace format:
+
+- the YAML front matter imports one exact exported ID from a path relative to
+  this consumer file;
+- each declaration has one globally unique ID, exactly one semantic class, a
+  human-readable `name`, an ISO introduction `date`, and a nonempty body;
+- each non-definition declaration has one separate, nonempty `.proof` linked
+  by `of` and carrying no ID;
+- `@def-even-integer` is a cross-file dependency made available by the import;
+- `@lem-square-of-even` is a same-file dependency and needs no import; and
+- each `export` value is identical to the declaration's semantic ID, allowing
+  another file in this workspace to import it explicitly.
+
+The protected theorem itself is not repeated in the workspace. Its complete
+`main-proof.qmd` overlay can import the corollary from the file above:
+
+```markdown
+---
+qmd-prover:
+  imports:
+    - from: parity-results.qmd
+      use:
+        - cor-even-square-divisible-by-four
+---
+
+::: {.proof of="thm-main-even-square"}
+The conclusion is exactly @cor-even-square-divisible-by-four.
+:::
+```
+
+Here `thm-main-even-square` is resolved only through this workspace's protected
+main-goal snapshot. The proof block is an overlay, not a second theorem
+declaration. Neither inspection nor successful verification copies this proof
+into the user-owned QMD file.
 
 ### Inspection scopes
 
-The inspector supports four related scopes:
+The public scopes are:
 
-- one theorem, lemma, or definition;
-- every fact in one file or recursively discovered folder;
-- every mathematical QMD file in a workspace; and
-- graph analysis and search over the latest complete snapshot.
+- `inspect fact @ID` for one auto-located fact and its transitive local
+  dependencies;
+- `inspect path PATH` for selected workspace facts or protected goals in a user
+  path;
+- `inspect workspace @thm-main-ID` for one complete initialized workspace;
+- `inspect project` for all notes, goals, workspaces, full workspace results,
+  and aggregate graph; and
+- `dependency ...` for analysis and search over the current aggregate
+  schema-v3 snapshot.
 
-Each broader scope runs the same fact-level programmatic and AI checks. Stable
-JSON is the default output. `--print` selects a human-readable report containing
-statuses, diagnostics, dependency paths, frontiers, and relevant graph edges;
-it does not change the check result.
+`workspace inspect` is a compatibility alias. No inspect command initializes a
+workspace. An ordinary user-note path returns no facts rather than being
+diagnosed under the workspace contract.
+
+One malformed workspace does not hide healthy workspace results in project
+inspection. The top-level project result is still unsuccessful until every
+main goal has a current initialized workspace and all full workspace checks
+pass.
 
 ### Verification status
 
-`OPEN` is a conservative workflow marker. `REJECTED`, `VERIFIED`, and
-`REVOKED` require matching records and are excluded from the mathematical
-identity checked by AI. Theorem-like markers start the linked proof; definition
-markers end the definition block.
+Workspace status is evidence associated with an exact snapshot:
 
-- `open`: a required proof or construction is absent or begins with `OPEN`;
-- `candidate`: complete unmarked mathematics awaits checking;
-- `rejected`: the retained attempt has a matching rejection report;
-- `verified`: `VERIFIED` matches the exact statement or construction, proof,
-  dependency snapshot, and accepted record; and
-- `revoked`: `REVOKED` matches a prior acceptance and a revocation record with
-  a concrete reason.
+- `workspace-open`: a required proof is absent or begins with `OPEN`;
+- `workspace-candidate`: complete unmarked mathematics awaits checking;
+- `workspace-rejected`: an exact verifier decision rejected the candidate, or
+  the active proof begins with `REJECTED`;
+- `workspace-verified`: the exact current candidate has an accepted verifier
+  record in its workspace context; and
+- unavailable or stale state: mechanical, source, protected-context, or cache
+  checks prevent use.
 
-The inspector may cause `VERIFIED` to be added only after every reference check
-passes, the independent AI check reports no critical errors or gaps, the exact
-cache and record are stored, and post-write inspection confirms the result. A
-missing, corrupt, stale, or nonmatching record makes a record-backed marker
-unusable.
+`workspace-verified` is informal verifier evidence, not formal proof and not
+human review. It is never inferred from the agent's confidence and never
+written as a source marker.
+
+`VERIFIED` and `REVOKED` remain recognized only so old projects can be reported
+without destructive migration.
 
 ### Dependency analysis and search
 
-An edge points from a definition or result to the fact cited by its construction
-or proof. From the graph, the inspector provides direct and transitive
-dependencies, reverse dependencies, paths, cycles, impact analysis, and proof
-frontiers. The frontier of a selected theorem contains its lowest unresolved
-claims, rather than every unverified node in its closure.
+An edge points from a workspace definition or result to a local fact cited by
+its construction or proof. From the aggregate graph, qmd-prover provides:
 
-Search can match semantic ID, title, mathematical text, kind, file or folder,
-status, and canonical or workspace origin. Graph-aware search can restrict
-results to dependencies, reverse dependencies, frontier nodes, stale facts, or
-cycle members.
+- direct and transitive dependencies;
+- reverse dependencies and impact;
+- shortest and alternative paths;
+- complete cycle paths;
+- proof frontiers;
+- unused imports and exports;
+- isolated and unreachable facts;
+- candidates ready for AI;
+- heavily reused facts; and
+- text and graph-aware search.
+
+Queries without a target cover every initialized workspace. Search can filter
+by ID, title, text, kind, status, source path, origin, graph relationship,
+frontier membership, stale impact, directness, or cycle participation.
+
+Every ID is globally unique. A duplicate across project scopes stops all
+inspect and dependency operations before verifier invocation and leaves the
+previous aggregate snapshot untouched. A duplicate confined to one workspace
+blocks that workspace without suppressing healthy workspace results.
 
 ### Staleness and transitive invalidation
 
-Successful inspection caches the exact statement or definition construction,
-proof, referenced fact identities, scope, dependency snapshot, AI check, and
-verification record. Before relying on `VERIFIED`, the inspector reparses the
-requested scope and compares the current mathematics with that cache.
+Exact workspace decisions include statement or construction, proof, dependency
+identities and states, import scope, external basis, checker contract, and
+protocol. Workspace snapshots add a source signature covering active workspace
+QMD, protected goal identity, external basis, and checker contract.
 
-If a checked fact changed, qmd-prover removes its `VERIFIED` marker and marks
-its record stale. It then follows reverse-dependency edges and removes
-`VERIFIED` from every fact that directly or transitively relied on the changed
-fact. Upstream premises are not invalidated merely because a downstream fact
-changed. Marker removals, stale-record updates, and graph publication are one
-atomic operation and roll back together on failure.
+When a local dependency changes, its exact key changes. Dependents receive new
+keys through their dependency snapshots, so a subsequent inspection rechecks
+the affected reverse closure while reusing unaffected decisions. Narrow
+inspection merges current previous outcomes for unchanged facts so unrelated
+verified nodes are not downgraded.
 
-Staleness does not add `REVOKED`; explicit revocation requires a concrete
-recorded reason. The canonical mathematical-project `AGENTS.md` contract
-requires the stale check before using verified mathematics and forbids agents
-from manually adding or restoring `VERIFIED`.
+`check staleness` is now read-only. It scans protected goal snapshots,
+workspace sources, external basis, checker contract, caches, and legacy state,
+then reports changes and affected facts. It does not remove or add markers,
+rewrite user QMD, or overwrite progress notes.
 
 ## How agents use the infrastructure
 
-qmd-prover does not prescribe a proof loop. After loading the skill and project
-contract, the host agent follows the user's natural-language direction. The
-user may provide one theorem, many related goals, an existing development, or
-an idea that the agent must first formulate precisely. The agent decides which
-definitions and intermediate results to introduce and how to organize them as
-the mathematics evolves.
+qmd-prover does not prescribe a proof loop. After preflight, the host follows
+the user's mathematical direction. The user may provide one theorem, many
+related goals, an existing development, or an informal idea.
 
-The infrastructure is available at any point to initialize or compare project
-policy, inspect semantic QMD, discover dependencies, search existing results,
-show unresolved frontiers, preserve long-running workspace mathematics, check
-staleness, verify a candidate, retain rejection feedback, promote accepted work
-atomically, or render progress. These capabilities inform and protect the
-agent's work; they do not choose its next mathematical step.
+The infrastructure is available to:
 
-For an existing protected main goal, workspace placement is mandatory rather
-than advisory: the host creates or resumes
-`.qmd-prover/workspaces/<thm-main-ID>/`, treats canonical QMD as read-only, and
-writes every tentative mathematical artifact for that goal inside the returned
-directory.
+- initialize or compare project policy;
+- create or resume an explicitly requested goal workspace;
+- inspect facts, paths, workspaces, or the whole project;
+- discover missing imports, cycles, and proof frontiers;
+- search retained workspace mathematics;
+- independently verify exact candidates;
+- retain rejection reports and repair hints;
+- audit current source and cache freshness;
+- query the aggregate all-workspace graph; and
+- prepare Quarto observability inputs.
 
-Only the safety gates have a required order: mechanical checks precede the
-inspector's independent AI check, and canonical acceptance follows both. The
-agent must also check staleness before relying on `VERIFIED` mathematics and
-must never bypass statement protection or the atomic acceptance path.
+Only the safety gates are mandatory. The agent keeps user statements unchanged,
+uses the goal workspace, follows unproved dependencies, responds to every
+verification gap, and never declares its own work verified.
+
+The external basis can evolve with the requested proof context, but the agent
+states the change and accepts that affected cache keys will miss.
 
 ## Installation and requirements
 
-The skill and runtime are self-contained under `skills/qmd-prover/`. The
-maintained runtime source is TypeScript under `src/`; `npm run build` emits the
-Node-compatible ESM dispatcher and modules under `scripts/`. Shared semantic
-contracts live in `src/lib/types.ts`, stable constants in `src/lib/constants.ts`,
-and generic collection and error helpers in their corresponding modules.
-Generated runtime code has no third-party Node dependencies. TypeScript,
-Node type declarations, and the test loader are development-only dependencies.
+The skill and runtime are self-contained under `skills/qmd-prover/`. TypeScript
+source under `src/` is authoritative; `npm run build` emits Node-compatible ESM
+under `scripts/`. The generated runtime has no third-party Node dependency.
 
-The expected environment provides:
+The environment provides:
 
 - Node.js 20 or later;
-- Pandoc on `PATH`, or `QMD_PROVER_PANDOC` pointing to a compatible executable;
-- Quarto when rendered output is wanted; and
-- an external verifier command for the inspector's independent AI verification stage;
+- Pandoc on `PATH`, or `QMD_PROVER_PANDOC`;
+- an external verifier command through `QMD_PROVER_VERIFIER` or project
+  configuration; and
+- Quarto only when rendered output is wanted.
 
-From a source checkout, install the skill with:
+From a source checkout:
 
 ```bash
 npm run install:skill
 ```
 
-This copies `skills/qmd-prover/` to
-`${CODEX_HOME:-~/.codex}/skills/qmd-prover`. The installed skill contains its
-instructions, canonical discipline reference, and Node utilities.
+This copies the complete installable skill to
+`${CODEX_HOME:-~/.codex}/skills/qmd-prover`.
 
 ## Starting a mathematical project
 
-After installing the skill, the user normally asks the host agent in natural
-language to initialize the current mathematical project. The agent creates a
-missing root `AGENTS.md` by copying the canonical managed block unchanged and
-may add requested local notation, writing, or organization rules outside it.
-An existing or divergent project policy is not overwritten without explicit
-approval.
+The user normally asks the host to initialize the current project. The host
+runs:
 
-The agent performs this setup with `init`. The command inventories
-existing policy, QMD, Quarto configuration, qmd-prover state, and the optional
-`.qmd-prover/.external.qmd` policy before writing. It reports but never creates
-that external-basis file.
-If it finds a partial or complete project without the contract, the agent
-summarizes that material and asks whether to adopt it, inspect it first, or
-leave it unchanged. The explicit `--adopt-existing`, `--append-contract`, and
-`--sync-contract` forms are used only after user approval.
+```bash
+node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" init
+```
 
-Successful setup ensures the visible `.qmd-prover/workspaces/` root exists;
-goal-specific directories are created when proof work begins.
+The command inventories policy, QMD, Quarto configuration, qmd-prover state,
+and external-basis mode before writing. It never creates `.external.qmd`.
 
-Initialization establishes the discipline and inspection infrastructure; it
-does not require the user to choose a theorem or learn tool commands. Later the
-user can supply semantic QMD, state one or more goals, or ask the agent to turn
-an idea into precise definitions and results.
+If a project already contains material or divergent policy, the host summarizes
+it and asks before using `--adopt-existing`, `--append-contract`, or
+`--sync-contract`. Successful setup ensures the workspace root exists but
+creates no main goal or goal-specific workspace.
+
+The user may later provide protected goals or ask the agent to formulate them.
+Goal workspaces are created only by explicit `workspace init`.
 
 ## Using qmd-prover through Codex or Claude Code
 
-Natural language is the normal interface. Once the skill is installed and the
-mathematical project is open, a user can ask:
+Natural language is the normal interface:
 
 ```text
 Initialize qmd-prover in this project.
 ```
 
 ```text
-Use qmd-prover to inspect this project and prove @thm-main-even-square.
-Preserve the statement, verify the candidate independently, and repair any
-concrete gaps before accepting it.
+Use qmd-prover to prove @thm-main-even-square. Keep the statement unchanged,
+develop every intermediate result in its workspace, and independently verify
+the complete dependency closure.
 ```
 
 ```text
-Develop this idea into a precise family of results, then prove as much as you
-can. Follow the project's qmd-prover block discipline throughout.
+Inspect @def-hilbert-calculus and explain exactly which local dependencies were
+checked.
 ```
-
-For project status and dependency analysis:
 
 ```text
-Use qmd-prover to inspect this workspace, print the dependency information, and
-show the proof frontier of @thm-main-even-square.
+Inspect the complete project, show malformed or missing workspaces, and print
+the aggregate proof frontier.
 ```
-
-For search:
 
 ```text
-Use qmd-prover to find unverified lemmas used transitively by
-@thm-main-even-square.
+Render the current proof-status and dependency views with Quarto.
 ```
 
-For presentation:
+The host loads `SKILL.md`, performs contract preflight, invokes the dispatcher,
+writes workspace QMD, and translates JSON into ordinary language.
 
-```text
-Render the Quarto project and show me the current proof progress.
-```
-
-The host agent loads `SKILL.md`, performs the contract preflight, invokes the
-Node utilities, interprets their JSON, writes mathematical workspace QMD, and
-explains the result in ordinary language. The user does not need to memorize
-script operations.
-
-The host may use its own sub-agent mechanism for parallel mathematical
-exploration when the user requests it. Those sub-agents belong to the host
-environment; qmd-prover does not maintain a worker runtime. Independent
-acceptance verification remains the inspector's independent external-verifier stage.
+Host-provided sub-agents belong to the host environment. qmd-prover does not
+maintain a worker runtime. Each independent agent must load the contract and
+external basis itself.
 
 ## Using the Node utilities directly
 
-A user or maintainer may invoke the same operations directly with Node. From
-the mathematical project root, let the installed skill path be:
+Let the installed dispatcher be:
 
 ```bash
-QMD_PROVER_ROOT="${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover"
+QMD_PROVER="${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js"
 ```
 
-Initialize the project contract:
+Initialize:
 
 ```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" init
+node "$QMD_PROVER" init
 ```
 
-Inspect the canonical project and print its dependency information:
+Inspect the complete project:
 
 ```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" inspect project --print
+node "$QMD_PROVER" inspect project --print
 ```
 
-Inspect one theorem, lemma, or definition:
+Inspect one auto-located fact:
 
 ```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  inspect fact @thm-main-even-square --print
+node "$QMD_PROVER" inspect fact @def-hilbert-calculus --print
 ```
 
-Inspect one file or folder:
+Inspect one workspace path or a user-note path:
 
 ```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  inspect path foundations/ --print
+node "$QMD_PROVER" inspect path .qmd-prover/workspaces/thm-main-even-square/foundations.qmd
+node "$QMD_PROVER" inspect path notes.qmd
 ```
 
-Inspect every mathematical file in the workspace:
+Inspect a complete goal workspace:
 
 ```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  workspace inspect --print
+node "$QMD_PROVER" inspect workspace @thm-main-even-square --print
 ```
 
-Find a proof frontier or search the dependency graph:
+Query the aggregate graph:
 
 ```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  dependency frontier @thm-main-even-square --print
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  dependency search "local exponent" --kind lemma --print
+node "$QMD_PROVER" dependency frontier @thm-main-even-square --print
+node "$QMD_PROVER" dependency search "local exponent" --kind lemma --print
+node "$QMD_PROVER" dependency cycles --print
 ```
 
-Check cached identities and invalidate stale verification transitively:
+Audit staleness without writing:
 
 ```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  check staleness --print
+node "$QMD_PROVER" check staleness --print
 ```
 
-Submit the selected candidate from workspace QMD:
+The old commands remain visible but retired:
 
 ```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  submit proof .qmd-prover/workspaces/thm-main-even-square/main-proof.qmd
+node "$QMD_PROVER" submit proof path/to/proposal.qmd
+node "$QMD_PROVER" verification revoke @thm-main-even-square --reason "reason"
 ```
 
-Read a stored verification report:
+Both return structured `retired` results and modify no file.
 
-```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  verification show SUBMISSION_ID
-```
-
-Revoke an accepted verification only with a concrete reason:
-
-```bash
-node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  verification revoke @thm-main-even-square --reason "The dependency was invalidated"
-```
-
-Revocation atomically replaces the proof's `VERIFIED` marker with `REVOKED`
-and publishes the matching revocation record with its concrete reason.
-
-These operations expose the skill's tool protocol; they are not a separately
-designed interactive CLI. Their JSON output is stable so a host agent can call
-them reliably. Structural diagnostics use a nonzero exit status.
-
-Submitting a candidate is intentionally stronger than copying its proof into a
-canonical QMD file: it checks structure and dependencies, invokes the
-independent verifier, rejects stale work, and performs the canonical update
-only after acceptance. "Proposal" names this submission action, not a distinct
-file type.
+These operations expose a stable tool protocol. Inspection/domain failures use
+JSON plus exit code 2. Syntax errors use exit code 1.
 
 ## Rendering with Quarto
 
-Render the mathematical project with its normal Quarto configuration:
+Prepare generated status and graph inputs:
+
+```bash
+node "$QMD_PROVER" render
+```
+
+Render the configured project normally:
 
 ```bash
 quarto render
 ```
 
-qmd-prover does not render an alternative site. The canonical theorem blocks,
-proofs, equations, and cross-references remain part of the QMD documents that
-Quarto reads.
+qmd-prover does not render an alternative website. User notes remain ordinary
+Quarto input. A project may also render workspace or generated pages to expose
+proof progress.
 
-When additional observability is desired, inspector data may be exposed as
-generated QMD, a dependency-graph asset, or data consumed by a Quarto
-extension. These are inputs to the same `quarto render` pipeline. HTML may
-provide richer navigation than PDF, but correctness and verification do not
-depend on rendering.
+Future paper tooling may consume selected workspace-verified mathematics and
+produce a separate paper artifact. That workflow does not turn inspection into
+a source-rewriting operation.
 
 ## Further design documents
 
 - [Discipline design](design-discipline.md) explains policy ownership,
-  categories of rules, and contract evolution.
-- [Inspector design](design-inspector.md) explains fact, path, and workspace
-  inspection; dependency analysis and search; and stale-marker invalidation.
-- [Proving utilities design](design-proving.md) explains candidate submission,
-  independent verification, rejection, stale checks, and atomic acceptance.
-- [Rendering design](design-rendering.md) explains how observability integrates
-  with the ordinary Quarto pipeline.
+  semantic regimes, rule categories, block types, and contract evolution.
+- [Inspector design](design-inspector.md) explains fact, path, workspace,
+  project, aggregate dependency, and read-only staleness operations.
+- [Proving utilities design](design-proving.md) explains candidate preflight,
+  bounded verification, exact caches, rejection, freshness, and workspace
+  acceptance.
+- [Rendering design](design-rendering.md) explains user-note rendering,
+  workspace observability, dependency navigation, and future paper boundaries.

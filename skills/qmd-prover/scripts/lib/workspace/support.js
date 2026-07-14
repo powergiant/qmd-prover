@@ -133,20 +133,32 @@ export async function workspaceSourceFingerprint(directory) {
         entries.push([relativePosix(directory, file), sha256(await readFile(file, 'utf8'))]);
     return sha256(stableJson(entries, 0));
 }
-export function canonicalContextFingerprint(compilation, target, available, externalBasis) {
+export function protectedGoalContextFingerprint(compilation, target, externalBasis) {
     const byId = new Map(compilation.manifest.results.map((result) => [result.id, result]));
-    const selected = [target, ...available].filter((value, index, values) => values.indexOf(value) === index).sort();
+    const result = byId.get(target);
     return sha256(stableJson({
         complete: compilation.complete,
-        facts: selected.map((id) => {
-            const result = byId.get(id);
-            return result ? {
-                id, statement_hash: result.statement_hash, proof_hash: result.proof_hash,
-                title_hash: result.title_hash, status: result.status, file: result.file
-            } : { id, status: 'missing' };
-        }),
+        target: result ? {
+            id: target, statement_hash: result.statement_hash, proof_hash: result.proof_hash,
+            title_hash: result.title_hash, status: result.status, file: result.file
+        } : { id: target, status: 'missing' },
         checker_contract: checkerContract(compilation.config),
         external_basis_hash: externalPolicyHash(externalBasis)
+    }, 0));
+}
+export function workspaceSnapshotSourceSignature(workspaceFingerprint, metadata, target, contextHash) {
+    return sha256(stableJson({
+        workspace_fingerprint: workspaceFingerprint,
+        protected_snapshot: metadata.canonical,
+        current_target: target ? {
+            id: target.id,
+            file: target.file,
+            statement_hash: target.statement_hash,
+            title_hash: target.title_hash,
+            proof_hash: target.proof_hash,
+            status: target.status
+        } : { id: metadata.target, status: 'missing' },
+        context_hash: contextHash
     }, 0));
 }
 export function verifierFailure(error, target, inherited = false) {

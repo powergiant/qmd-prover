@@ -130,9 +130,9 @@ export function printReport(input) {
             lines.push(`  ${file}: ${facts.map((item) => `@${item.id} [${item.kind}, ${item.status}]`).join(', ')}`);
         }
     }
-    if (result.manifest?.canonical_results?.length) {
-        lines.push('canonical facts used by workspace:');
-        for (const item of [...result.manifest.canonical_results].sort((left, right) => left.id.localeCompare(right.id))) {
+    if (result.manifest?.protected_goal_results?.length) {
+        lines.push('protected main-goal references rejected by workspace scope:');
+        for (const item of [...result.manifest.protected_goal_results].sort((left, right) => left.id.localeCompare(right.id))) {
             lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file}:${item.line ?? '?'}`);
         }
     }

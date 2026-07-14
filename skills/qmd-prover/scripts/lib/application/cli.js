@@ -157,7 +157,15 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
             emit(await inspectPath(root, tail[0], options), parsed.print);
             return;
         }
-        throw new Error('inspect requires project, fact, or path');
+        if (subcommand === 'workspace') {
+            if (tail.length !== 1)
+                throw new Error('inspect workspace requires one thm-main-* ID and optional --print');
+            const result = await inspectWorkspace(root, tail[0], options);
+            result.operation = 'inspect-workspace';
+            emit(result, parsed.print);
+            return;
+        }
+        throw new Error('inspect requires project, fact, path, or workspace');
     }
     if (command === 'dependency') {
         const parsed = presentation(rest);
@@ -231,8 +239,8 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
         const proposal = tail[0];
         const destination = destinationIndex >= 0 ? tail[destinationIndex + 1] : undefined;
         if (!proposal || (tail.length !== 1 && !(tail.length === 3 && destinationIndex === 1 && destination)))
-            throw new Error('submit proof requires one proposal QMD file and optional --to CANONICAL_QMD');
-        output(await submitProof(root, proposal, { ...options, destination }));
+            throw new Error('submit proof requires one proposal QMD file and optional --to QMD');
+        emit(await submitProof(root, proposal, { ...options, destination }), false);
         return;
     }
     if (command === 'workspace') {
@@ -261,7 +269,7 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
         if (subcommand === 'revoke' && value) {
             const index = tail.indexOf('--reason');
             const reason = index >= 0 ? tail[index + 1] : '';
-            output(await revokeVerification(root, cleanId(value), reason, options));
+            emit(await revokeVerification(root, cleanId(value), reason, options), false);
             return;
         }
         throw new Error('Invalid verification command');

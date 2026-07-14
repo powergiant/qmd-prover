@@ -81,7 +81,7 @@ export function deriveGraphFindings(snapshot: ProjectSnapshot, options: RuntimeO
   const unusedExports = (manifest.results ?? []).filter((result) => result.export && !importedExports.has(result.id) && selection.result(result))
     .sort((left, right) => left.id.localeCompare(right.id))
     .map((result) => ({ id: result.id, export: result.export, file: result.file, line: result.line }));
-  const mathematicalNodes = graph.nodes.filter((node) => node.origin !== undefined && ['canonical', 'workspace'].includes(node.origin));
+  const mathematicalNodes = graph.nodes.filter((node) => node.origin !== undefined && ['canonical', 'main-goal', 'workspace'].includes(node.origin));
   const isolatedFacts = mathematicalNodes.filter((node) => selection.node(node) && (outgoing.get(node.id)?.length ?? 0) === 0 && (incoming.get(node.id)?.length ?? 0) === 0)
     .sort((left, right) => left.id.localeCompare(right.id));
 
@@ -128,8 +128,8 @@ export function deriveGraphFindings(snapshot: ProjectSnapshot, options: RuntimeO
 
   return {
     definitions: {
-      isolated: 'A canonical or workspace fact with no incoming or outgoing semantic dependency edge.',
-      unreachable: 'A canonical or workspace fact outside the dependency closure of every protected main goal (or the selected workspace target).',
+      isolated: 'A protected main goal or workspace fact with no incoming or outgoing semantic dependency edge.',
+      unreachable: 'A protected main goal or workspace fact outside the dependency closure of every protected main goal (or the selected workspace target).',
       candidate_ready_for_ai: 'A candidate with no fact-level programmatic error and with every direct edge passing existence, scope, status, and cycle checks.',
       heavily_reused: 'A fact ranked by the number of distinct transitive reverse dependencies, then direct reverse dependencies.'
     },

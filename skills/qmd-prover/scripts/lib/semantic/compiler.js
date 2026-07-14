@@ -242,11 +242,25 @@ export async function compileProject(root = process.cwd(), options = {}) {
     const files = [];
     const allResults = [];
     const allProofs = [];
+    const semanticMode = options.semanticMode ?? 'full';
     for (const file of discovered) {
         try {
             const [ast, source] = await Promise.all([readAst(file.absolute, options), readFile(file.absolute, 'utf8')]);
-            const imports = importsFromMeta(ast, file.relative, diagnostics);
-            const entries = semanticDivs(ast);
+            const parsedEntries = semanticDivs(ast);
+            if (semanticMode === 'project-goals') {
+                for (const entry of parsedEntries.filter((item) => item.type === 'proof')) {
+                    const target = cleanId(String(entry.attribute.values.of ?? ''));
+                    if (!target.startsWith(config.goals['id-prefix']))
+                        continue;
+                    const content = proofContent(entry.blocks);
+                    if (content.marker === 'VERIFIED' || content.marker === 'REVOKED')
+                        diagnostics.push(diagnostic('warning', 'LEGACY_CANONICAL_VERIFICATION', `Linked proof of @${target} contains the legacy ${content.marker} marker; workspace inspection ignores it and never rewrites user notes`, file.relative, locateProof(source, target)?.startLine, target));
+                }
+            }
+            const entries = semanticMode === 'project-goals'
+                ? parsedEntries.filter((entry) => entry.type === 'result' && entry.attribute.id.startsWith(config.goals['id-prefix']))
+                : parsedEntries;
+            const imports = semanticMode === 'project-goals' ? [] : importsFromMeta(ast, file.relative, diagnostics);
             const results = [];
             const proofs = [];
             for (const entry of entries) {
@@ -479,15 +493,24 @@ export async function compileProject(root = process.cwd(), options = {}) {
             }
         }
     }
-    const verification = await readJson(path.join(root, AUX, 'verification', 'index.json'), {});
-    const evidence = await verificationEvidence(root, verification);
+    const verification = semanticMode !== 'full'
+        ? {}
+        : await readJson(path.join(root, AUX, 'verification', 'index.json'), {});
+    const evidence = semanticMode !== 'full' ? new Map() : await verificationEvidence(root, verification);
     const currentExternalBasisHash = externalPolicyHash(await readExternalPolicy(root));
     const currentCheckerContract = checkerContract(config);
-    for (const result of allResults)
-        result.status = verificationStatus(result, verification, evidence);
+    for (const result of allResults) {
+        if (semanticMode === 'project-goals') {
+            result.status = 'open';
+            if (result.marker && result.marker !== 'OPEN')
+                diagnostics.push(diagnostic('warning', 'LEGACY_CANONICAL_VERIFICATION', `${result.id} contains the legacy ${result.marker} marker; workspace inspection ignores it and never rewrites user notes`, result.file, result.proof_line ?? result.line, result.id));
+        }
+        else
+            result.status = verificationStatus(result, verification, evidence);
+    }
     const compiledFiles = new Map(files.map((file) => [file.path, file]));
     let statusChanged = true;
-    while (statusChanged) {
+    while (semanticMode === 'full' && statusChanged) {
         statusChanged = false;
         for (const result of allResults.filter((item) => ['verified', 'rejected'].includes(item.status))) {
             const entry = verification[result.id] ?? {};
@@ -525,24 +548,26 @@ export async function compileProject(root = process.cwd(), options = {}) {
     }
     for (const result of allResults) {
         const record = verification[result.id];
-        if (result.marker === 'VERIFIED' && result.status !== 'verified')
-            diagnostics.push(diagnostic('error', 'VERIFIED_RECORD_INVALID', `${result.id} has VERIFIED without a matching current record`, result.file, result.proof_line ?? result.line, result.id));
-        if (result.marker === 'REJECTED' && result.status !== 'rejected')
-            diagnostics.push(diagnostic('error', 'REJECTED_RECORD_INVALID', `${result.id} has REJECTED without a matching current failed-check record`, result.file, result.proof_line ?? result.line, result.id));
-        if (result.marker === 'REVOKED' && result.status !== 'revoked')
-            diagnostics.push(diagnostic('error', 'REVOKED_RECORD_INVALID', `${result.id} has REVOKED without a matching revocation record and reason`, result.file, result.proof_line ?? result.line, result.id));
-        if (record?.status === 'verified' && result.marker !== 'VERIFIED')
-            diagnostics.push(diagnostic('error', 'VERIFIED_MARKER_MISSING', `${result.id} has a verification record but no matching VERIFIED marker`, result.file, result.proof_line ?? result.line, result.id));
+        if (semanticMode !== 'project-goals') {
+            if (result.marker === 'VERIFIED' && result.status !== 'verified')
+                diagnostics.push(diagnostic('error', 'VERIFIED_RECORD_INVALID', `${result.id} has VERIFIED without a matching current record`, result.file, result.proof_line ?? result.line, result.id));
+            if (result.marker === 'REJECTED' && result.status !== 'rejected')
+                diagnostics.push(diagnostic('error', 'REJECTED_RECORD_INVALID', `${result.id} has REJECTED without a matching current failed-check record`, result.file, result.proof_line ?? result.line, result.id));
+            if (result.marker === 'REVOKED' && result.status !== 'revoked')
+                diagnostics.push(diagnostic('error', 'REVOKED_RECORD_INVALID', `${result.id} has REVOKED without a matching revocation record and reason`, result.file, result.proof_line ?? result.line, result.id));
+            if (record?.status === 'verified' && result.marker !== 'VERIFIED')
+                diagnostics.push(diagnostic('error', 'VERIFIED_MARKER_MISSING', `${result.id} has a verification record but no matching VERIFIED marker`, result.file, result.proof_line ?? result.line, result.id));
+        }
         for (const check of result.reference_checks ?? []) {
             const premise = idCounts.get(check.dependency) === 1 ? byId.get(check.dependency) : null;
-            check.status = premise?.status === 'verified' ? 'pass' : 'fail';
+            check.status = semanticMode === 'project-goals' || premise?.status === 'verified' ? 'pass' : 'fail';
             check.cycle = cycleEdges.has(`${result.id}\0${check.dependency}`) ? 'fail' : 'pass';
             check.ai_sufficiency = result.status === 'verified' ? 'pass' : 'not-run';
-            if (check.existence === 'pass' && check.scope === 'pass' && check.cycle === 'pass' && check.status === 'fail') {
+            if (semanticMode !== 'project-goals' && check.existence === 'pass' && check.scope === 'pass' && check.cycle === 'pass' && check.status === 'fail') {
                 diagnostics.push(diagnostic('error', 'DEPENDENCY_STATUS_INSUFFICIENT', `${result.id} cites @${check.dependency}, whose current status is ${premise?.status ?? 'missing'}`, result.file, result.proof_line ?? result.line, result.id));
             }
         }
-        if (result.status === 'verified') {
+        if (semanticMode !== 'project-goals' && result.status === 'verified') {
             for (const dependency of result.dependencies) {
                 if (byId.get(dependency)?.status !== 'verified')
                     diagnostics.push(diagnostic('error', 'VERIFIED_DEPENDENCY_INVALID', `${result.id} depends on unverified @${dependency}`, result.file, result.proof_line ?? result.line, result.id));

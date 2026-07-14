@@ -26,7 +26,7 @@ export interface WorkspaceMetadata {
   };
 }
 
-export interface WorkspaceReferenceCheck extends ReferenceCheck { origin: 'workspace' | 'canonical' | 'unresolved' }
+export interface WorkspaceReferenceCheck extends ReferenceCheck { origin: 'workspace' | 'main-goal' | 'unresolved' }
 export interface WorkspaceProgrammaticCheck {
   status: 'pass' | 'fail';
   verification_mode: 'definition-construction' | 'proof';
@@ -187,20 +187,38 @@ export async function workspaceSourceFingerprint(directory: string): Promise<str
   return sha256(stableJson(entries, 0));
 }
 
-export function canonicalContextFingerprint(compilation: Compilation, target: string, available: string[], externalBasis: JsonObject): string {
+export function protectedGoalContextFingerprint(compilation: Compilation, target: string, externalBasis: JsonObject): string {
   const byId = new Map<string, SemanticResult>(compilation.manifest.results.map((result) => [result.id, result]));
-  const selected = [target, ...available].filter((value, index, values) => values.indexOf(value) === index).sort();
+  const result = byId.get(target);
   return sha256(stableJson({
     complete: compilation.complete,
-    facts: selected.map((id) => {
-      const result = byId.get(id);
-      return result ? {
-        id, statement_hash: result.statement_hash, proof_hash: result.proof_hash,
-        title_hash: result.title_hash, status: result.status, file: result.file
-      } : { id, status: 'missing' };
-    }),
+    target: result ? {
+      id: target, statement_hash: result.statement_hash, proof_hash: result.proof_hash,
+      title_hash: result.title_hash, status: result.status, file: result.file
+    } : { id: target, status: 'missing' },
     checker_contract: checkerContract(compilation.config),
     external_basis_hash: externalPolicyHash(externalBasis)
+  }, 0));
+}
+
+export function workspaceSnapshotSourceSignature(
+  workspaceFingerprint: string,
+  metadata: WorkspaceMetadata,
+  target: SemanticResult | undefined,
+  contextHash: string
+): string {
+  return sha256(stableJson({
+    workspace_fingerprint: workspaceFingerprint,
+    protected_snapshot: metadata.canonical,
+    current_target: target ? {
+      id: target.id,
+      file: target.file,
+      statement_hash: target.statement_hash,
+      title_hash: target.title_hash,
+      proof_hash: target.proof_hash,
+      status: target.status
+    } : { id: metadata.target, status: 'missing' },
+    context_hash: contextHash
   }, 0));
 }
 

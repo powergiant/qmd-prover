@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
 import { deriveGraphFindings } from '../skills/qmd-prover/src/lib/inspection/findings.js';
+import { inspectFact } from '../skills/qmd-prover/src/lib/inspection/operations.js';
 import { initializeWorkspace } from '../skills/qmd-prover/src/lib/workspace/initialize.js';
 import { inspectWorkspace } from '../skills/qmd-prover/src/lib/workspace/inspect.js';
 import { asRecord } from '../skills/qmd-prover/src/lib/shared/core.js';
@@ -147,6 +148,51 @@ test('large workspace fixture completes through the public CLI, persists its gra
   } finally {
     delete process.env.QMD_PROVER_VERIFIER;
     delete process.env.QMD_PROVER_VERIFIER_COUNT;
+  }
+});
+
+test('inspect fact locates a large-workspace fact and verifies only its dependency closure', async () => {
+  const { root } = await materializeLargeProject();
+  const countFile = path.join(root, 'large-narrow-verifier-calls.txt');
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  process.env.QMD_PROVER_VERIFIER_COUNT = countFile;
+  try {
+    const inspected = await inspectFact(root, '@def-hilbert-calculus', { pandoc: fakePandoc });
+    assert.equal(inspected.ok, true, JSON.stringify(inspected.diagnostics));
+    assert.equal(inspected.fact.id, 'def-hilbert-calculus');
+    assert.equal(inspected.fact.workspace, target);
+    assert.ok(inspected.graph.nodes.some((node) => node.id === 'def-fol-substitution'));
+    assert.ok(!inspected.graph.nodes.some((node) => node.id === 'lem-proof-finitary'));
+    assert.equal(inspected.verification.verifier_calls, inspected.graph.nodes.length);
+    assert.deepEqual((await verifierCalls(countFile)).sort(), inspected.graph.nodes.map((node) => node.id).sort());
+    const latest = await readJson<{ schema_version: number; file: string }>(path.join(root, '.qmd-prover', 'graphs', 'latest.json'));
+    const aggregate = await readJson<{ schema_version: number; goals: unknown[]; notes: unknown[]; workspaces: unknown[]; graph: { nodes: unknown[] } }>(path.join(root, latest.file));
+    assert.equal(latest.schema_version, 3);
+    assert.equal(aggregate.schema_version, 3);
+    assert.equal(aggregate.goals.length, 1);
+    assert.equal(aggregate.notes.length, 1);
+    assert.equal(aggregate.workspaces.length, 1);
+    assert.equal(aggregate.graph.nodes.length, 32);
+  } finally {
+    delete process.env.QMD_PROVER_VERIFIER;
+    delete process.env.QMD_PROVER_VERIFIER_COUNT;
+  }
+});
+
+test('inspect fact uses the main-goal workspace overlay without changing user notes', async () => {
+  const { root } = await materializeLargeProject();
+  const userFile = path.join(root, 'completeness.qmd');
+  const before = await readFile(userFile);
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  try {
+    const inspected = await inspectFact(root, `@${target}`, { pandoc: fakePandoc });
+    assert.equal(inspected.ok, true, JSON.stringify(inspected.diagnostics));
+    assert.equal(inspected.fact.id, target);
+    assert.equal(inspected.fact.status, 'workspace-verified');
+    assert.equal(inspected.check.ai.status, 'pass');
+    assert.deepEqual(await readFile(userFile), before);
+  } finally {
+    delete process.env.QMD_PROVER_VERIFIER;
   }
 });
 

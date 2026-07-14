@@ -3,9 +3,11 @@ import { compileProject, findCycles } from '../semantic/compiler.js';
 import { externalPolicyHash, readExternalPolicy } from '../infrastructure/external.js';
 import { atomicJson, exists, readJson, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
 import { deriveGraphFindings } from '../inspection/findings.js';
+import { buildAggregateSnapshot, publishAggregateSnapshot } from '../inspection/aggregate.js';
+import { buildProjectInspectionIndex } from '../inspection/index.js';
+import type { ProjectInspectionIndex } from '../inspection/index.js';
 import { readLocatedBlock, readLocatedProof } from '../semantic/source.js';
 import type { LocatedBlock } from '../semantic/source.js';
-import { checkStaleness } from '../verification/staleness.js';
 import { accepted, buildVerifierPacket, checkerContract, invokeVerifier, verificationKey } from '../verification/protocol.js';
 import { asErrorLike } from '../shared/core.js';
 import type {
@@ -13,60 +15,121 @@ import type {
   RuntimeOptions, SemanticResult, VerifierPacket, VerifierReport, WorkspaceInspectResult
 } from '../shared/types.js';
 import {
-  cachedWorkspaceDecision, canonicalContextFingerprint, cleanVerifierText, discoverActive,
+  cachedWorkspaceDecision, cleanVerifierText, discoverActive, protectedGoalContextFingerprint,
   normalizeImports, topologicalOrder, verifierFailure, workspaceDirectory, workspaceSourceFingerprint,
-  workspaceStatus
+  workspaceSnapshotSourceSignature, workspaceStatus
 } from './support.js';
 import type {
   WorkspaceMetadata, WorkspaceOutcome, WorkspaceProgrammaticCheck, WorkspaceReferenceCheck,
   WorkspaceVerification
 } from './support.js';
-import { initializeWorkspace } from './initialize.js';
 
+interface PersistedWorkspaceSnapshot {
+  schema_version: 3;
+  snapshot_id: string;
+  source_signature: string;
+  manifest: Manifest;
+  graph: DependencyGraph;
+  diagnostics: Diagnostic[];
+}
 
+async function readCurrentSnapshot(directory: string, sourceSignature: string): Promise<PersistedWorkspaceSnapshot | null> {
+  try {
+    const pointer = await readJson<{ schema_version: number; snapshot_id: string; file: string }>(path.join(directory, 'latest.json'));
+    const snapshotsRoot = path.join(directory, 'snapshots');
+    const snapshotFile = path.resolve(directory, pointer.file);
+    if (!snapshotFile.startsWith(`${snapshotsRoot}${path.sep}`)) return null;
+    const snapshot = await readJson<PersistedWorkspaceSnapshot>(snapshotFile);
+    if (pointer.schema_version !== 3 || snapshot.schema_version !== 3
+      || snapshot.snapshot_id !== pointer.snapshot_id
+      || snapshot.source_signature !== sourceSignature
+      || !Array.isArray(snapshot.manifest?.results)) return null;
+    return snapshot;
+  } catch { return null; }
+}
+function unavailableWorkspace(root: string, id: string, directory: string, diagnostics: Diagnostic[]): WorkspaceInspectResult {
+  const graph: DependencyGraph = { schema_version: 3, nodes: [], edges: [], cycles: [] };
+  const manifest: Manifest = { schema_version: 3, target: id, files: [], results: [], proofs: [] };
+  return {
+    schema_version: 3,
+    operation: 'workspace-inspect',
+    ok: false,
+    complete: false,
+    snapshot_published: false,
+    workspace: relativePosix(root, directory),
+    target: { id, status: 'missing' },
+    stale: true,
+    staleness: { schema_version: 3, operation: 'check-staleness', ok: false, changed: [], invalidated: [] },
+    summary: { files: 0, facts: 0, errors: diagnostics.filter((item) => item.severity === 'error').length, mechanical_ok: false, ai_ok: false },
+    verification: {
+      eligible: 0, verifier_calls: 0, cache_hits: 0, cache_misses: 0, invalid_cache_entries: 0,
+      passed: 0, rejected: 0, errors: 0, not_run: 0, stopped_after: null, facts: []
+    },
+    facts: [],
+    findings: deriveGraphFindings({ graph, manifest, diagnostics }),
+    manifest,
+    graph,
+    diagnostics
+  };
+}
 
 export async function inspectWorkspace(root: string, requested: string, options: RuntimeOptions = {}): Promise<WorkspaceInspectResult> {
   root = path.resolve(root);
   const { id, directory } = workspaceDirectory(root, requested);
-  let staleness;
-  let stalenessFailure: ReturnType<typeof asErrorLike> | null = null;
-  try { staleness = await checkStaleness(root, options); }
-  catch (error) {
-    stalenessFailure = asErrorLike(error);
-    staleness = {
-      schema_version: 2,
-      operation: 'check-staleness',
-      ok: false,
-      changed: [],
-      invalidated: [],
-      error: asErrorLike(error).message
-    };
+  let projectIndex: ProjectInspectionIndex | null = null;
+  if (!options.skipProjectPreflight) {
+    projectIndex = await buildProjectInspectionIndex(root, options);
+    if (projectIndex.fatal) return unavailableWorkspace(root, id, directory, projectIndex.globalDiagnostics);
+    const indexed = projectIndex.workspaces.find((workspace) => workspace.id === id);
+    if (!indexed || indexed.status !== 'initialized') {
+      const diagnostics = indexed?.diagnostics ?? [{
+        severity: 'error' as const,
+        code: 'WORKSPACE_MISSING',
+        message: `No initialized workspace exists for @${id}`,
+        file: relativePosix(root, directory), id,
+        remediation: `Run workspace init @${id} explicitly before inspecting it.`
+      }];
+      return unavailableWorkspace(root, id, directory, diagnostics);
+    }
   }
-  if (!await exists(path.join(directory, 'workspace.json'))) await initializeWorkspace(root, id, options);
-  const [metadata, canonical, files] = await Promise.all([
+  if (!await exists(path.join(directory, 'workspace.json'))) return unavailableWorkspace(root, id, directory, [{
+    severity: 'error', code: 'WORKSPACE_UNINITIALIZED',
+    message: `Workspace @${id} has no workspace.json; inspect never initializes or overwrites a workspace`,
+    file: relativePosix(root, directory), id,
+    remediation: `Run workspace init @${id} explicitly.`
+  }]);
+  const [metadata, projectGoals, files, externalBasis] = await Promise.all([
     readJson<WorkspaceMetadata>(path.join(directory, 'workspace.json')),
-    compileProject(root, options),
-    discoverActive(directory)
+    compileProject(root, { ...options, semanticMode: 'project-goals', write: false }),
+    discoverActive(directory),
+    readExternalPolicy(root)
   ]);
-  const canonicalById = new Map<string, SemanticResult>(canonical.manifest.results.map((result) => [result.id, result]));
-  const currentTarget = canonicalById.get(id);
+  const projectGoalById = new Map<string, SemanticResult>(projectGoals.manifest.results.map((result) => [result.id, result]));
+  const currentTarget = projectGoalById.get(id);
   const targetStale = !currentTarget
     || currentTarget.statement_hash !== metadata.canonical.statement_hash
     || currentTarget.title_hash !== metadata.canonical.title_hash
     || currentTarget.proof_hash !== metadata.canonical.proof_hash
     || currentTarget.status !== metadata.canonical.status;
-  const dependencyStale = Object.entries<JsonObject>(metadata.canonical.dependencies ?? {}).some(([dependency, snapshot]) => {
-    const result = canonicalById.get(dependency);
-    return !result || result.statement_hash !== snapshot.statement_hash || result.proof_hash !== snapshot.proof_hash || result.status !== snapshot.status;
-  });
-  const stale = targetStale || dependencyStale;
+  const dependencyStale = false;
+  const stale = targetStale;
+  const staleness = {
+    schema_version: 3,
+    operation: 'check-staleness',
+    ok: !stale,
+    changed: stale ? [{ id, reasons: [
+      ...(targetStale ? ['main-goal-snapshot-changed'] : []),
+      ...(dependencyStale ? ['protected-dependency-snapshot-changed'] : [])
+    ] }] : [],
+    invalidated: []
+  };
   const provisional: Compilation = files.length
-    ? await compileProject(root, { ...options, files, externalTargets: canonical.manifest.results.map((result) => result.id), write: false })
+    ? await compileProject(root, { ...options, semanticMode: 'workspace', files, externalTargets: [id], write: false })
     : {
         root,
-        config: canonical.config,
-        manifest: { schema_version: 2, files: [], results: [], proofs: [] },
-        graph: { schema_version: 2, nodes: [], edges: [], cycles: [] },
+        config: projectGoals.config,
+        manifest: { schema_version: 3, files: [], results: [], proofs: [] },
+        graph: { schema_version: 3, nodes: [], edges: [], cycles: [] },
         diagnostics: [],
         summary: { files: 0, results: 0, errors: 0, warnings: 0 },
         ok: true,
@@ -80,18 +143,17 @@ export async function inspectWorkspace(root: string, requested: string, options:
     }
     if (!['DEPENDENCY_UNKNOWN', 'IMPORT_FILE_MISSING', 'IMPORT_ID_MISSING'].includes(item.code)) return true;
     const referenced = item.message.match(/@((?:def|lem|thm|prp|cor)-[^\s,]+)/)?.[1];
-    return !referenced || !canonicalById.has(referenced);
+    return !referenced || referenced !== id;
   });
   if (stale) diagnostics.push({
     severity: 'error', code: 'WORKSPACE_STALE',
-    message: `The protected canonical snapshot for @${id} is stale`,
+    message: `The protected main-goal snapshot for @${id} is stale`,
     file: relativePosix(root, path.join(directory, 'workspace.json')), id
   });
-  if (stalenessFailure) diagnostics.push({
-    severity: 'error', code: 'STALENESS_CHECK_FAILED',
-    message: stalenessFailure.message ?? 'Staleness check failed',
-    file: relativePosix(root, path.join(directory, 'workspace.json')), id,
-    remediation: 'Repair canonical parsing or protected verification state, then rerun workspace inspect before using any VERIFIED fact.'
+  if (Object.keys(metadata.canonical.dependencies ?? {}).length) diagnostics.push({
+    severity: 'warning', code: 'LEGACY_WORKSPACE_PROTECTED_DEPENDENCIES',
+    message: `Workspace @${id} has legacy protected-dependency metadata; it is read-only and no longer grants access to user-note facts`,
+    file: relativePosix(root, path.join(directory, 'workspace.json')), id
   });
 
   const sourceRootById = new Map<string, string>();
@@ -110,12 +172,11 @@ export async function inspectWorkspace(root: string, requested: string, options:
     };
   });
   let workspaceIds = new Set<string>(workspaceResults.map((result) => result.id));
-  const availableCanonical = new Set<string>(Object.keys(metadata.canonical.dependencies ?? {}));
   const targetProofs = provisional.manifest.proofs.filter((proof) => proof.target === id);
-  for (const proof of provisional.manifest.proofs.filter((item) => canonicalById.has(item.target) && item.target !== id)) {
+  for (const proof of provisional.manifest.proofs.filter((item) => projectGoalById.has(item.target) && item.target !== id)) {
     diagnostics.push({
-      severity: 'error', code: 'WORKSPACE_CANONICAL_PROOF_FORBIDDEN',
-      message: `Workspace @${id} may provide a proof only for its protected target, not canonical @${proof.target}`,
+      severity: 'error', code: 'WORKSPACE_MAIN_GOAL_PROOF_FORBIDDEN',
+      message: `Workspace @${id} may provide a proof only for its own protected target, not main goal @${proof.target}`,
       file: relativePosix(directory, path.resolve(root, proof.file)), line: proof.line, id: proof.target
     });
   }
@@ -143,31 +204,41 @@ export async function inspectWorkspace(root: string, requested: string, options:
   }
   workspaceResults.sort((left, right) => left.id.localeCompare(right.id));
   workspaceIds = new Set(workspaceResults.map((result) => result.id));
+  const initialWorkspaceFingerprint = await workspaceSourceFingerprint(directory);
+  const workspaceContextHash = sha256(stableJson({
+    external_basis_hash: externalPolicyHash(externalBasis),
+    checker_contract: checkerContract(projectGoals.config)
+  }, 0));
+  const sourceSignature = workspaceSnapshotSourceSignature(
+    initialWorkspaceFingerprint, metadata, currentTarget, workspaceContextHash
+  );
+  const previousSnapshot = await readCurrentSnapshot(directory, sourceSignature);
+  const previousById = new Map((previousSnapshot?.manifest.results ?? []).map((result) => [result.id, result]));
+  for (const result of workspaceResults) {
+    const previous = previousById.get(result.id);
+    if (!previous || previous.statement_hash !== result.statement_hash || previous.proof_hash !== result.proof_hash
+      || stableJson(previous.dependencies, 0) !== stableJson(result.dependencies, 0)) continue;
+    if (previous.status === 'workspace-verified' || previous.status === 'workspace-rejected') result.status = previous.status;
+  }
 
   for (const result of workspaceResults) {
-    if (localResultById.has(result.id) && canonicalById.has(result.id)) diagnostics.push({
-      severity: 'error', code: result.id === id ? 'WORKSPACE_TARGET_REDECLARED' : 'WORKSPACE_CANONICAL_COLLISION',
+    if (localResultById.has(result.id) && projectGoalById.has(result.id)) diagnostics.push({
+      severity: 'error', code: result.id === id ? 'WORKSPACE_TARGET_REDECLARED' : 'WORKSPACE_MAIN_GOAL_COLLISION',
       message: result.id === id
         ? `Workspace @${id} must provide only a linked proof for its protected target; it must not redeclare the target`
-        : `Workspace result @${result.id} collides with canonical mathematics`,
+        : `Workspace result @${result.id} collides with a protected main goal`,
       file: result.file, line: result.line, id: result.id
     });
     if (sourceMarkerById.get(result.id) === 'VERIFIED' || sourceMarkerById.get(result.id) === 'REVOKED') diagnostics.push({
       severity: 'error', code: 'WORKSPACE_PROTECTED_MARKER_FORBIDDEN',
-      message: `Workspace fact @${result.id} must not contain ${sourceMarkerById.get(result.id)}; only protected canonical acceptance may write that marker`,
+      message: `Workspace fact @${result.id} must not contain the legacy ${sourceMarkerById.get(result.id)} marker; inspection records verification in workspace state`,
       file: result.file, line: result.proof_line ?? result.line, id: result.id
     });
     for (const dependency of result.dependencies) {
-      const canonicalDependency = canonicalById.get(dependency);
-      if (!canonicalDependency || workspaceIds.has(dependency)) continue;
-      if (!availableCanonical.has(dependency)) diagnostics.push({
-        severity: 'error', code: 'WORKSPACE_DEPENDENCY_UNAVAILABLE',
-        message: `Workspace fact @${result.id} cites canonical @${dependency}, which was not imported by the protected target`,
-        file: result.file, line: result.proof_line ?? result.line, id: result.id
-      });
-      else if (canonicalDependency.status !== 'verified') diagnostics.push({
-        severity: 'error', code: 'WORKSPACE_DEPENDENCY_STATUS_INSUFFICIENT',
-        message: `Workspace fact @${result.id} cites canonical @${dependency}, whose current status is ${canonicalDependency.status}`,
+      if (!projectGoalById.has(dependency) || workspaceIds.has(dependency)) continue;
+      diagnostics.push({
+        severity: 'error', code: 'WORKSPACE_EXTERNAL_FACT_DEPENDENCY', dependency,
+        message: `Workspace fact @${result.id} may not cite protected main goal @${dependency}; adopt and prove the needed claim locally or state the permitted premise in the external basis`,
         file: result.file, line: result.proof_line ?? result.line, id: result.id
       });
     }
@@ -176,6 +247,21 @@ export async function inspectWorkspace(root: string, requested: string, options:
   const fileByRootPath = new Map(provisional.manifest.files.map((file) => [file.path, file]));
   const provisionalEdges = new Map<string, GraphEdge>(provisional.graph.edges.map((edge) => [`${edge.from}\0${edge.to}`, edge]));
   const workspaceById = new Map<string, SemanticResult>(workspaceResults.map((result) => [result.id, result]));
+  const requestedIds = options.selectedIds
+    ? new Set([...options.selectedIds].map((selected) => String(selected).replace(/^@/, '')))
+    : null;
+  const verificationIds = requestedIds ? new Set<string>() : new Set(workspaceResults.map((result) => result.id));
+  function selectDependencyClosure(selected: string): void {
+    if (verificationIds.has(selected)) return;
+    const result = workspaceById.get(selected);
+    if (!result) return;
+    verificationIds.add(selected);
+    for (const dependency of result.dependencies) if (workspaceById.has(dependency)) selectDependencyClosure(dependency);
+  }
+  for (const selected of requestedIds ?? []) selectDependencyClosure(selected);
+  if (requestedIds && previousSnapshot) diagnostics.push(...previousSnapshot.diagnostics.filter((item) => (
+    item.id !== undefined && !verificationIds.has(item.id) && item.code.startsWith('WORKSPACE_AI_')
+  )));
   const dependencyAdjacency = new Map<string, string[]>(workspaceResults.map((result) => [
     result.id,
     result.dependencies.filter((dependency) => workspaceIds.has(dependency))
@@ -212,17 +298,14 @@ export async function inspectWorkspace(root: string, requested: string, options:
           ? 'pass'
           : result.status === 'workspace-rejected' ? 'fail' : 'not-run'
       };
-      const canonicalDependency = canonicalById.get(dependency);
-      if (canonicalDependency) return {
+      if (projectGoalById.has(dependency)) return {
         dependency,
-        origin: 'canonical',
+        origin: 'main-goal',
         existence: 'pass',
-        scope: availableCanonical.has(dependency) ? 'pass' : 'fail',
-        status: canonicalDependency.status === 'verified' ? 'pass' : 'fail',
+        scope: 'fail',
+        status: 'fail',
         cycle: 'pass',
-        ai_sufficiency: result.status === 'workspace-verified'
-          ? 'pass'
-          : result.status === 'workspace-rejected' ? 'fail' : 'not-run'
+        ai_sufficiency: 'not-run'
       };
       return {
         dependency,
@@ -262,9 +345,8 @@ export async function inspectWorkspace(root: string, requested: string, options:
     const errors = relevantErrors(result);
     let reason: string | null = null;
     const marker = sourceMarkerById.get(result.id);
-    if (stalenessFailure) reason = 'staleness-check-failed';
-    else if (stale) reason = 'workspace-snapshot-stale';
-    else if (!canonical.complete || provisional.complete === false) reason = 'semantic-parse-incomplete';
+    if (stale) reason = 'workspace-snapshot-stale';
+    else if (!projectGoals.complete || provisional.complete === false) reason = 'semantic-parse-incomplete';
     else if (marker === 'OPEN') reason = 'explicitly-open';
     else if (marker === 'REJECTED') reason = 'explicitly-rejected';
     else if (marker === 'VERIFIED' || marker === 'REVOKED') reason = 'protected-marker-forbidden';
@@ -283,11 +365,11 @@ export async function inspectWorkspace(root: string, requested: string, options:
   }
 
   const locatedBlocks = new Map<string, LocatedBlock>();
-  async function located(result: SemanticResult, origin: 'canonical' | 'workspace'): Promise<LocatedBlock> {
+  async function located(result: SemanticResult, origin: 'main-goal' | 'workspace'): Promise<LocatedBlock> {
     const key = `${origin}:${result.id}:${result.file}`;
     const cached = locatedBlocks.get(key);
     if (cached) return cached;
-    const file = origin === 'canonical'
+    const file = origin === 'main-goal'
       ? path.join(root, result.file)
       : path.join(root, sourceRootById.get(result.id) ?? result.file);
     const value = await readLocatedBlock(file, result.id);
@@ -296,15 +378,11 @@ export async function inspectWorkspace(root: string, requested: string, options:
     return value;
   }
 
-  const externalBasis = await readExternalPolicy(root);
-  const protectedScope = [...availableCanonical].sort().map((dependency) => {
-    const result = canonicalById.get(dependency);
-    return result ? {
-      id: dependency,
-      status: result.status,
-      identity: { statement_hash: result.statement_hash, proof_hash: result.proof_hash }
-    } : { id: dependency, status: 'missing', identity: null };
-  });
+  const protectedScope = currentTarget ? {
+    id: currentTarget.id,
+    status: currentTarget.status,
+    identity: { statement_hash: currentTarget.statement_hash, proof_hash: currentTarget.proof_hash }
+  } : { id, status: 'missing', identity: null };
 
   async function packetFor(result: SemanticResult, outcomes: Map<string, WorkspaceOutcome>): Promise<VerifierPacket> {
     const local = localResultById.get(result.id);
@@ -315,8 +393,8 @@ export async function inspectWorkspace(root: string, requested: string, options:
       statement = cleanVerifierText(block.statement?.text, result.kind === 'definition' ? 'last' : null);
       proof = cleanVerifierText(block.proof?.text, 'first');
     } else {
-      if (!currentTarget) throw Object.assign(new Error(`Canonical target @${id} disappeared`), { code: 'WORKSPACE_SOURCE_STALE' });
-      const block = await located(currentTarget, 'canonical');
+      if (!currentTarget) throw Object.assign(new Error(`Protected main goal @${id} disappeared`), { code: 'WORKSPACE_SOURCE_STALE' });
+      const block = await located(currentTarget, 'main-goal');
       statement = cleanVerifierText(block.statement?.text, currentTarget.kind === 'definition' ? 'last' : null);
       const proofFile = sourceRootById.get(result.id);
       if (proofFile) {
@@ -351,20 +429,8 @@ export async function inspectWorkspace(root: string, requested: string, options:
         });
         continue;
       }
-      const canonicalDependency = canonicalById.get(dependency);
-      if (!canonicalDependency) continue;
-      const dependencyBlock = await located(canonicalDependency, 'canonical');
-      dependencies.push({
-        id: dependency,
-        kind: canonicalDependency.kind,
-        title: canonicalDependency.title,
-        semantic_text: cleanVerifierText(dependencyBlock.statement?.text, canonicalDependency.kind === 'definition' ? 'last' : null),
-        statement: cleanVerifierText(dependencyBlock.statement?.text, canonicalDependency.kind === 'definition' ? 'last' : null),
-        status: canonicalDependency.status,
-        origin: 'canonical',
-        identity: { statement_hash: canonicalDependency.statement_hash, proof_hash: canonicalDependency.proof_hash },
-        source: { file: canonicalDependency.file }
-      });
+      // Non-workspace @IDs are rejected mechanically. Permitted outside mathematics
+      // is supplied only through externalBasis, never as an implicit graph fact.
     }
     const sourceRoot = sourceRootById.get(result.id);
     const sourceFile = sourceRoot ? fileByRootPath.get(sourceRoot) : undefined;
@@ -373,7 +439,7 @@ export async function inspectWorkspace(root: string, requested: string, options:
       workspace: id,
       source_file: result.file,
       workspace_imports: normalizeImports(sourceFile?.imports ?? []),
-      protected_canonical: protectedScope
+      protected_goal: protectedScope
     };
     return buildVerifierPacket({
       target: {
@@ -391,7 +457,7 @@ export async function inspectWorkspace(root: string, requested: string, options:
       dependencies,
       externalBasis,
       scope,
-      config: canonical.config
+      config: projectGoals.config
     });
   }
 
@@ -409,17 +475,28 @@ export async function inspectWorkspace(root: string, requested: string, options:
     stopped_after: null,
     facts: []
   };
-  let fatal: WorkspaceOutcome | null = stalenessFailure ? verifierFailure({ code: 'STALENESS_CHECK_FAILED', message: stalenessFailure.message }, id) : null;
+  let fatal: WorkspaceOutcome | null = null;
   if (stale && !fatal) fatal = {
     status: 'error', code: 'WORKSPACE_STALE',
-    error: `The protected canonical snapshot for @${id} is stale`,
-    remediation: 'Refresh or recreate this goal workspace from current canonical mathematics before rerunning inspection.',
+    error: `The protected main-goal snapshot for @${id} is stale`,
+    remediation: 'Refresh or recreate this goal workspace from the current protected main goal before rerunning inspection.',
     fatal: true
   };
-  const initialWorkspaceFingerprint = await workspaceSourceFingerprint(directory);
-  const initialCanonicalFingerprint = canonicalContextFingerprint(canonical, id, [...availableCanonical], externalBasis);
+  const initialProtectedGoalFingerprint = protectedGoalContextFingerprint(projectGoals, id, externalBasis);
 
   for (const result of topologicalOrder(workspaceResults)) {
+    if (!verificationIds.has(result.id)) {
+      const previous = previousById.get(result.id) as (SemanticResult & { ai?: WorkspaceOutcome }) | undefined;
+      if ((previous?.status === 'workspace-verified' || previous?.status === 'workspace-rejected') && previous.ai) {
+        outcomes.set(result.id, previous.ai);
+      } else {
+        outcomes.set(result.id, {
+          status: 'not-run',
+          reason: 'Independent verification was outside the selected fact/path dependency closure.'
+        });
+      }
+      continue;
+    }
     const programmatic = programmaticCheck(result);
     if (programmatic.status !== 'pass') {
       outcomes.set(result.id, {
@@ -466,7 +543,7 @@ export async function inspectWorkspace(root: string, requested: string, options:
     } else {
       verification.cache_misses += 1;
       verification.verifier_calls += 1;
-      try { report = await invokeVerifier(packet, canonical.config); }
+      try { report = await invokeVerifier(packet, projectGoals.config); }
       catch (error) {
         const failure = verifierFailure(error, result.id);
         failure.failed_target = result.id;
@@ -481,7 +558,7 @@ export async function inspectWorkspace(root: string, requested: string, options:
             target: result.id,
             failed_at: now,
             verification_key: key,
-            checker_contract: checkerContract(canonical.config),
+            checker_contract: checkerContract(projectGoals.config),
             error: failure.details ?? { code: failure.code, message: failure.error },
             remediation: failure.remediation
           });
@@ -495,16 +572,16 @@ export async function inspectWorkspace(root: string, requested: string, options:
 
       let contextCurrent = false;
       try {
-        const [workspaceFingerprint, currentCanonical, currentExternalBasis] = await Promise.all([
+        const [workspaceFingerprint, currentProjectGoals, currentExternalBasis] = await Promise.all([
           workspaceSourceFingerprint(directory),
-          compileProject(root, { ...options, write: false }),
+          compileProject(root, { ...options, semanticMode: 'project-goals', write: false }),
           readExternalPolicy(root)
         ]);
         contextCurrent = workspaceFingerprint === initialWorkspaceFingerprint
-          && canonicalContextFingerprint(currentCanonical, id, [...availableCanonical], currentExternalBasis) === initialCanonicalFingerprint;
+          && protectedGoalContextFingerprint(currentProjectGoals, id, currentExternalBasis) === initialProtectedGoalFingerprint;
       } catch { contextCurrent = false; }
       if (!contextCurrent) {
-        fatal = verifierFailure(Object.assign(new Error(`Workspace or canonical verification context changed while @${result.id} was being checked`), { code: 'WORKSPACE_SOURCE_STALE' }), result.id);
+        fatal = verifierFailure(Object.assign(new Error(`Workspace or protected project-goal context changed while @${result.id} was being checked`), { code: 'WORKSPACE_SOURCE_STALE' }), result.id);
         fatal.failed_target = result.id;
         outcomes.set(result.id, fatal);
         verification.stopped_after = result.id;
@@ -528,7 +605,7 @@ export async function inspectWorkspace(root: string, requested: string, options:
         }])),
         scope: packet.scope,
         external_basis_hash: externalPolicyHash(externalBasis),
-        checker_contract: checkerContract(canonical.config),
+        checker_contract: checkerContract(projectGoals.config),
         verification_key: key,
         packet_hash: sha256(stableJson(packet, 0)),
         packet
@@ -577,28 +654,28 @@ export async function inspectWorkspace(root: string, requested: string, options:
     });
   }
 
-  const citedCanonicalIds = new Set(workspaceResults.flatMap((result) => result.dependencies)
-    .filter((dependency) => canonicalById.has(dependency) && !workspaceIds.has(dependency)));
-  const canonicalNodes: GraphNode[] = [...citedCanonicalIds].sort().flatMap((dependency) => {
-    const result = canonicalById.get(dependency);
+  const citedMainGoalIds = new Set(workspaceResults.flatMap((result) => result.dependencies)
+    .filter((dependency) => projectGoalById.has(dependency) && !workspaceIds.has(dependency)));
+  const mainGoalNodes: GraphNode[] = [...citedMainGoalIds].sort().flatMap((dependency) => {
+    const result = projectGoalById.get(dependency);
     return result ? [{
       id: result.id, title: result.title, kind: result.kind, status: result.status,
-      file: result.file, line: result.line, origin: 'canonical',
+      file: result.file, line: result.line, origin: 'main-goal',
       identity: { statement_hash: result.statement_hash, proof_hash: result.proof_hash }
     }] : [];
   });
-  const knownIds = new Set([...workspaceResults.map((result) => result.id), ...canonicalNodes.map((result) => result.id)]);
+  const knownIds = new Set([...workspaceResults.map((result) => result.id), ...mainGoalNodes.map((result) => result.id)]);
   const unresolvedNodes = [...new Set(workspaceResults.flatMap((result) => result.dependencies).filter((dependency) => !knownIds.has(dependency)))].sort()
     .map((dependency) => ({ id: dependency, title: '', kind: 'unknown', status: 'missing', origin: 'unresolved' }));
   const graph: DependencyGraph = {
-    schema_version: 2,
+    schema_version: 3,
     nodes: [
       ...workspaceResults.map(({ id: resultId, title, kind, status, file, line, statement_hash, proof_hash }) => ({
         id: resultId, title, kind, status, file, line, origin: 'workspace',
         identity: { statement_hash, proof_hash },
         ai: { status: outcomes.get(resultId)?.status ?? 'not-run' }
       })),
-      ...canonicalNodes,
+      ...mainGoalNodes,
       ...unresolvedNodes.map((node) => ({ ...node, kind: 'unknown' as const }))
     ],
     edges: workspaceResults.flatMap((result) => result.dependencies.map((dependency): GraphEdge => {
@@ -627,13 +704,14 @@ export async function inspectWorkspace(root: string, requested: string, options:
     programmatic: programmaticCheck(result),
     ai: outcomes.get(result.id) ?? { status: 'not-run' as const, reason: 'No outcome was recorded.' }
   }));
-  verification.passed = facts.filter((fact) => fact.ai.status === 'pass').length;
-  verification.rejected = facts.filter((fact) => fact.ai.status === 'fail').length;
-  verification.errors = facts.filter((fact) => fact.ai.status === 'error').length;
-  verification.not_run = facts.filter((fact) => fact.ai.status === 'not-run').length;
-  verification.facts = facts.map(({ id: factId, ai }) => ({ id: factId, ...ai }));
+  const scopedFacts = facts.filter((fact) => verificationIds.has(fact.id));
+  verification.passed = scopedFacts.filter((fact) => fact.ai.status === 'pass').length;
+  verification.rejected = scopedFacts.filter((fact) => fact.ai.status === 'fail').length;
+  verification.errors = scopedFacts.filter((fact) => fact.ai.status === 'error').length;
+  verification.not_run = scopedFacts.filter((fact) => fact.ai.status === 'not-run').length;
+  verification.facts = scopedFacts.map(({ id: factId, ai }) => ({ id: factId, ...ai }));
   const manifest: Manifest = {
-    schema_version: 2,
+    schema_version: 3,
     snapshot_id: graph.snapshot_id,
     target: id,
     stale,
@@ -643,15 +721,22 @@ export async function inspectWorkspace(root: string, requested: string, options:
     })),
     results: workspaceResults.map((result) => ({ ...result, ai: outcomes.get(result.id) })),
     proofs: provisional.manifest.proofs,
-    canonical_results: canonicalNodes
+    protected_goal_results: mainGoalNodes
   };
   diagnostics.sort((left, right) => `${left.file ?? ''}:${left.line ?? 0}:${left.code}:${left.id ?? ''}`.localeCompare(`${right.file ?? ''}:${right.line ?? 0}:${right.code}:${right.id ?? ''}`));
   const findings = deriveGraphFindings({ graph, manifest, diagnostics });
-  const complete = canonical.complete && provisional.complete !== false;
-  if (complete) {
+  const selectedSourceFiles = new Set([...verificationIds].map((selected) => sourceRootById.get(selected)).filter((file): file is string => Boolean(file)));
+  const scopedMechanicalDiagnostics = requestedIds
+    ? mechanicalDiagnostics.filter((item) => item.id ? verificationIds.has(item.id) : !item.file || selectedSourceFiles.has(item.file) || item.code === 'WORKSPACE_STALE')
+    : mechanicalDiagnostics;
+  const complete = projectGoals.complete && (requestedIds
+    ? scopedMechanicalDiagnostics.every((item) => item.code !== 'PARSE_ERROR')
+    : provisional.complete !== false);
+  if (complete && options.write !== false) {
     const snapshot = {
-      schema_version: 2,
+      schema_version: 3,
       snapshot_id: graph.snapshot_id,
+      source_signature: sourceSignature,
       workspace: id,
       manifest,
       graph,
@@ -664,25 +749,26 @@ export async function inspectWorkspace(root: string, requested: string, options:
       atomicJson(path.join(directory, 'graph.json'), graph)
     ]);
     await atomicJson(path.join(directory, 'latest.json'), {
-      schema_version: 2,
+      schema_version: 3,
       snapshot_id: graph.snapshot_id,
       file: relativePosix(directory, snapshotFile)
     });
   }
-  const mechanicalOk = complete && !stale && !stalenessFailure && mechanicalDiagnostics.every((item) => item.severity !== 'error');
-  const aiOk = facts.every((fact) => fact.ai.status === 'pass');
+  const mechanicalOk = complete && !stale && scopedMechanicalDiagnostics.every((item) => item.severity !== 'error');
+  const aiOk = facts.filter((fact) => verificationIds.has(fact.id)).every((fact) => fact.ai.status === 'pass');
   const statuses: Record<string, number> = {};
   const kinds: Record<string, number> = {};
   for (const result of workspaceResults) {
     statuses[result.status] = (statuses[result.status] ?? 0) + 1;
     kinds[result.kind] = (kinds[result.kind] ?? 0) + 1;
   }
-  return {
-    schema_version: 2,
+  const inspection: WorkspaceInspectResult = {
+    schema_version: 3,
+    operation: 'workspace-inspect',
     ok: mechanicalOk && aiOk,
     complete,
     snapshot_id: graph.snapshot_id,
-    snapshot_published: complete,
+    snapshot_published: complete && options.write !== false,
     workspace: relativePosix(root, directory),
     target: currentTarget ?? { id, status: 'missing' },
     stale,
@@ -708,4 +794,10 @@ export async function inspectWorkspace(root: string, requested: string, options:
     graph,
     diagnostics
   };
+  if (projectIndex) {
+    const aggregate = buildAggregateSnapshot(projectIndex, new Map([[id, inspection]]));
+    inspection.project_snapshot_id = aggregate.snapshot_id;
+    inspection.project_snapshot_published = await publishAggregateSnapshot(projectIndex, aggregate, options);
+  }
+  return inspection;
 }

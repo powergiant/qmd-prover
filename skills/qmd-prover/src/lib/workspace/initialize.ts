@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { compileProject, theoremBundle } from '../semantic/compiler.js';
+import { compileProject } from '../semantic/compiler.js';
 import { atomicJson, atomicWrite, exists, readJson, relativePosix } from '../infrastructure/files.js';
 import { readLocatedBlock } from '../semantic/source.js';
 import type { InitializeWorkspaceResult, RuntimeOptions } from '../shared/types.js';
@@ -9,7 +9,7 @@ import { workspaceDirectory } from './support.js';
 export async function initializeWorkspace(root: string, requested: string, options: RuntimeOptions = {}): Promise<InitializeWorkspaceResult> {
   root = path.resolve(root);
   const { id, directory } = workspaceDirectory(root, requested);
-  const compilation = await compileProject(root, options);
+  const compilation = await compileProject(root, { ...options, semanticMode: 'project-goals' });
   if (!compilation.ok) throw new Error('Project has structural errors; repair them before creating a goal workspace');
   const target = compilation.manifest.results.find((result) => result.id === id);
   if (!target) throw new Error(`Unknown theorem: @${id}`);
@@ -19,17 +19,7 @@ export async function initializeWorkspace(root: string, requested: string, optio
     return { schema_version: 1, status: 'resumed', workspace: relativePosix(root, directory), metadata: await readJson(metadataFile) };
   }
   const located = await readLocatedBlock(path.join(root, target.file), id);
-  if (!located) throw new Error(`Canonical source block for @${id} was not found`);
-  const targetFile = compilation.manifest.files.find((file) => file.path === target.file);
-  const availableIds = new Set([
-    ...theoremBundle(compilation, id).dependencies.map((result) => result.id),
-    ...(targetFile?.imports ?? []).flatMap((declaration) => declaration.use)
-  ]);
-  const dependencySnapshot = Object.fromEntries(compilation.manifest.results.filter((result) => availableIds.has(result.id)).map((result) => [result.id, {
-    statement_hash: result.statement_hash,
-    proof_hash: result.proof_hash,
-    status: result.status
-  }]));
+  if (!located) throw new Error(`Protected main-goal source block for @${id} was not found`);
   await Promise.all(['context', 'attempts', 'dead-ends', 'proposals', 'verification'].map((name) => mkdir(path.join(directory, name), { recursive: true })));
   const metadata = {
     schema_version: 1,
@@ -42,7 +32,7 @@ export async function initializeWorkspace(root: string, requested: string, optio
       title_hash: target.title_hash,
       proof_hash: target.proof_hash,
       status: target.status,
-      dependencies: dependencySnapshot
+      dependencies: {}
     }
   };
   await Promise.all([

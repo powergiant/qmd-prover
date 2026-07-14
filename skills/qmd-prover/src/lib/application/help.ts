@@ -73,9 +73,21 @@ export const HELP_COMMANDS = [
     }
   }),
   command('inspect', ['qmd-prover inspect <command> [arguments]']),
-  command('inspect project', ['qmd-prover inspect project [--print]']),
-  command('inspect fact', ['qmd-prover inspect fact @ID [--print]'], { acceptsPositionals: true }),
-  command('inspect path', ['qmd-prover inspect path FILE_OR_FOLDER [--print]'], { acceptsPositionals: true }),
+  command('inspect project', ['qmd-prover inspect project [--print]'], {
+    summary: 'Inspect every initialized workspace and return the aggregate schema-v3 graph.'
+  }),
+  command('inspect fact', ['qmd-prover inspect fact @ID [--print]'], {
+    acceptsPositionals: true,
+    summary: 'Locate any main-goal or workspace fact and verify only its dependency closure.'
+  }),
+  command('inspect path', ['qmd-prover inspect path FILE_OR_FOLDER [--print]'], {
+    acceptsPositionals: true,
+    summary: 'Inspect workspace QMD, or recognize only main goals in user notes.'
+  }),
+  command('inspect workspace', ['qmd-prover inspect workspace @thm-main-ID [--print]'], {
+    acceptsPositionals: true,
+    summary: 'Inspect one complete initialized goal workspace without creating it.'
+  }),
   command('dependency', ['qmd-prover dependency <command> [arguments]']),
   command('dependency dependencies', ['qmd-prover dependency dependencies @ID [--print]'], { acceptsPositionals: true }),
   command('dependency reverse', ['qmd-prover dependency reverse <command> [arguments]']),
@@ -102,15 +114,15 @@ export const HELP_COMMANDS = [
     '    [--frontier-of @ID] [--cycle-participant] [--direct] [--print]'
   ], { acceptsPositionals: true }),
   command('check', ['qmd-prover check <command> [arguments]']),
-  command('check staleness', ['qmd-prover check staleness [--print]']),
+  command('check staleness', ['qmd-prover check staleness [--print]'], { summary: 'Audit workspace and cache freshness without modifying QMD.' }),
   command('workspace', ['qmd-prover workspace <command> [arguments]']),
   command('workspace init', ['qmd-prover workspace init @thm-main-ID'], { acceptsPositionals: true }),
-  command('workspace inspect', ['qmd-prover workspace inspect @thm-main-ID [--print]'], { acceptsPositionals: true }),
+  command('workspace inspect', ['qmd-prover workspace inspect @thm-main-ID [--print]'], { acceptsPositionals: true, summary: 'Compatibility alias for inspect workspace.' }),
   command('submit', ['qmd-prover submit <command> [arguments]']),
-  command('submit proof', ['qmd-prover submit proof PROPOSAL_FILE [--to CANONICAL_QMD]'], { acceptsPositionals: true }),
+  command('submit proof', ['qmd-prover submit proof PROPOSAL_FILE [--to QMD]'], { acceptsPositionals: true, summary: 'Retired compatibility command; returns structured status and writes nothing.' }),
   command('verification', ['qmd-prover verification <command> [arguments]']),
   command('verification show', ['qmd-prover verification show SUBMISSION_ID'], { acceptsPositionals: true }),
-  command('verification revoke', ['qmd-prover verification revoke @thm-ID --reason "..."'], { acceptsPositionals: true }),
+  command('verification revoke', ['qmd-prover verification revoke @thm-ID --reason "..."'], { acceptsPositionals: true, summary: 'Retired compatibility command; legacy markers remain untouched.' }),
   command('render', ['qmd-prover render'])
 ];
 
