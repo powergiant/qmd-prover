@@ -28,6 +28,9 @@ completeness, compactness, and model existence are not imported.
 
 The four subject files contain the intended intermediate declarations and
 proofs.  This is a readiness claim for inspection, not an acceptance claim.
+`lem-semantic-substitution` is retained with its linked candidate proof as a
+reusable auxiliary result outside the direct dependency closure of the main
+goal.
 
 ## Abandoned approaches
 
