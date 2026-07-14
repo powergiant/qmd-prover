@@ -219,9 +219,10 @@ kind class. The ID prefix must agree with the class: `def-` for `.definition`,
 `lem-` for `.lemma`, `prp-` for `.proposition`, `thm-` for `.theorem`, and
 `cor-` for `.corollary`. The `name` is the human-readable title, `date` records
 the ISO introduction date, and `export` is optional unless another file must
-import the declaration. These common attributes do not make the five result
-kinds interchangeable; the kind communicates the declaration's mathematical
-role to readers and to dependency search.
+import the declaration. When present, `export` must equal the declaration's
+semantic ID exactly. These common attributes do not make the five result kinds
+interchangeable; the kind communicates the declaration's mathematical role to
+readers and to dependency search.
 
 ### Definition block
 
@@ -233,7 +234,7 @@ or uniqueness needs justification, put that argument in a separate linked
 proof block.
 
 ```markdown
-::: {#def-even-integer .definition name="Even integer" date="2026-07-12" export="even-integer"}
+::: {#def-even-integer .definition name="Even integer" date="2026-07-12" export="def-even-integer"}
 An integer \(n\) is **even** if there exists an integer \(k\) such that
 \(n=2k\).
 :::
@@ -250,7 +251,7 @@ The label describes its role in the development, not a weaker verification
 standard: a lemma must be checked as rigorously as a theorem.
 
 ```markdown
-::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12" export="square-of-double"}
+::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12" export="lem-square-of-double"}
 If \(n=2k\) for integers \(n,k\), then \(n^2=4k^2\).
 :::
 
@@ -284,7 +285,7 @@ A `.theorem` block states a principal result. An ordinary theorem uses a
 Its proof remains separate, just like the proof of a lemma or proposition.
 
 ```markdown
-::: {#thm-even-square .theorem name="Squares of even integers" date="2026-07-12" export="even-square"}
+::: {#thm-even-square .theorem name="Squares of even integers" date="2026-07-12" export="thm-even-square"}
 If an integer \(n\) is even, then \(n^2\) is divisible by \(4\).
 :::
 

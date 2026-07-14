@@ -253,7 +253,7 @@ a bibliographic citation is not a theorem dependency.
 For example, the proof below has direct dependencies on both referenced facts:
 
 ```markdown
-::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12" export="square-of-double"}
+::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12" export="lem-square-of-double"}
 If \(n=2k\) for integers \(n,k\), then \(n^2=4k^2\).
 :::
 
@@ -274,8 +274,11 @@ qmd-prover:
         - lem-product-calculation
 ```
 
-Wildcard imports are not supported. Imports determine availability; semantic
-references determine the dependency edges actually used.
+The producer sets `export` to its exact semantic ID, and `from` is resolved
+relative to the importing QMD file. Wildcard imports are not supported. An
+`@id` citation alone does not grant cross-file scope: imports determine
+availability, while semantic references determine the dependency edges
+actually used.
 
 ### Inspection scopes
 

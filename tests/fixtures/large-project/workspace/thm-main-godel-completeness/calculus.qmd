@@ -1,8 +1,17 @@
 ---
 title: "Proof calculus and consistency"
+qmd-prover:
+  imports:
+    - from: foundations.qmd
+      use:
+        - def-fol-formulas
+        - def-fol-substitution
+        - def-language-translation
+        - lem-fresh-variable
+        - lem-substitution-composition
 ---
 
-::: {#def-hilbert-calculus .definition name="Classical first-order proof calculus" date="2026-07-12"}
+::: {#def-hilbert-calculus .definition name="Classical first-order proof calculus" date="2026-07-12" export="def-hilbert-calculus"}
 For a signature \(L\), an \(L\)-derivation from a set \(\Sigma\) of
 \(L\)-sentences is a finite sequence of \(L\)-formulas.  Each line is:
 
@@ -28,7 +37,7 @@ such a sequence ends in \(A\), and \(\vdash_L A\) when \(\Sigma=\varnothing\).
 This is the proof calculus meant by the main goal.
 :::
 
-::: {#lem-proof-finitary .lemma name="Finitarity of derivability" date="2026-07-12"}
+::: {#lem-proof-finitary .lemma name="Finitarity of derivability" date="2026-07-12" export="lem-proof-finitary"}
 If \(\Sigma\vdash_L A\), some finite \(\Sigma_0\subseteq\Sigma\) satisfies
 \(\Sigma_0\vdash_L A\).
 :::
@@ -58,7 +67,7 @@ If \(C\) was generalized to \(\forall xC\), the induction hypothesis gives
 one modus-ponens step using the added assumption \(A\).
 :::
 
-::: {#def-consistency .definition name="Syntactic consistency and completeness" date="2026-07-12"}
+::: {#def-consistency .definition name="Syntactic consistency and completeness" date="2026-07-12" export="def-consistency"}
 A set \(\Sigma\) of \(L\)-sentences is *consistent* when there is no sentence
 \(A\) such that both \(\Sigma\vdash_L A\) and
 \(\Sigma\vdash_L\neg A\).  It is *negation-complete* when for every
@@ -66,7 +75,7 @@ A set \(\Sigma\) of \(L\)-sentences is *consistent* when there is no sentence
 *deductively closed* when \(\Sigma\vdash_L A\) implies \(A\in\Sigma\).
 :::
 
-::: {#lem-consistency-characterizations .lemma name="Consistency characterizations" date="2026-07-12"}
+::: {#lem-consistency-characterizations .lemma name="Consistency characterizations" date="2026-07-12" export="lem-consistency-characterizations"}
 For a set \(\Sigma\) of sentences and any sentence \(A\), the following are equivalent:
 (i) \(\Sigma\) is inconsistent in the sense of @def-consistency;
 (ii) \(\Sigma\vdash_L\bot\), where \(\bot\) abbreviates the fixed
@@ -102,7 +111,7 @@ would be inconsistent by monotonicity of derivations in
 @def-hilbert-calculus, a contradiction.
 :::
 
-::: {#lem-maximal-consistent .lemma name="Maximal consistent extension" date="2026-07-12"}
+::: {#lem-maximal-consistent .lemma name="Maximal consistent extension" date="2026-07-12" export="lem-maximal-consistent"}
 Every consistent set \(\Sigma\) of \(L\)-sentences is contained in a
 consistent, deductively closed, negation-complete set \(T\) of
 \(L\)-sentences.
@@ -127,7 +136,7 @@ deductive closure puts \(\neg A\) in \(T\).  Thus @def-consistency gives all
 three claimed properties.
 :::
 
-::: {#lem-complete-theory-boolean .lemma name="Boolean laws in a complete theory" date="2026-07-12"}
+::: {#lem-complete-theory-boolean .lemma name="Boolean laws in a complete theory" date="2026-07-12" export="lem-complete-theory-boolean"}
 If \(T\) is consistent, deductively closed, and negation-complete, then for
 sentences \(A,B\):
 \(\neg A\in T\) iff \(A\notin T\), and
@@ -142,7 +151,7 @@ classical propositional tautologies, so deductive closure proves the second
 equivalence.
 :::
 
-::: {#lem-constant-elimination .lemma name="Elimination of fresh constants" date="2026-07-12"}
+::: {#lem-constant-elimination .lemma name="Elimination of fresh constants" date="2026-07-12" export="lem-constant-elimination"}
 Let \(L'=L\cup\{c_1,\ldots,c_n\}\), where the displayed constants are new.
 If a set \(\Sigma\) of \(L\)-sentences derives an \(L\)-sentence \(A\) in
 \(L'\), then \(\Sigma\vdash_L A\).
@@ -165,7 +174,7 @@ sequence proves the general assertion under @def-hilbert-calculus, and its
 special case is an \(L\)-derivation of \(A\).
 :::
 
-::: {#lem-henkin-witness-consistency .lemma name="Fresh witness preserves consistency" date="2026-07-12"}
+::: {#lem-henkin-witness-consistency .lemma name="Fresh witness preserves consistency" date="2026-07-12" export="lem-henkin-witness-consistency"}
 Let \(\Sigma\) be a consistent set of \(L\)-sentences, let
 \(\exists x A(x)\) be an \(L\)-sentence, and let \(c\) be a new constant.
 Then \(\Sigma\cup\{\exists xA(x)\to A(c)\}\) is consistent in

@@ -1,5 +1,20 @@
 ---
 title: "Semantics and the canonical term model"
+qmd-prover:
+  imports:
+    - from: foundations.qmd
+      use:
+        - def-fol-formulas
+        - def-fol-signature
+        - def-fol-substitution
+        - def-fol-terms
+        - lem-fresh-variable
+        - lem-substitution-composition
+    - from: calculus.qmd
+      use:
+        - def-consistency
+        - def-hilbert-calculus
+        - lem-complete-theory-boolean
 ---
 
 ::: {#def-fol-structure .definition name="Structures and assignments" date="2026-07-12"}
@@ -22,7 +37,7 @@ For @def-fol-structure, define recursively
 For a closed term the value is independent of \(s\).
 :::
 
-::: {#def-satisfaction .definition name="Satisfaction" date="2026-07-12"}
+::: {#def-satisfaction .definition name="Satisfaction" date="2026-07-12" export="def-satisfaction"}
 For @def-fol-formulas, @def-fol-structure, and @def-term-value, satisfaction is
 defined recursively by
 \[
@@ -66,7 +81,7 @@ candidate witness gives the equivalence.  This is exactly the capture
 avoidance required by @def-fol-substitution.
 :::
 
-::: {#def-henkin-theory .definition name="Henkin theory" date="2026-07-12"}
+::: {#def-henkin-theory .definition name="Henkin theory" date="2026-07-12" export="def-henkin-theory"}
 A set \(T\) of sentences in a language with at least one constant is a
 *Henkin theory* if, for every sentence \(\exists xA(x)\), there is a closed
 term \(t\) such that
@@ -91,7 +106,7 @@ for all finite arities.  Thus the relation and interpretations below do not
 depend on representatives.
 :::
 
-::: {#def-canonical-term-model .definition name="Canonical term model" date="2026-07-12"}
+::: {#def-canonical-term-model .definition name="Canonical term model" date="2026-07-12" export="def-canonical-term-model"}
 Let \(T\) be a deductively closed consistent theory in a language \(L^*\)
 with a constant.  Its canonical term model \(\mathcal M_T\) has as domain the
 \(\sim_T\)-classes \([t]\) of closed \(L^*\)-terms, using
@@ -144,7 +159,7 @@ quantifier axiom 5 in @def-hilbert-calculus directly gives
 existential in \(T\).
 :::
 
-::: {#lem-canonical-truth .lemma name="Canonical truth lemma" date="2026-07-12"}
+::: {#lem-canonical-truth .lemma name="Canonical truth lemma" date="2026-07-12" export="lem-canonical-truth"}
 Let \(T\) be a consistent, deductively closed, negation-complete Henkin theory.
 Choose closed representatives \(r_x\) and the corresponding assignment \(s\)
 as in @lem-term-model-evaluation.  For every formula \(A\) whose free
@@ -179,7 +194,7 @@ substituted existential.  This completes the induction.  Sentences require no
 representatives and are assignment-independent by @def-satisfaction.
 :::
 
-::: {#lem-reduct-satisfaction .lemma name="Reduct preserves old-language truth" date="2026-07-12"}
+::: {#lem-reduct-satisfaction .lemma name="Reduct preserves old-language truth" date="2026-07-12" export="lem-reduct-satisfaction"}
 If \(L\subseteq L^*\), \(\mathcal N\) is an \(L^*\)-structure, and
 \(\mathcal N\upharpoonright L\) is obtained by forgetting the new-symbol
 interpretations, then every \(L\)-formula has the same truth value in

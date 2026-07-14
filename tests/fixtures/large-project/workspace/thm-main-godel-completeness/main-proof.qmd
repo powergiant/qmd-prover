@@ -1,5 +1,17 @@
 ---
 title: "Proof of Gödel completeness"
+qmd-prover:
+  imports:
+    - from: calculus.qmd
+      use:
+        - def-hilbert-calculus
+        - lem-consistency-characterizations
+    - from: semantics.qmd
+      use:
+        - def-satisfaction
+    - from: henkin.qmd
+      use:
+        - thm-consistent-model
 ---
 
 ::: {.proof of="thm-main-godel-completeness"}

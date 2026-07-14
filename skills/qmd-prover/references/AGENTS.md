@@ -2,7 +2,7 @@
 
 Copy the managed block below into the root `AGENTS.md` of every mathematical project that uses qmd-prover. Keep the block unchanged. Add project-specific organization, notation, and writing rules outside the managed block.
 
-<!-- qmd-prover-contract:start version=12 -->
+<!-- qmd-prover-contract:start version=13 -->
 
 ## Contents
 
@@ -53,7 +53,21 @@ QMD outside recognized semantic blocks remains ordinary Quarto content. A semant
 | `.theorem .goal` | `thm-main-*` | Record a user-owned main goal. Preserve its ID, `name`, hypotheses, quantifiers, and statement body exactly; without a linked proof it is open. The `.goal` class refines `.theorem`, not a sixth kind. |
 | `.proof` | none | Justify exactly one declaration. Give it no ID; set `of` to the declaration ID and cite every logical dependency with `@id` at its point of use. |
 
-Use `export` when another file must import a declaration. Import exported IDs individually in the target QMD front matter; wildcards are forbidden:
+An `@id` citation records a logical dependency but does not make a declaration from another file available. Same-file citations need no scope metadata. Every cross-file dependency requires both of these steps:
+
+1. In the producer file, export the declaration under its exact semantic ID:
+
+```markdown
+::: {#lem-local-class-group-finite .lemma name="Local class group is finite" date="2026-07-12" export="lem-local-class-group-finite"}
+The local class group is finite.
+:::
+
+::: {.proof of="lem-local-class-group-finite"}
+Give the proof here.
+:::
+```
+
+2. In the consumer file, import that ID explicitly in the front matter:
 
 ```yaml
 ---
@@ -61,12 +75,11 @@ qmd-prover:
   imports:
     - from: foundations/local-groups.qmd
       use:
-        - def-local-class-group
-        - thm-local-class-group-finite
+        - lem-local-class-group-finite
 ---
 ```
 
-The references inside a definition construction or linked proof are the dependency declaration; do not add a `Uses` list. References in surrounding prose are navigational, and bibliographic citations such as `[@rudin1976]` remain ordinary Quarto citations.
+`from` is relative to the importing QMD file. Each `use` entry is a semantic ID, each producer must set `export` to that same ID, and wildcard imports are forbidden. Importing grants scope but does not itself declare a logical dependency: cite the imported result with `@id` at its point of use in the definition construction or linked proof. Do not add a `Uses` list. References in surrounding prose are navigational, and bibliographic citations such as `[@rudin1976]` remain ordinary Quarto citations.
 
 Use this shape for declarations and linked proofs:
 
@@ -113,6 +126,8 @@ Treat canonical QMD as read-only during proof development. Put every agent-creat
 
 `workspace inspect @thm-main-ID` independently checks the active workspace in dependency order and caches exact verdicts. A `workspace-verified` result is established only inside that provisional workspace snapshot; it is not canonical `VERIFIED` mathematics and must still pass protected submission and promotion before canonical use.
 
+After each coherent batch of semantic-QMD changes, and always before reporting a proof candidate ready, run `workspace inspect @thm-main-ID`. Repair every mechanical diagnostic, including missing exports, imports, and unavailable dependencies. If the independent verifier is unavailable or fails, report that infrastructure failure and leave the affected facts unverified; never bypass the inspection or write protected markers manually.
+
 The order of mathematical exploration is flexible; this workspace boundary is not. Move mathematics into canonical QMD only through qmd-prover's accepted promotion path.
 
 ## Verification discipline
@@ -144,7 +159,7 @@ Load the `qmd-prover` skill and let the user work in natural language. qmd-prove
 
 Whenever writing semantic QMD, follow this contract. Introduce useful intermediate results, revise rejected arguments, and continue a development for as long as the user's request requires. For a proof request, the proof-development workspace section is mandatory; flexibility concerns mathematical strategy, not file placement.
 
-This contract tells agents how to write; it does not establish compliance by itself. Use the skill's inspector and other infrastructure as needed to initialize or compare project policy, enforce semantic structure, check references and staleness, analyze dependencies, view frontiers and progress, verify candidates, retain feedback, promote accepted mathematics safely, and render project views. These tools support the work; they do not determine the mathematical plan.
+This contract tells agents how to write; it does not establish compliance by itself. Use the skill's inspector and other infrastructure to initialize or compare project policy, enforce semantic structure, check references and staleness, analyze dependencies, view frontiers and progress, verify candidates, retain feedback, promote accepted mathematics safely, and render project views. Always complete the required workspace inspection before reporting a proof candidate ready. These tools support the work; they do not determine the mathematical plan.
 
 The safety gates remain mandatory: do not use stale or unverified claims as established, do not edit protected user statements, respond to every critical verification error or gap, and accept canonical mathematics only through qmd-prover's checked atomic path. Each independent worker must load the skill, read this project `AGENTS.md`, and obey the same block discipline and verification boundary.
 

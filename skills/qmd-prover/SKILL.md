@@ -40,7 +40,11 @@ When the user asks to prove an existing `thm-main-*` goal, run `workspace init @
 
 Keep canonical QMD read-only while proving. Write all agent-created definitions, intermediate results, proof attempts, calculations, examples, counterexamples, and progress notes inside the goal workspace. Maintain `progress.qmd`; put the main candidate in `main-proof.qmd` as a linked `.proof` block without repeating the protected theorem. Follow unproved workspace dependencies instead of treating them as established, and promote accepted mathematics only through the protected path.
 
+An `@id` citation does not grant cross-file scope. When one QMD uses a declaration from another, set `export="<same-semantic-ID>"` on the producer declaration and list that ID under `qmd-prover.imports` in the consumer front matter; resolve `from` relative to the consumer file. Use the canonical contract for the complete producer/consumer template.
+
 `workspace inspect` verifies the selected active workspace in dependency order and reuses exact cached verdicts. Treat `workspace-verified` as provisional evidence confined to that workspace snapshot, never as canonical `VERIFIED`; submit it through the protected promotion path before canonical use.
+
+After each coherent batch of semantic-QMD edits, and before reporting a proof candidate ready, run `workspace inspect @thm-main-ID` and repair every mechanical diagnostic. If the verifier is unavailable or fails, report the infrastructure failure and leave the affected facts unverified; do not bypass inspection or write protected markers manually.
 
 ## Using the infrastructure
 

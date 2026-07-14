@@ -18,11 +18,11 @@ interface CliJsonResult {
 
 test('project initialization inventories external policy, adopts, preserves, appends, and synchronizes safely', async () => {
   const canonicalSource = await readFile(path.join(here, '..', 'skills', 'qmd-prover', 'references', 'AGENTS.md'), 'utf8');
-  const canonicalBlock = must(canonicalSource.match(/<!-- qmd-prover-contract:start version=12 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0];
+  const canonicalBlock = must(canonicalSource.match(/<!-- qmd-prover-contract:start version=13 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0];
 
   const fresh = await bareProject();
   const created = await initializeProject(fresh);
-  assert.deepEqual({ ok: created.ok, status: created.status, version: created.contract_version }, { ok: true, status: 'created', version: 12 });
+  assert.deepEqual({ ok: created.ok, status: created.status, version: created.contract_version }, { ok: true, status: 'created', version: 13 });
   assert.equal(must(created.existing).external_policy.mode, 'unrestricted');
   assert.equal(created.workspace_root, '.qmd-prover/workspaces');
   assert.equal((await stat(path.join(fresh, '.qmd-prover', 'workspaces'))).isDirectory(), true);
@@ -76,7 +76,7 @@ test('project initialization inventories external policy, adopts, preserves, app
   assert.ok(appended.includes(canonicalBlock));
 
   const stale = await bareProject();
-  const oldBlock = canonicalBlock.replace('version=12', 'version=1');
+  const oldBlock = canonicalBlock.replace('version=13', 'version=1');
   await writeFile(path.join(stale, 'AGENTS.md'), `# Local before\n\n${oldBlock}\n\n## Local after\n`);
   const syncRequired = await initializeProject(stale);
   assert.deepEqual({ ok: syncRequired.ok, status: syncRequired.status, current: syncRequired.current_contract_version }, { ok: false, status: 'sync-required', current: 1 });
@@ -88,7 +88,7 @@ test('project initialization inventories external policy, adopts, preserves, app
   assert.doesNotMatch(synchronized, /version=1 -->/);
 
   const malformed = await bareProject();
-  const malformedSource = 'Local policy\n\n<!-- qmd-prover-contract:start version=12 -->\nUnclosed contract\n';
+  const malformedSource = 'Local policy\n\n<!-- qmd-prover-contract:start version=13 -->\nUnclosed contract\n';
   await writeFile(path.join(malformed, 'AGENTS.md'), malformedSource);
   const malformedResult = await initializeProject(malformed);
   assert.equal(malformedResult.status, 'malformed-contract');
@@ -107,7 +107,7 @@ test('dispatcher preserves JSON commands and adds workspace operations', async (
     cwd: root
   }, (error, stdout, stderr) => error ? reject(error) : resolve(JSON.parse(stdout))));
   assert.equal(initialized.status, 'created');
-  assert.equal(initialized.contract_version, 12);
+  assert.equal(initialized.contract_version, 13);
   assert.equal(initialized.workspace_root, '.qmd-prover/workspaces');
   const policyRoot = await bareProject();
   await writeFile(path.join(policyRoot, 'AGENTS.md'), '# Existing policy\n');
@@ -212,9 +212,10 @@ test('dispatcher provides help for every command group and leaf', async () => {
 
 test('skill requires a once-per-context versioned project contract preflight', async () => {
   const skillRoot = path.join(here, '..', 'skills', 'qmd-prover');
-  const [skill, contract] = await Promise.all([
+  const [skill, contract, examplePolicy] = await Promise.all([
     readFile(path.join(skillRoot, 'SKILL.md'), 'utf8'),
-    readFile(path.join(skillRoot, 'references', 'AGENTS.md'), 'utf8')
+    readFile(path.join(skillRoot, 'references', 'AGENTS.md'), 'utf8'),
+    readFile(path.join(here, '..', 'examples', 'godel-completeness', 'AGENTS.md'), 'utf8')
   ]);
   assert.match(skill, /current agent in the same project context/);
   assert.match(skill, /Do not reread the files before every QMD read/);
@@ -222,10 +223,13 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(skill, /Never create, replace, or synchronize `AGENTS\.md` without user approval/);
   assert.match(skill, /Do not impose a fixed mathematical strategy/);
   assert.match(skill, /workspace init @thm-main-ID/);
+  assert.match(skill, /An `@id` citation does not grant cross-file scope/);
+  assert.match(skill, /export="<same-semantic-ID>"/);
+  assert.match(skill, /before reporting a proof candidate ready, run `workspace inspect @thm-main-ID`/);
   assert.match(skill, /asks to initialize qmd-prover/);
   assert.match(skill, /init --append-contract/);
   assert.match(skill, /init --sync-contract/);
-  assert.match(contract, /<!-- qmd-prover-contract:start version=12 -->/);
+  assert.match(contract, /<!-- qmd-prover-contract:start version=13 -->/);
   assert.match(contract, /\.qmd-prover\/\.external\.qmd/);
   assert.match(contract, /file absent \| External results are unrestricted/);
   assert.match(contract, /file present but whitespace-only \| Use no external mathematical results/);
@@ -233,6 +237,10 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(contract, /name="Uniform index theorem"/);
   assert.match(contract, /\.proof of="thm-main-uniform-index"/);
   assert.match(contract, /qmd-prover:\n  imports:/);
+  assert.match(contract, /export="lem-local-class-group-finite"/);
+  assert.match(contract, /An `@id` citation records a logical dependency but does not make a declaration from another file available/);
+  assert.match(contract, /`from` is relative to the importing QMD file/);
+  assert.match(contract, /Repair every mechanical diagnostic, including missing exports, imports, and unavailable dependencies/);
   assert.match(contract, /\| `\.definition` \| `def-\*` \|/);
   assert.match(contract, /\| `\.lemma` \| `lem-\*` \|/);
   assert.match(contract, /\| `\.proposition` \| `prp-\*` \|/);
@@ -256,4 +264,6 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.doesNotMatch(contract, /For each requested goal:/);
   assert.doesNotMatch(contract, /### Uses/);
   assert.match(contract, /Project-specific additions/);
+  const managed = must(contract.match(/<!-- qmd-prover-contract:start version=13 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0];
+  assert.equal(must(examplePolicy.match(/<!-- qmd-prover-contract:start version=13 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0], managed);
 });

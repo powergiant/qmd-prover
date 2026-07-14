@@ -328,6 +328,7 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
         if (!title.trim()) diagnostics.push(diagnostic('error', 'RESULT_NAME_MISSING', `${id} requires a nonempty name attribute`, file.relative, line, id));
         if (!date) diagnostics.push(diagnostic('error', 'RESULT_DATE_MISSING', `${id} requires an ISO introduction date attribute in YYYY-MM-DD form`, file.relative, line, id));
         else if (!validIntroductionDate(date)) diagnostics.push(diagnostic('error', 'RESULT_DATE_INVALID', `${id} introduction date must be a real date in YYYY-MM-DD form`, file.relative, line, id));
+        if (result.export !== null && result.export !== id) diagnostics.push(diagnostic('error', 'EXPORT_ID_MISMATCH', `${id} must set export="${id}" when it is imported by another file`, file.relative, line, id));
         if (statementText.length === 0 && content.blocks.every((block) => block.t === 'Null')) diagnostics.push(diagnostic('error', 'STATEMENT_MISSING', `${id} requires a nonempty statement body`, file.relative, line, id));
         if (kind === 'definition') {
           if (content.markers.length > 1) diagnostics.push(diagnostic('error', 'DEFINITION_MARKER_MULTIPLE', `${id} has more than one reserved control marker`, file.relative, line, id));

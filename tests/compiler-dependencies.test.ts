@@ -79,12 +79,14 @@ test('compiler validates result names, semantic kinds, and main-goal classes', a
   const wrongKind = result('lem-wrong', 'Shape.').replace('.lemma', '.proposition');
   const noName = result('thm-main-no-name', 'Missing caption.').replace(' name="thm-main-no-name"', '');
   const unsafeId = result('lem-unsafe/path', 'Unsafe identifier.');
-  await writeFile(path.join(root, 'shape.qmd'), `${wrongKind}\n${noName}\n${unsafeId}`);
+  const mismatchedExport = result('lem-export-mismatch', 'Mismatched export.', { extra: ' export="different-name"' });
+  await writeFile(path.join(root, 'shape.qmd'), `${wrongKind}\n${noName}\n${unsafeId}\n${mismatchedExport}`);
   const compilation = await compileProject(root, options);
   const codes = new Set(compilation.diagnostics.map((item) => item.code));
   assert.ok(codes.has('ID_KIND_MISMATCH'));
   assert.ok(codes.has('RESULT_NAME_MISSING'));
   assert.ok(codes.has('INVALID_SEMANTIC_ID'));
+  assert.ok(codes.has('EXPORT_ID_MISMATCH'));
 });
 
 test('compiler enforces introduction dates and record-backed marker placement', async () => {

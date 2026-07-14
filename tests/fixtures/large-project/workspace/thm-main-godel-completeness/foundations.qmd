@@ -2,7 +2,7 @@
 title: "First-order syntax and substitution"
 ---
 
-::: {#def-fol-signature .definition name="First-order signature" date="2026-07-12"}
+::: {#def-fol-signature .definition name="First-order signature" date="2026-07-12" export="def-fol-signature"}
 A first-order signature \(L\) consists of sets \(\mathcal F_n\) of \(n\)-ary
 function symbols and sets \(\mathcal R_n\) of \(n\)-ary relation symbols for
 each \(n\in\mathbb N\).  Constants are the members of \(\mathcal F_0\).
@@ -11,7 +11,7 @@ Equality is a distinguished logical binary predicate, not a member of
 arities and adds new ones.
 :::
 
-::: {#def-fol-terms .definition name="Terms and variables" date="2026-07-12"}
+::: {#def-fol-terms .definition name="Terms and variables" date="2026-07-12" export="def-fol-terms"}
 Fix a countably infinite set \(\mathrm{Var}\) of variables.  For a signature
 \(L\) as in @def-fol-signature, the \(L\)-terms are the least set containing
 every variable and every constant and closed under
@@ -20,7 +20,7 @@ has no variable.  The finite set of variables occurring in \(t\) is
 \(\mathrm{Var}(t)\).
 :::
 
-::: {#def-fol-formulas .definition name="Formulas and sentences" date="2026-07-12"}
+::: {#def-fol-formulas .definition name="Formulas and sentences" date="2026-07-12" export="def-fol-formulas"}
 For @def-fol-signature and @def-fol-terms, atomic formulas are
 \(R(t_1,\ldots,t_n)\) and \(t=u\).  Formulas are generated from atomic
 formulas using \(\neg\), \(\wedge\), and \(\exists x\).  Write the other
@@ -36,7 +36,7 @@ has no free variables.  Alpha-equivalence is the least congruence identifying
 \(A\); formulas are considered modulo this congruence.
 :::
 
-::: {#def-fol-substitution .definition name="Capture-avoiding substitution" date="2026-07-12"}
+::: {#def-fol-substitution .definition name="Capture-avoiding substitution" date="2026-07-12" export="def-fol-substitution"}
 For a term \(t\), variable \(x\), and formula \(A\) from @def-fol-formulas,
 \(A[t/x]\) is simultaneous replacement of the free occurrences of \(x\) by
 \(t\), after renaming bound variables when necessary so that no variable of
@@ -46,7 +46,7 @@ substitution.  A term \(t\) is *free for* \(x\) in \(A\) when the direct
 replacement causes no capture.
 :::
 
-::: {#lem-fresh-variable .lemma name="Fresh-variable lemma" date="2026-07-12"}
+::: {#lem-fresh-variable .lemma name="Fresh-variable lemma" date="2026-07-12" export="lem-fresh-variable"}
 For every finite collection of terms and formulas there is a variable that
 does not occur in any member of the collection.
 :::
@@ -58,7 +58,7 @@ finite sets is finite, while \(\mathrm{Var}\) in @def-fol-terms is infinite.
 Choose a variable outside that union.
 :::
 
-::: {#lem-substitution-composition .lemma name="Substitution composition" date="2026-07-12"}
+::: {#lem-substitution-composition .lemma name="Substitution composition" date="2026-07-12" export="lem-substitution-composition"}
 Let \(A\) be a formula, let \(x\ne y\), and suppose the displayed
 substitutions are capture-free and \(y\notin\mathrm{Var}(t)\).  Then
 \[
@@ -80,7 +80,7 @@ induction hypothesis inside the unchanged binder \(\exists z\).  This proves
 the identity specified by @def-fol-substitution.
 :::
 
-::: {#def-language-translation .definition name="Reduct translation" date="2026-07-12"}
+::: {#def-language-translation .definition name="Reduct translation" date="2026-07-12" export="def-language-translation"}
 If \(L\subseteq L'\) and \(A\) is an \(L'\)-formula, replacing selected new
 constants by distinct variables means the capture-avoiding simultaneous
 substitution of those variables for the constants, after bound-variable

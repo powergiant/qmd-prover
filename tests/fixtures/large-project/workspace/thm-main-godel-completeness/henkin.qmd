@@ -1,5 +1,24 @@
 ---
 title: "Henkin construction and model existence"
+qmd-prover:
+  imports:
+    - from: foundations.qmd
+      use:
+        - def-fol-formulas
+    - from: calculus.qmd
+      use:
+        - def-consistency
+        - def-hilbert-calculus
+        - lem-constant-elimination
+        - lem-henkin-witness-consistency
+        - lem-maximal-consistent
+        - lem-proof-finitary
+    - from: semantics.qmd
+      use:
+        - def-canonical-term-model
+        - def-henkin-theory
+        - lem-canonical-truth
+        - lem-reduct-satisfaction
 ---
 
 ::: {#lem-pure-language-extension .lemma name="Fresh symbols preserve consistency" date="2026-07-12"}
@@ -56,7 +75,7 @@ Thus \(H\) has the property in @def-henkin-theory, contains \(\Sigma\), and is
 consistent.
 :::
 
-::: {#thm-consistent-model .theorem name="Model existence for consistent theories" date="2026-07-12"}
+::: {#thm-consistent-model .theorem name="Model existence for consistent theories" date="2026-07-12" export="thm-consistent-model"}
 For every signature \(L\) and every syntactically consistent set \(\Sigma\)
 of \(L\)-sentences, there is an \(L\)-structure \(\mathcal M\) such that
 \(\mathcal M\models\Sigma\).

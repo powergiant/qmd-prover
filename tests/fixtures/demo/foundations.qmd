@@ -1,4 +1,4 @@
-::: {#def-reflexive .definition name="Reflexive equality" date="2026-07-13" export="reflexive"}
+::: {#def-reflexive .definition name="Reflexive equality" date="2026-07-13" export="def-reflexive"}
 Every object is equal to itself.
 :::
 
