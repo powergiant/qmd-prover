@@ -75,7 +75,6 @@ export const HELP_COMMANDS = [
   command('inspect', ['qmd-prover inspect <command> [arguments]']),
   command('inspect project', ['qmd-prover inspect project [--print]']),
   command('inspect fact', ['qmd-prover inspect fact @ID [--print]'], { acceptsPositionals: true }),
-  command('inspect theorem', ['qmd-prover inspect theorem @ID [--print]'], { acceptsPositionals: true }),
   command('inspect path', ['qmd-prover inspect path FILE_OR_FOLDER [--print]'], { acceptsPositionals: true }),
   command('dependency', ['qmd-prover dependency <command> [arguments]']),
   command('dependency dependencies', ['qmd-prover dependency dependencies @ID [--print]'], { acceptsPositionals: true }),

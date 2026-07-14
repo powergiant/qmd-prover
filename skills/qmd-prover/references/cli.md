@@ -31,7 +31,6 @@ and the `external_basis` mode and exact content. The verifier must return:
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" init
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" inspect project
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" inspect fact @ID
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" inspect theorem @thm-main-ID
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" inspect path path/to/file-or-folder
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" dependency frontier @thm-main-ID
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" dependency search "query" --kind lemma
@@ -53,7 +52,7 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" rende
 
 `workspace inspect @thm-main-ID` checks canonical staleness, then independently verifies the selected active workspace in dependency order. Exact workspace verdicts are cached under that workspace. `workspace-verified` is provisional state in its named workspace snapshot; no workspace marker is written and canonical promotion still requires the protected submission path.
 
-Inspection and dependency commands return schema-versioned JSON by default. Add `--print` to any inspection or dependency command for the same decision and snapshot as a human-readable report. Blocking diagnostics use exit code 2. `inspect fact` and the compatible `inspect theorem` alias accept any semantic fact ID.
+Inspection and dependency commands return schema-versioned JSON by default. Add `--print` to any inspection or dependency command for the same decision and snapshot as a human-readable report. Blocking diagnostics use exit code 2. `inspect fact` accepts any semantic fact ID.
 
 Every inspection checks staleness first, removes stale markers transitively, and then calls the independent verifier only for mechanically eligible facts whose exact verification input is not cached. The cache key includes mathematical identities, dependency state, import scope, external basis, and checker contract. Repeating an unchanged inspection therefore performs no new verifier calls. If the verifier command is unavailable or malformed, inspection returns per-fact diagnostics and remediation, leaves facts unverified, and does not continue spawning identical failing checks; repair the command before rerunning.
 

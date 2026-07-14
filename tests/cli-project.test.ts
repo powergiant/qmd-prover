@@ -128,7 +128,6 @@ test('dispatcher preserves JSON commands and adds workspace operations', async (
     cwd: root, env: cliEnv
   }, (error, stdout) => error ? reject(error) : resolve(JSON.parse(stdout))));
   assert.equal((await runJson(['inspect', 'fact', '@thm-main-cli'])).fact.id, 'thm-main-cli');
-  assert.equal((await runJson(['inspect', 'theorem', '@thm-main-cli'])).fact.id, 'thm-main-cli');
   assert.deepEqual((await runJson(['inspect', 'path', 'goal.qmd'])).scope, { type: 'file', path: 'goal.qmd' });
   assert.equal((await runJson(['dependency', 'reverse', 'dependencies', '@thm-main-cli'])).operation, 'dependency-reverse-dependencies');
   assert.equal((await runJson(['dependency', 'alternative', 'paths', '@thm-main-cli', '@thm-main-cli'])).operation, 'dependency-alternative-paths');
@@ -157,7 +156,7 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const run = (args: string[]) => new Promise<CliProcessResult>((resolve) => execFile(process.execPath, [cli, ...args], (error, stdout, stderr) => resolve({ error, stdout, stderr })));
   const commands = [
     'init',
-    'inspect', 'inspect project', 'inspect fact', 'inspect theorem', 'inspect path',
+    'inspect', 'inspect project', 'inspect fact', 'inspect path',
     'dependency', 'dependency dependencies', 'dependency reverse', 'dependency reverse dependencies',
     'dependency impact', 'dependency frontier', 'dependency path', 'dependency alternative', 'dependency alternative paths',
     'dependency cycles', 'dependency findings', 'dependency unused', 'dependency unused imports', 'dependency unused exports',
@@ -181,7 +180,7 @@ test('dispatcher provides help for every command group and leaf', async () => {
     assert.match(result.stdout, new RegExp(`qmd-prover ${command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
   }
   const inspectHelp = await run(['inspect', 'help']);
-  assert.match(inspectHelp.stdout, /Commands:\n  project\n  fact\n  theorem\n  path/);
+  assert.match(inspectHelp.stdout, /Commands:\n  project\n  fact\n  path/);
   const initHelp = await run(['init', '--help']);
   assert.match(initHelp.stdout, /Description:\n  Initialize the qmd-prover project contract/);
   assert.match(initHelp.stdout, /Arguments:\n  This command accepts no positional arguments\./);
@@ -199,15 +198,16 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const removedInit = await run(['init', 'project', '--help']);
   assert.equal(must(removedInit.error).code, 1);
   assert.match(removedInit.stderr, /Unknown command: init project/);
+  const removedTheoremHelp = await run(['inspect', 'theorem', '--help']);
+  assert.equal(must(removedTheoremHelp.error).code, 1);
+  assert.match(removedTheoremHelp.stderr, /Unknown command: inspect theorem/);
+  const removedTheorem = await run(['inspect', 'theorem', '@thm-main-id']);
+  assert.equal(must(removedTheorem.error).code, 1);
+  assert.match(removedTheorem.stderr, /inspect requires project, fact, or path/);
 
-  const compatibilityCli = path.join(here, '..', 'skills', 'qmd-prover', 'scripts', 'qmd-prover.mjs');
-  const compatibilityHelp = await new Promise<CliProcessResult>((resolve) => execFile(
-    process.execPath,
-    [compatibilityCli, 'help'],
-    (error, stdout, stderr) => resolve({ error, stdout, stderr })
-  ));
-  assert.equal(compatibilityHelp.error, null);
-  assert.equal(compatibilityHelp.stdout, rootHelp.stdout);
+  const skillRoot = path.join(here, '..', 'skills', 'qmd-prover');
+  await assert.rejects(stat(path.join(skillRoot, 'src', 'qmd-prover.mts')), { code: 'ENOENT' });
+  await assert.rejects(stat(path.join(skillRoot, 'scripts', 'qmd-prover.mjs')), { code: 'ENOENT' });
 });
 
 test('skill requires a once-per-context versioned project contract preflight', async () => {

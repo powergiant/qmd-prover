@@ -143,7 +143,7 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
             emit(await inspectProject(root, options), parsed.print);
             return;
         }
-        if (subcommand === 'theorem' || subcommand === 'fact') {
+        if (subcommand === 'fact') {
             if (tail.length !== 1)
                 throw new Error(`inspect ${subcommand} requires one semantic ID and optional --print`);
             const result = await inspectFact(root, tail[0], options);
@@ -157,7 +157,7 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
             emit(await inspectPath(root, tail[0], options), parsed.print);
             return;
         }
-        throw new Error('inspect requires project, fact, theorem, or path');
+        throw new Error('inspect requires project, fact, or path');
     }
     if (command === 'dependency') {
         const parsed = presentation(rest);

@@ -69,7 +69,7 @@ For theorem-like facts qmd-prover writes record-backed control markers at the st
 - If inspection reports that the verifier command is unconfigured, missing, failing, malformed, or schema-invalid, do not rerun it in a loop and never write `VERIFIED` manually. Explain the infrastructure failure, repair `verification.command` or `QMD_PROVER_VERIFIER`, then rerun the narrowest affected scope.
 - Use standalone `check staleness` when only invalidation is wanted; it removes stale `VERIFIED` markers transitively and reports each invalidation path without starting mathematical verification.
 - Use `inspect project` for all goal states and diagnostics.
-- Use `inspect fact` (or the compatible `inspect theorem` alias) for a bounded target/dependency/history bundle.
+- Use `inspect fact` for a bounded target/dependency/history bundle.
 - Use `inspect path` for one QMD file or folder, and `dependency frontier`, `dependency search`, or the other dependency queries to work from the latest named graph snapshot.
 - Use `verification show` for the complete stored report.
 - Use `render` to prepare a generated QMD status page, report data, and a dependency graph; use ordinary `quarto render` for final HTML, PDF, or other output.

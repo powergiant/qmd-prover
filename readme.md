@@ -16,7 +16,7 @@ docs/                maintainer design and architecture documentation
 
 The skill package contains its own `SKILL.md`, UI metadata, references, TypeScript source, dispatcher, and compiled runtime. It can be copied independently of the rest of this repository. TypeScript tooling is development-only; installed runtime code has no package dependency.
 
-The supported dispatcher is `scripts/qmd-prover.js`; a generated `scripts/qmd-prover.mjs` launcher remains for compatibility with existing installations.
+The dispatcher is `scripts/qmd-prover.js`.
 
 ## Requirements
 

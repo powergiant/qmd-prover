@@ -499,7 +499,7 @@ Inspect one theorem, lemma, or definition:
 
 ```bash
 node "$QMD_PROVER_ROOT/scripts/qmd-prover.js" \
-  inspect theorem @thm-main-even-square --print
+  inspect fact @thm-main-even-square --print
 ```
 
 Inspect one file or folder:
