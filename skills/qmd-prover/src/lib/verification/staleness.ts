@@ -1,6 +1,7 @@
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { buildProjectInspectionIndex } from '../inspection/index.js';
+import { resolveProjectSnapshot } from '../inspection/snapshot.js';
 import { externalPolicyHash } from '../infrastructure/external.js';
 import { AUX, readJson, stableJson } from '../infrastructure/files.js';
 import { SCHEMA_VERSION, hasErrorCode, isRecord } from '../shared/core.js';
@@ -24,6 +25,9 @@ async function jsonFiles(directory: string): Promise<string[]> {
 export async function checkStaleness(root = process.cwd(), options: RuntimeOptions = {}): Promise<StalenessReport> {
   root = path.resolve(root);
   const index = await buildProjectInspectionIndex(root, { ...options, write: false });
+  // Report the same graph snapshot identity the inspect/dependency commands use,
+  // so a caller can correlate a staleness audit with the graph it audited.
+  const snapshot = await resolveProjectSnapshot(index, { ...options, write: false });
   const externalHash = externalPolicyHash(index.externalBasis);
   const contract = checkerContract(index.compilation.config);
   const resultById = new Map(index.compilation.manifest.results.map((result) => [result.id, result]));
@@ -72,6 +76,6 @@ export async function checkStaleness(root = process.cwd(), options: RuntimeOptio
     ok: index.compilation.complete && changed.every((item) => !item.reasons.includes('cache-invalid')),
     changed,
     invalidated: changed.map((item) => ({ id: item.id, path: [item.id], reasons: item.reasons })),
-    snapshot_id: index.compilation.graph.snapshot_id
+    snapshot_id: snapshot.snapshot_id
   };
 }

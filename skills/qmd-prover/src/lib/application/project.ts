@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { readExternalPolicy } from '../infrastructure/external.js';
 import { atomicWrite, exists, relativePosix, withWriteLock } from '../infrastructure/files.js';
+import { SCHEMA_VERSION } from '../shared/core.js';
 import type { ExistingProjectInventory, InitializeProjectResult, JsonObject } from '../shared/types.js';
 
 const START = '<!-- qmd-prover-contract:start version=';
@@ -18,12 +19,13 @@ async function canonicalContract() {
 
 function result(root: string, version: number, status: string, extra: JsonObject = {}): InitializeProjectResult {
   return {
-    schema_version: 1,
+    schema_version: SCHEMA_VERSION,
     operation: 'init-project',
     ok: !status.endsWith('-required') && status !== 'malformed-contract',
     status,
     path: relativePosix(root, path.join(root, 'AGENTS.md')),
     contract_version: version,
+    diagnostics: [],
     ...extra
   };
 }

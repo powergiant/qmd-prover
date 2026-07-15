@@ -90,7 +90,7 @@ export async function renderProject(root = process.cwd(), options = {}) {
         ok: true,
         status: compilation.ok ? 'prepared' : 'prepared-with-errors',
         output: path.relative(root, path.join(output, 'proof-status.qmd')),
-        graph: path.relative(root, path.join(output, 'dependencies.svg')),
+        graph_svg: path.relative(root, path.join(output, 'dependencies.svg')),
         report: path.relative(root, path.join(reportDir, 'status.json')),
         ...(quartoAvailable ? { render_command: 'quarto render' } : {}),
         quarto: {

@@ -59,14 +59,14 @@ dependency isolated [--print]
 dependency unreachable [--print]
 dependency ready for ai [--print]
 dependency reused [--limit N] [--print]
-dependency search QUERY [--kind KIND] [--status STATUS] [--origin ORIGIN] [--path PATH] [graph filters] [--print]
+dependency search [QUERY] [--kind KIND] [--status STATUS] [--origin ORIGIN] [--path PATH] [graph filters] [--print]
 check staleness [--print]
 verification list
 verification show SUBMISSION_ID
 render [--allow-errors]
 ```
 
-Use `help COMMAND...` for exact filters, ranges, side effects, and failure semantics. `render` writes nothing when project errors exist unless `--allow-errors` is explicit.
+Use `help COMMAND...` for exact filters, status values, ranges, side effects, and failure semantics. Only the commands shown with `[--print]` accept it; `init`, `verification list`, `verification show`, and `render` emit JSON only. `dependency search` matches every fact when `QUERY` is omitted, so its filters can be used on their own. A dependency query returns only its own answer (target, dependencies, path, matches, and so on); run `inspect project` when the whole graph is wanted. `render` writes nothing when project errors exist unless `--allow-errors` is explicit.
 
 Read [references/cli.md](references/cli.md) when configuring Pandoc or the verifier, troubleshooting command behavior, installing the skill, or needing the full command inventory.
 
@@ -103,6 +103,7 @@ Use dependency operations to inspect the project graph, search facts, show paths
 - `OPEN` marks an incomplete active proof attempt; `REJECTED` retains an inactive failed attempt. No marker means candidate.
 - `DISPROVED` begins a theorem-like proof body that proposes a precise counterexample or refutation; definitions cannot use it. A local disproof is conditional on its direct dependencies and becomes globally disproved only when the complete upstream closure is globally verified. A verifier may also discover a refutation without changing QMD.
 - `VERIFIED` and `REVOKED` are reserved markers. Never write them; verification state lives in inspection state, not in QMD.
+- These QMD markers are distinct from the inspection `status` field an agent reads back. A fact's `status` is derived (`candidate`, `open`, `rejected`, `stale`, `missing`, and so on) and the separate global verification status (`verified`, `disproved`, `blocked`, `unverified`, `invalid`) is what `dependency search --status` filters on; `help dependency search` lists every accepted value.
 - Exact local verified, disproved, and rejected outcomes are cached by the target statement, submitted proof or refutation, direct dependency statements, semantic context, external basis, checker contract, and protocol. Dependency proof text and verification state are excluded; changing only an upstream proof triggers global recomposition rather than downstream AI calls.
 - `check staleness` is a read-only audit of verification caches against current sources, the external basis, and the checker contract. It never edits QMD.
 - Use `verification list` and `verification show` to discover and read retained verification records.

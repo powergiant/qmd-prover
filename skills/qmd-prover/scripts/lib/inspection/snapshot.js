@@ -1,6 +1,21 @@
 import path from 'node:path';
 import { AUX, atomicJson, readJson, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
 import { SCHEMA_VERSION } from '../shared/core.js';
+// A graph node is a topology-plus-status view. The verbose per-fact detail
+// (verifier reasons/reports, statement and proof hashes) lives in the manifest
+// results and each operation's `facts[]`/`check`, so nodes carry only the
+// compact status an agent needs to reason about the graph. This keeps whole-graph
+// payloads small instead of repeating the same reason string on every node.
+function nodeLocalVerification(check) {
+    if (!check)
+        return { status: 'not-run' };
+    return check.outcome ? { status: check.status, outcome: check.outcome } : { status: check.status };
+}
+function nodeGlobalVerification(global) {
+    if (!global)
+        return { status: 'unverified', blockers: [] };
+    return { status: global.status, blockers: global.blockers ?? [] };
+}
 function uniqueDiagnostics(items) {
     const seen = new Set();
     return items.filter((item) => {
@@ -40,9 +55,8 @@ export function buildProjectSnapshot(index, diagnostics = index.diagnostics) {
             line: result.line,
             origin: result.origin === 'user' ? 'main-goal' : 'fact',
             ownership: result.origin,
-            identity: { statement_hash: result.statement_hash, proof_hash: result.proof_hash },
-            local_verification: result.local_verification ?? { status: 'not-run', reason: 'No local verification result is available.' },
-            global_verification: result.global_verification ?? { status: 'unverified', blockers: [], reason: 'local-verification-not-run' },
+            local_verification: nodeLocalVerification(result.local_verification),
+            global_verification: nodeGlobalVerification(result.global_verification),
             ...(result.disproof ? { disproof: result.disproof } : {})
         })),
         ...index.compilation.graph.nodes.filter((node) => node.origin === 'unresolved')
@@ -53,14 +67,18 @@ export function buildProjectSnapshot(index, diagnostics = index.diagnostics) {
         edges: index.compilation.graph.edges,
         cycles: index.compilation.graph.cycles
     };
-    graph.snapshot_id = sha256(stableJson({ graph, context_hash: index.contextHash }, 0));
+    // Graph nodes no longer carry statement/proof hashes, so mix the content
+    // signature into the snapshot identity: it must still change whenever the
+    // exact mathematical content changes, not only when node topology/status does.
+    const sourceSignature = projectSourceSignature(index.compilation, index.contextHash);
+    graph.snapshot_id = sha256(stableJson({ graph, context_hash: index.contextHash, source_signature: sourceSignature }, 0));
     const manifest = { ...index.compilation.manifest, snapshot_id: graph.snapshot_id };
     const sorted = uniqueDiagnostics(diagnostics);
     return {
         schema_version: SCHEMA_VERSION,
         snapshot_id: graph.snapshot_id,
         context_hash: index.contextHash,
-        source_signature: projectSourceSignature(index.compilation, index.contextHash),
+        source_signature: sourceSignature,
         goals: index.goals.map(({ id, file, line, status }) => ({ id, file, line, status })),
         notes: index.notes,
         manifest,

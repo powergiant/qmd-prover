@@ -1,6 +1,6 @@
 export const AUX = '.qmd-prover';
 /** Stable output schema for every operation result and persisted snapshot. */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 export const CONTROL_MARKERS = ['OPEN', 'REJECTED', 'DISPROVED', 'VERIFIED', 'REVOKED'];
 export const CONTROL_MARKER_SET = new Set(CONTROL_MARKERS);
 export function isControlMarker(value) {

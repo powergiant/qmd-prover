@@ -491,18 +491,9 @@
       ],
       "export": "def-canonical-term-model",
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-canonical-term-model",
       "kind": "definition",
       "line": 109,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -537,18 +528,9 @@
       "dependencies": [],
       "export": "def-consistency",
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-consistency",
       "kind": "definition",
       "line": 70,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -580,18 +562,9 @@
       ],
       "export": "def-fol-formulas",
       "file": "workspace/foundations.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-fol-formulas",
       "kind": "definition",
       "line": 23,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -633,18 +606,9 @@
       "dependencies": [],
       "export": "def-fol-signature",
       "file": "workspace/foundations.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-fol-signature",
       "kind": "definition",
       "line": 5,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -674,18 +638,9 @@
       ],
       "export": null,
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-fol-structure",
       "kind": "definition",
       "line": 20,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -724,18 +679,9 @@
       ],
       "export": "def-fol-substitution",
       "file": "workspace/foundations.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-fol-substitution",
       "kind": "definition",
       "line": 39,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -774,18 +720,9 @@
       ],
       "export": "def-fol-terms",
       "file": "workspace/foundations.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-fol-terms",
       "kind": "definition",
       "line": 14,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -820,18 +757,9 @@
       "dependencies": [],
       "export": "def-henkin-theory",
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-henkin-theory",
       "kind": "definition",
       "line": 84,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -863,18 +791,9 @@
       ],
       "export": "def-hilbert-calculus",
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-hilbert-calculus",
       "kind": "definition",
       "line": 14,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -922,18 +841,9 @@
       ],
       "export": "def-language-translation",
       "file": "workspace/foundations.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-language-translation",
       "kind": "definition",
       "line": 83,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -983,18 +893,9 @@
       ],
       "export": "def-satisfaction",
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-satisfaction",
       "kind": "definition",
       "line": 40,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1039,26 +940,17 @@
       "construction_dependencies": [
         "def-fol-structure"
       ],
-      "construction_hash": "sha256:5e31ced558c8ed760595610d24d8fb3cffc0b7533eaf9fe64bfdd8b8f3e1877a",
-      "construction_text": "For @def-fol-structure, define recursively (x^{M}_s=s(x)) and [ f(t_1,,t_n)^{M}_s =f^{M}(t_1^{M}_s,, t_n^{M}_s). ] For a closed term the value is independent of (s).",
+      "construction_hash": "sha256:509e4e54afdf5ab1da8c0b9ac3c143c34f7cc463f8a710a5bff6664314f7b33c",
+      "construction_text": "For @def-fol-structure, define recursively (x^{M}_s=s(x)) and [ f(t_1,,t_n)^{M}_s =f{M}(t_1{M}_s,, t_n^{M}_s). ] For a closed term the value is independent of (s).",
       "date": "2026-07-12",
       "dependencies": [
         "def-fol-structure"
       ],
       "export": null,
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "def-term-value",
       "kind": "definition",
       "line": 29,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1073,8 +965,8 @@
           "scope": "pass"
         }
       ],
-      "statement_hash": "sha256:5e31ced558c8ed760595610d24d8fb3cffc0b7533eaf9fe64bfdd8b8f3e1877a",
-      "statement_text": "For @def-fol-structure, define recursively (x^{M}_s=s(x)) and [ f(t_1,,t_n)^{M}_s =f^{M}(t_1^{M}_s,, t_n^{M}_s). ] For a closed term the value is independent of (s).",
+      "statement_hash": "sha256:509e4e54afdf5ab1da8c0b9ac3c143c34f7cc463f8a710a5bff6664314f7b33c",
+      "statement_text": "For @def-fol-structure, define recursively (x^{M}_s=s(x)) and [ f(t_1,,t_n)^{M}_s =f{M}(t_1{M}_s,, t_n^{M}_s). ] For a closed term the value is independent of (s).",
       "status": "candidate",
       "title": "Value of a term",
       "title_hash": "sha256:55b90e25142689e35d177d282ccdb91b4751331d3357c915ef3295febb8fa629",
@@ -1101,18 +993,9 @@
       ],
       "export": "lem-canonical-truth",
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-canonical-truth",
       "kind": "lemma",
       "line": 162,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1207,18 +1090,9 @@
       ],
       "export": null,
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-chain-union-consistent",
       "kind": "lemma",
       "line": 100,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1270,18 +1144,9 @@
       ],
       "export": "lem-complete-theory-boolean",
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-complete-theory-boolean",
       "kind": "lemma",
       "line": 139,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1326,18 +1191,9 @@
       ],
       "export": "lem-consistency-characterizations",
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-consistency-characterizations",
       "kind": "lemma",
       "line": 78,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1385,18 +1241,9 @@
       ],
       "export": "lem-constant-elimination",
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-constant-elimination",
       "kind": "lemma",
       "line": 154,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1462,18 +1309,9 @@
       ],
       "export": null,
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-deduction",
       "kind": "lemma",
       "line": 51,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1518,18 +1356,9 @@
       ],
       "export": null,
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-equality-congruence",
       "kind": "lemma",
       "line": 91,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1575,18 +1404,9 @@
       ],
       "export": null,
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-existential-membership",
       "kind": "lemma",
       "line": 144,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1638,18 +1458,9 @@
       ],
       "export": "lem-fresh-variable",
       "file": "workspace/foundations.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-fresh-variable",
       "kind": "lemma",
       "line": 49,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1697,18 +1508,9 @@
       ],
       "export": "lem-henkin-witness-consistency",
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-henkin-witness-consistency",
       "kind": "lemma",
       "line": 177,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1777,18 +1579,9 @@
       ],
       "export": null,
       "file": "workspace/henkin.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-henkinization",
       "kind": "lemma",
       "line": 38,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1856,18 +1649,9 @@
       ],
       "export": "lem-maximal-consistent",
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-maximal-consistent",
       "kind": "lemma",
       "line": 114,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1925,18 +1709,9 @@
       ],
       "export": "lem-proof-finitary",
       "file": "workspace/calculus.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-proof-finitary",
       "kind": "lemma",
       "line": 40,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -1975,18 +1750,9 @@
       ],
       "export": null,
       "file": "workspace/henkin.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-pure-language-extension",
       "kind": "lemma",
       "line": 24,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -2038,18 +1804,9 @@
       ],
       "export": "lem-reduct-satisfaction",
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-reduct-satisfaction",
       "kind": "lemma",
       "line": 197,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -2097,18 +1854,9 @@
       ],
       "export": null,
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-semantic-substitution",
       "kind": "lemma",
       "line": 62,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -2174,18 +1922,9 @@
       ],
       "export": "lem-substitution-composition",
       "file": "workspace/foundations.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-substitution-composition",
       "kind": "lemma",
       "line": 61,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -2231,18 +1970,9 @@
       ],
       "export": null,
       "file": "workspace/semantics.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "lem-term-model-evaluation",
       "kind": "lemma",
       "line": 126,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -2298,18 +2028,9 @@
       ],
       "export": "thm-consistent-model",
       "file": "workspace/henkin.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "thm-consistent-model",
       "kind": "theorem",
       "line": 78,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "agent",
@@ -2385,18 +2106,9 @@
       ],
       "export": null,
       "file": "completeness.qmd",
-      "global_verification": {
-        "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "unverified"
-      },
       "id": "thm-main-godel-completeness",
       "kind": "theorem",
       "line": 5,
-      "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
-        "status": "not-run"
-      },
       "marker": null,
       "marker_valid": true,
       "origin": "user",
@@ -2444,6 +2156,6 @@
       ]
     }
   ],
-  "schema_version": 5,
-  "snapshot_id": "sha256:a2da6c96cbb82831b775a3bf820896eac4c6ba7b19f5f3b01c39ef7449fb4588"
+  "schema_version": 6,
+  "snapshot_id": "sha256:5d3448ce6298ae961a2c51c684b4f32718f0a3ebca72c7965c60f00356670c93"
 }

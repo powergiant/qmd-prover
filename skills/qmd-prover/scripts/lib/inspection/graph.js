@@ -120,6 +120,10 @@ export function blockerPaths(graph, roots) {
         if (!graph.nodes.some((node) => node.id === root))
             continue;
         for (const item of frontier(graph, root)) {
+            // Skip the trivial "a fact blocks itself" path: an unverified leaf is its
+            // own frontier, but reporting it as a blocking dependency of itself is noise.
+            if (item.fact.id === root && (item.path?.length ?? 0) <= 1)
+                continue;
             const key = `${root}\0${item.fact.id}`;
             if (seen.has(key))
                 continue;

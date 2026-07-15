@@ -144,8 +144,8 @@ test('inspect fact locates a large-project fact and verifies only its dependency
     assert.deepEqual((await verifierCalls(countFile)).sort(), inspected.graph.nodes.map((node) => node.id).sort());
     const latest = await readJson<{ schema_version: number; file: string }>(path.join(root, '.qmd-prover', 'graphs', 'latest.json'));
     const snapshot = await readJson<{ schema_version: number; goals: unknown[]; notes: unknown[]; graph: { nodes: unknown[] } }>(path.join(root, latest.file));
-    assert.equal(latest.schema_version, 5);
-    assert.equal(snapshot.schema_version, 5);
+    assert.equal(latest.schema_version, 6);
+    assert.equal(snapshot.schema_version, 6);
     assert.equal(snapshot.goals.length, 1);
     assert.equal(snapshot.notes.length, 7);
     assert.equal(snapshot.graph.nodes.length, 32);

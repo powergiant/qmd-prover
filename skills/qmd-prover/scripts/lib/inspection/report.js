@@ -72,7 +72,11 @@ function reportFindings(lines, findings) {
 }
 export function printReport(input) {
     const result = input;
-    const lines = [`qmd-prover ${result.operation}`, `snapshot: ${result.snapshot_id ?? 'none'}`];
+    // A labelled field, not a runnable command: the operation slug is hyphenated
+    // (dependency-reverse-dependencies) while the invocation is space-separated.
+    const lines = [`operation: ${result.operation}`];
+    if (result.snapshot_id)
+        lines.push(`snapshot: ${result.snapshot_id}`);
     if (typeof result.ok === 'boolean')
         lines.push(`status: ${result.ok ? 'ok' : 'failed'}`);
     if (result.computed === false)
@@ -191,7 +195,7 @@ export function printReport(input) {
     if (result.transitive_dependencies)
         lines.push(`transitive dependencies: ${result.transitive_dependencies.map((item) => `@${item.id}`).join(', ') || 'none'}`);
     if (result.direct_reverse_dependencies)
-        lines.push(`direct reverse dependencies: ${result.direct_reverse_dependencies.map((id) => `@${id}`).join(', ') || 'none'}`);
+        lines.push(`direct reverse dependencies: ${result.direct_reverse_dependencies.map((item) => `@${item.id}`).join(', ') || 'none'}`);
     const blockers = result.blockers ?? [];
     if (blockers.length) {
         lines.push('blocking dependency paths:');
@@ -238,7 +242,7 @@ export function printReport(input) {
             lines.push(`  ${formatPath(cycle)}`);
     }
     if (result.affected)
-        lines.push(`affected verified facts: ${result.affected.map((item) => `@${item.id}`).join(', ') || 'none'}`);
+        lines.push(`affected facts: ${result.affected.map((item) => `@${item.id}`).join(', ') || 'none'}`);
     if (result.matches) {
         lines.push(`matches: ${result.matches.length}`);
         for (const item of result.matches)

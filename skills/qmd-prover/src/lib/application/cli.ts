@@ -83,7 +83,8 @@ function optionValues(args: string[], names: Set<string>, flags = new Set<string
       options[key.replaceAll('-', '')] = true;
       continue;
     }
-    if (!names.has(key) || !args[index + 1] || args[index + 1].startsWith('--')) throw new Error(`Invalid or missing value for ${name}`);
+    if (!names.has(key)) throw new Error(`Unknown option ${name}`);
+    if (!args[index + 1] || args[index + 1].startsWith('--')) throw new Error(`Missing value for ${name}`);
     if (Object.hasOwn(options, key.replaceAll('-', ''))) throw new Error(`Duplicate option ${name}`);
     options[key.replaceAll('-', '')] = args[index + 1];
     index += 1;
@@ -149,6 +150,7 @@ export async function main(
     }
     if (subcommand === 'fact') {
       if (tail.length !== 1) throw new Error(`inspect ${subcommand} requires one semantic ID and optional --print`);
+      if (!tail[0].replace(/^@/, '').trim()) throw new Error('inspect fact requires a non-empty semantic ID');
       const result: OperationResult = await inspectFact(root, tail[0], options);
       result.verification_history = await history(root, String(asRecord(result.fact).id ?? ''));
       emit(result, parsed.print);
@@ -164,16 +166,16 @@ export async function main(
   if (command === 'dependency') {
     const parsed = presentation(rest);
     const { operation: subcommand, tail, retired } = dependencyOperation(parsed.args);
-    if (!subcommand) throw new Error('dependency requires an operation');
+    if (!subcommand) throw new Error('dependency requires an operation. Run qmd-prover help dependency.');
     const operations = new Set(['dependencies', 'reverse-dependencies', 'impact', 'frontier', 'path', 'alternative-paths', 'cycles', 'findings', 'unused-imports', 'unused-exports', 'isolated', 'unreachable', 'ready-for-ai', 'reused', 'search']);
-    if (retired || !operations.has(subcommand)) throw new Error(`Unknown dependency command: ${parsed.args.join(' ')}`);
+    if (retired || !operations.has(subcommand)) throw new Error(`Unknown dependency command: ${subcommand}. Run qmd-prover help dependency.`);
     if (subcommand === 'search') {
       const extracted = optionValues(
         tail,
         new Set(['kind', 'status', 'origin', 'path', 'related-to', 'frontier-of', 'used-by', 'depends-on', 'affected-by', 'stale-affected-by']),
         new Set(['reverse', 'direct', 'cycle-participant'])
       );
-      if (extracted.positionals.length !== 1) throw new Error('dependency search requires one query');
+      if (extracted.positionals.length > 1) throw new Error('dependency search accepts at most one query');
       const queryOptions: RuntimeOptions = {
         ...options,
         kind: enumOption('kind', optionString(extracted.options.kind), ['definition', 'lemma', 'theorem', 'proposition', 'corollary', 'unknown']),
@@ -218,6 +220,8 @@ export async function main(
       emit(await analyzeDependencies(root, subcommand, [], { ...options, limit }), parsed.print);
       return;
     }
+    const unknownOption = tail.find((item) => item.startsWith('--'));
+    if (unknownOption) throw new Error(`Unknown option ${unknownOption}`);
     const noArgument = new Set(['cycles', 'findings', 'unused-imports', 'unused-exports', 'isolated', 'unreachable', 'ready-for-ai']);
     const required = noArgument.has(subcommand) ? 0 : subcommand === 'path' ? 2 : 1;
     if (tail.length !== required) throw new Error(`dependency ${subcommand.replaceAll('-', ' ')} requires ${required} semantic ID${required === 1 ? '' : 's'}`);
@@ -227,15 +231,25 @@ export async function main(
   if (command === 'check') {
     const parsed = presentation(rest);
     const [subcommand, ...tail] = parsed.args;
-    if (subcommand !== 'staleness' || tail.length) throw new Error('check staleness accepts only --print');
+    if (subcommand !== 'staleness') throw new Error('check requires the staleness subcommand. Run qmd-prover help check.');
+    if (tail.length) throw new Error('check staleness accepts only --print');
     emit(await checkStaleness(root, options), parsed.print);
     return;
   }
   if (command === 'verification') {
     const [subcommand, value, ...tail] = rest;
-    if (subcommand === 'list' && value === undefined) { emit(await listVerifications(root), false); return; }
-    if (subcommand === 'show' && value && tail.length === 0) { emit(await showVerification(root, value), false); return; }
-    throw new Error('Invalid verification command');
+    if (subcommand === 'list') {
+      if (value !== undefined) throw new Error('verification list accepts no options');
+      emit(await listVerifications(root), false);
+      return;
+    }
+    if (subcommand === 'show') {
+      if (!value) throw new Error('verification show requires a submission ID. Run qmd-prover verification list to discover IDs.');
+      if (tail.length) throw new Error('verification show accepts only a submission ID');
+      emit(await showVerification(root, value), false);
+      return;
+    }
+    throw new Error('verification requires the list or show subcommand. Run qmd-prover help verification.');
   }
   if (command === 'render') {
     if (rest.some((item) => item !== '--allow-errors') || rest.filter((item) => item === '--allow-errors').length > 1) {

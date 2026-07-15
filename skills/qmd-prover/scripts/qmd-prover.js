@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import { main } from './lib/application/cli.js';
-import { asErrorLike } from './lib/shared/core.js';
+import { asErrorLike, SCHEMA_VERSION } from './lib/shared/core.js';
 main(process.argv.slice(2)).catch((error) => {
     const failure = asErrorLike(error);
     const message = failure.message ?? String(error);
     const code = typeof failure.code === 'string' ? failure.code : 'CLI_ERROR';
     process.stdout.write(`${JSON.stringify({
-        schema_version: 4,
+        schema_version: SCHEMA_VERSION,
         operation: 'cli-error',
         ok: false,
         diagnostics: [{ severity: 'error', code, message }]

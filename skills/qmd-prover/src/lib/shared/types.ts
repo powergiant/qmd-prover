@@ -443,7 +443,7 @@ export interface DependencyAnalysisResult extends OperationResult {
 export interface RenderResult extends OperationResult {
   status: string;
   output?: string;
-  graph?: string;
+  graph_svg?: string;
   report?: string;
   render_command?: string;
   summary: CompilationSummary;

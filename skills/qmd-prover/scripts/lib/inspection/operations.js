@@ -45,6 +45,15 @@ function factCheck(fact, diagnostics) {
         diagnostics: diagnostics.filter((item) => item.id ? item.id === fact.id : item.file === fact.file)
     };
 }
+/** Count occurrences of a key across facts, e.g. a kind or status tally for a summary header. */
+function tally(facts, key) {
+    const counts = {};
+    for (const fact of facts) {
+        const value = fact[key] ?? 'unknown';
+        counts[value] = (counts[value] ?? 0) + 1;
+    }
+    return counts;
+}
 export async function inspectProject(root = process.cwd(), options = {}) {
     root = path.resolve(root);
     const index = await buildProjectInspectionIndex(root, options);
@@ -67,6 +76,9 @@ export async function inspectProject(root = process.cwd(), options = {}) {
         scope: { type: 'project', path: '.' },
         summary: {
             ...snapshot.summary,
+            files: index.compilation.manifest.files.length,
+            kinds: tally(facts, 'kind'),
+            statuses: tally(facts, 'status'),
             globally_verified_goals: facts.filter((fact) => goalIds.has(fact.id) && fact.global_verification.status === 'verified').length,
             globally_disproved_goals: facts.filter((fact) => goalIds.has(fact.id) && fact.global_verification.status === 'disproved').length
         },
@@ -118,7 +130,12 @@ export async function inspectFact(root, requested, options = {}) {
     const selected = new Set([id, ...dependencyIds]);
     const graph = subgraph(snapshot.graph, selected);
     const graphNodes = byId(graph.nodes);
+    const projectNodes = byId(snapshot.graph.nodes);
     const directDependencies = adjacency(graph).get(id) ?? [];
+    // Reverse dependencies live outside this fact's downward closure, so resolve
+    // them against the whole project graph rather than the (downward) subgraph.
+    const directReverseDependencies = (adjacency(snapshot.graph, true).get(id) ?? [])
+        .map((dependency) => projectNodes.get(dependency)).filter(Boolean);
     const selectedFiles = new Set(index.compilation.manifest.results
         .filter((item) => selected.has(item.id))
         .flatMap((item) => [item.file, item.proof_file].filter((file) => Boolean(file))));
@@ -139,11 +156,10 @@ export async function inspectFact(root, requested, options = {}) {
         scope: { type: 'fact', id },
         fact: result,
         check,
-        source: { statement: result.statement_text, proof: result.proof_text },
         graph,
         direct_dependencies: directDependencies.map((dependency) => graphNodes.get(dependency)).filter(Boolean),
         transitive_dependencies: [...dependencyIds].sort().map((dependency) => graphNodes.get(dependency)).filter(Boolean),
-        direct_reverse_dependencies: [],
+        direct_reverse_dependencies: directReverseDependencies,
         blockers: blockerPaths(graph, [id]),
         staleness: stalenessReport(true, snapshot.snapshot_id),
         verification: run.verification,
@@ -214,6 +230,8 @@ export async function inspectPath(root, requestedPath, options = {}) {
         scope: { type: info.isDirectory() ? 'folder' : 'file', path: relative },
         summary: {
             files: selectedFiles.size, facts: facts.length,
+            kinds: tally(facts, 'kind'),
+            statuses: tally(facts, 'status'),
             globally_verified: facts.filter((fact) => fact.global_verification.status === 'verified').length,
             globally_disproved: facts.filter((fact) => fact.global_verification.status === 'disproved').length,
             errors: diagnostics.filter((item) => item.severity === 'error').length
@@ -298,7 +316,7 @@ export async function analyzeDependencies(root, operation, args = [], options = 
         const from = cleanId(requested);
         const to = cleanId(args[1]);
         const paths = allSimplePaths(graph, from, to, options);
-        result = { from, to, ...paths, alternatives: paths.paths.slice(1) };
+        result = { from, to, ...paths };
     }
     else if (operation === 'cycles') {
         result = { cycles: graph.cycles ?? [] };
@@ -405,13 +423,16 @@ export async function analyzeDependencies(root, operation, args = [], options = 
         throw new Error(`Unknown dependency operation: ${operation}`);
     }
     const diagnostics = snapshot.diagnostics ?? [];
+    // The full project graph is deliberately not attached: each operation above
+    // already returns the nodes its answer needs (target/direct/transitive/matches/
+    // affected/frontier/path). Embedding the whole graph on every dependency query
+    // buried the actual answer under a 50-115KB dump of unrelated nodes and edges.
     return {
         schema_version: SCHEMA_VERSION,
         operation: `dependency-${operation}`,
         ok: diagnostics.every((item) => item.severity !== 'error'),
         computed: true,
         snapshot_id: snapshot.snapshot_id,
-        graph,
         diagnostics,
         ...result
     };

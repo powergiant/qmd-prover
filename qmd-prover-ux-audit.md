@@ -1,201 +1,342 @@
 # qmd-prover 首次接触 UX 审计
 
-审计严格按约束执行：唯一主动读取的文件是 `../../skills/qmd-prover/SKILL.md`。未读取任何 AGENTS.md、QMD、JSON、源码、文档、测试或生成文件内容；项目线索只来自目录名、`git status` 和 CLI 输出。未修复、删除、重置、暂存或提交内容。
+日期：2026-07-15  
+审计项目：`examples/godel-completeness/`  
+审计视角：把 qmd-prover 当作第一次接触的工具，仅从 `skills/qmd-prover/SKILL.md` 和 CLI 自身输出探索。
 
-运行环境首先暴露了两个前置问题：
+## 审计约束与方法
 
-- 文档原样调用 `node ...` 失败，退出码 127：`node` 不在 PATH。
-- 改用 Codex 自带 Node 后，CLI 可运行，但 Pandoc、Quarto 均不在 PATH，导致所有 QMD 解析失败。
+- 唯一主动读取的项目外文件是 `skills/qmd-prover/SKILL.md`。
+- 未主动读取源码、其他文档、测试、项目 `AGENTS.md`、QMD、JSON 或生成文件内容。
+- 文件路径、语义 ID 和 submission ID 仅从目录名、CLI help 和 CLI 运行输出中发现。
+- 未修复数学项目，未删除、重置、暂存或提交内容。
+- 为在系统 PATH 缺少独立 Pandoc 时继续审计，在 `/tmp` 创建了一个将参数转发给 `quarto pandoc` 的临时包装器。
+- 审计覆盖默认 JSON、`--print`、有效参数、常见错误参数、dependency 图查询、写入型命令、失败写入门和旧入口探测。
 
-以下用 `qmd-prover` 代表：
+## 总结
 
-```text
-/Users/xiaom/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node ../../skills/qmd-prover/scripts/qmd-prover.js
-```
+SKILL 能识别 24 个叶子命令，CLI 实际公开的叶子命令也正好是这 24 个；全部已运行。项目机械分析成功：1 个主目标、7 个 QMD note、32 个事实、0 个机械错误。由于 verifier 未配置，32 个事实均为 `local=not-run`、`global=unverified`。
 
-## 1. 仅从 SKILL.md 能识别出的命令
+最主要的 UX 问题是：查询型命令输出远超查询本身所需，`--print` 仍不简洁；dependency 命令重复解析全项目并刷新状态；doctor 会把 `QMD_PROVER_PANDOC=quarto` 误判为有效 Pandoc；help 对多词子命令显示不完整；JSON usage 错误又额外输出重复纯文本；scope、closure、snapshot 和成功状态不够清楚。
 
-SKILL.md 能直接给出的精确命令是：
+没有发现可工作的退役兼容命令。常见旧入口只返回 `Unknown command`，且不给迁移建议。
 
-1. `qmd-prover init`
-2. `qmd-prover init --adopt-existing`
-3. `qmd-prover init --append-contract`
-4. `qmd-prover init --sync-contract`
-5. `qmd-prover workspace init @thm-main-ID`
-6. `qmd-prover inspect fact @ID`
-7. `qmd-prover inspect path PATH`
-8. `qmd-prover inspect workspace @thm-main-ID`
-9. `qmd-prover workspace inspect @thm-main-ID`
-10. `qmd-prover inspect project`
-11. `qmd-prover check staleness`
-12. `qmd-prover submit proof PROPOSAL_FILE [--to QMD]`
-13. `qmd-prover verification show SUBMISSION_ID`
-14. `qmd-prover verification revoke @thm-ID --reason "..."`
-15. `qmd-prover render`
-
-SKILL.md 还描述了 dependency 的搜索、路径、循环、影响、frontier 等能力，但没有给出精确子命令。它要求另读 `references/cli.md` 才能获得完整清单；本次按限制没有读取。
-
-SKILL.md 也没有告诉首次用户存在：
-
-- `help`、`--help`、`-h`
-- 15 个精确 dependency 叶子命令
-- 大部分命令支持 `--print`
-- `--limit`、`--max-depth` 和 search 过滤参数的有效值
-- Node、Pandoc、Quarto 的安装/PATH 前提
-
-`quarto render` 也被提到，但它不是 qmd-prover 命令。
-
-## 2. Help 覆盖
-
-以下 help 路径均实际调用，全部退出 0：
+## 1. 仅根据 SKILL.md 识别出的命令
 
 ```text
-qmd-prover
-qmd-prover help
-qmd-prover --help
-qmd-prover -h
-qmd-prover help init
-qmd-prover help inspect
-qmd-prover help inspect project
-qmd-prover help inspect fact
-qmd-prover help inspect path
-qmd-prover help inspect workspace
-qmd-prover help dependency
-qmd-prover help dependency dependencies
-qmd-prover help dependency reverse
-qmd-prover help dependency reverse dependencies
-qmd-prover help dependency impact
-qmd-prover help dependency frontier
-qmd-prover help dependency path
-qmd-prover help dependency alternative
-qmd-prover help dependency alternative paths
-qmd-prover help dependency cycles
-qmd-prover help dependency findings
-qmd-prover help dependency unused
-qmd-prover help dependency unused imports
-qmd-prover help dependency unused exports
-qmd-prover help dependency isolated
-qmd-prover help dependency unreachable
-qmd-prover help dependency ready
-qmd-prover help dependency ready for
-qmd-prover help dependency ready for ai
-qmd-prover help dependency reused
-qmd-prover help dependency search
-qmd-prover help check
-qmd-prover help check staleness
-qmd-prover help workspace
-qmd-prover help workspace init
-qmd-prover help workspace inspect
-qmd-prover help submit
-qmd-prover help submit proof
-qmd-prover help verification
-qmd-prover help verification show
-qmd-prover help verification revoke
-qmd-prover help render
+doctor [--print]
+init [--adopt-existing|--append-contract|--sync-contract]
+inspect project [--print]
+inspect fact @ID [--print]
+inspect path FILE_OR_FOLDER [--print]
+dependency dependencies @ID [--print]
+dependency reverse dependencies @ID [--print]
+dependency impact @ID [--print]
+dependency frontier @ID [--print]
+dependency path @FROM @TO [--print]
+dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]
+dependency cycles [--print]
+dependency findings [--print]
+dependency unused imports [--print]
+dependency unused exports [--print]
+dependency isolated [--print]
+dependency unreachable [--print]
+dependency ready for ai [--print]
+dependency reused [--limit N] [--print]
+dependency search QUERY [--kind KIND] [--status STATUS] [--origin ORIGIN] [--path PATH] [graph filters] [--print]
+check staleness [--print]
+verification list
+verification show SUBMISSION_ID
+render [--allow-errors]
 ```
 
-问题是大多数叶子 help 只有一行 Usage，没有用途、参数语义、枚举值、退出码、输出字段或副作用说明。
+## 2. 实际发现并测试的 help 命令
 
-## 3. 实际发现的全部叶子命令及结果
+以下命令均逐条实际调用并退出 0：
 
-| # | 完整叶子命令 | 实测结果摘要 | 是否符合预期；合理预期是什么 |
-|---:|---|---|---|
-| 1 | `qmd-prover init` | 退出 0，`already-initialized`；报告 contract v16、workspace root、1 个 QMD、无 Quarto 配置、external policy 为 unrestricted。未写入。 | **符合。** 对已初始化且契约当前的项目，应幂等退出 0、清楚报告现状，并且不写入。 |
-| 2 | `qmd-prover inspect project [--print]` | 退出 2，7 个错误：workspace 未初始化、6 个 Pandoc 解析错误。默认 JSON 6,523 字节/181 行；`--print` 1,697 字节/28 行。 | **部分符合。** 缺 Pandoc 且 workspace 未初始化时应非零退出并列出根因；但合理输出应去重、减少空结构，并让 `--print` 保留受影响文件路径。 |
-| 3 | `qmd-prover inspect fact @ID [--print]` | 退出 2；目标显示 `missing/unknown`，但 `mechanical.status` 却是 `pass`；附带 6 条 Pandoc 错误。实际也接受不带 `@` 的 ID。 | **不符合。** 无法解析或定位事实时，mechanical 应是 `blocked`/`not-run`，而不是 `pass`；ID 语法也应与 help 一致。 |
-| 4 | `qmd-prover inspect path FILE_OR_FOLDER [--print]` | 对 `completeness.qmd` 退出 2、1 条 Pandoc 错误；对 workspace 目录退出 2、6 条错误；不存在路径得到结构化 `PATH_NOT_FOUND`。 | **大体符合。** 不存在路径应得到结构化错误，解析依赖缺失应非零退出；偏差是 `--print` 不应丢失诊断文件路径。 |
-| 5 | `qmd-prover inspect workspace @thm-main-ID [--print]` | 退出 2；workspace `uninitialized`、target `missing`、files/facts 均为 0，6 条错误。非法非 `thm-main-*` ID 却抛原始堆栈。 | **部分符合。** 无法检查未初始化 workspace 时应失败；但非法 ID 应得到稳定的结构化参数错误，不能泄露堆栈。 |
-| 6 | `qmd-prover dependency dependencies @ID [--print]` | 退出 2；聚合图为空，返回简短 `FACT_UNKNOWN`。 | **符合当前失败前提。** 空图中查询未知事实应返回 `FACT_UNKNOWN`；更理想的是同时指出图为空的上游原因。 |
-| 7 | `qmd-prover dependency reverse dependencies @ID [--print]` | 退出 2；同样返回 `FACT_UNKNOWN`。 | **符合当前失败前提。** 未知事实无法计算反向依赖，应非零并返回明确的 `FACT_UNKNOWN`。 |
-| 8 | `qmd-prover dependency impact @ID [--print]` | 退出 2；返回 `FACT_UNKNOWN`。 | **符合当前失败前提。** 未知事实没有可计算的影响范围；应避免把结果误报为空影响。 |
-| 9 | `qmd-prover dependency frontier @ID [--print]` | 退出 2；返回 `FACT_UNKNOWN`。 | **符合当前失败前提。** 未知事实无法形成 frontier，非零退出合理。 |
-| 10 | `qmd-prover dependency path @FROM @TO [--print]` | 退出 2；FROM、TO 相同时重复返回两条相同 `FACT_UNKNOWN`。 | **不符合。** 两端相同且未知时应只返回一条去重后的未知事实诊断；若事实存在，FROM=TO 的路径语义也应被明确说明。 |
-| 11 | `qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]` | 退出 2；有效 limit/depth 可接受，但事实未知。非法 `--limit nope` 被事实未知错误抢先掩盖。 | **不符合。** CLI 应先校验参数类型和范围，再访问图；非法 limit 应稳定报告参数错误，不应被 `FACT_UNKNOWN` 掩盖。 |
-| 12 | `qmd-prover dependency cycles [--print]` | 退出 2；返回空 graph/cycles，另附全部 7 条项目错误。 | **部分符合。** 聚合图无法可靠构建时应失败；但合理结果应突出“图不可用”，不应同时返回看似有效的空 cycles 和大量重复上下文。 |
-| 13 | `qmd-prover dependency findings [--print]` | 退出 2；所有 findings 为空，同时附全部项目错误。默认 3,242 字节/77 行。 | **部分符合。** 分析失败时非零退出合理；findings 应标记 `not-computed`，而不是与“已计算但没有发现”相同的空数组。 |
-| 14 | `qmd-prover dependency unused imports [--print]` | 退出 2；空结果，但带完整空 graph 和 7 条错误。 | **部分符合。** 图不可用时应失败；结果应是 `not-computed`，不应暗示确实不存在 unused imports。 |
-| 15 | `qmd-prover dependency unused exports [--print]` | 退出 2；空结果，但带完整空 graph 和 7 条错误。 | **部分符合。** 图不可用时应失败；结果应区分“没有 unused exports”和“无法计算”。 |
-| 16 | `qmd-prover dependency isolated [--print]` | 退出 2；空结果，带定义文本、空 graph 和 7 条错误。 | **部分符合。** 非零退出合理；空 facts 不应在失败态被理解为“没有 isolated facts”，且无需重复返回完整空 graph。 |
-| 17 | `qmd-prover dependency unreachable [--print]` | 退出 2；`applicable:false`，同时带空 graph 和 7 条错误。 | **大体符合。** 没有可用 goal root 时 `applicable:false` 合理；应进一步区分“项目本来没有 root”和“解析失败导致 root 不可见”。 |
-| 18 | `qmd-prover dependency ready for ai [--print]` | 退出 2；候选为空，带定义文本和 7 条错误。 | **部分符合。** 图/声明不可用时不能产生 AI 候选；应报告 `not-computed` 或 blocker，而不是普通空候选列表。 |
-| 19 | `qmd-prover dependency reused [--limit N] [--print]` | 退出 2；默认 limit 20、结果为空。`--limit -1` 能正确报范围 1–1000，但使用原始堆栈。 | **部分符合。** limit 范围校验正确；但参数错误应结构化且无堆栈，图失败时空结果也应标记为不可计算。 |
-| 20 | `qmd-prover dependency search QUERY [...] [--print]` | 退出 2；无法搜索空图。`--kind nonsense` 未被拒绝，直接作为过滤值进入输出。 | **不符合。** 未知枚举必须在扫描前拒绝并列出合法值；图不可用时应明确说明搜索未执行。 |
-| 21 | `qmd-prover check staleness [--print]` | 退出 2；目标因 `main-goal-snapshot-changed`、`workspace-parse-incomplete`、`workspace-uninitialized` stale，并被 invalidated。只读。 | **符合。** 只读审计应准确列出 stale 原因和受影响事实；将检测到的不可用状态映射为非零退出也合理。 |
-| 22 | `qmd-prover workspace init @thm-main-ID` | 有效 ID 退出 1，只给出 `Project has structural errors` 和堆栈，没有列出具体阻塞项；未创建 `workspace.json`。不带 `@` 也进入相同逻辑。 | **不符合。** 安全门阻止写入是合理的，但命令应返回具体 blocker 和下一步；尤其 inspect 已建议运行该命令，不能再以泛化错误形成恢复断链。 |
-| 23 | `qmd-prover workspace inspect @thm-main-ID [--print]` | 退出 2；与 `inspect workspace` 基本相同，但 operation 名分别为 `workspace-inspect` 和 `inspect-workspace`。 | **部分符合。** 兼容别名应产生等价结果；稳定 JSON 中应使用同一个 canonical operation，可另设 `invoked_as` 标记入口。 |
-| 24 | `qmd-prover submit proof PROPOSAL_FILE [--to QMD]` | 退出 2，稳定结构化 `retired`；真实文件和不存在文件结果完全相同，未读写参数目标。 | **符合。** 退役兼容命令应拒绝操作、写入为零，并提供迁移路径；不读取旧参数目标也符合 rejection safety。 |
-| 25 | `qmd-prover verification show SUBMISSION_ID` | 无 CLI 可发现的 submission ID；使用未知 ID 时退出 1，直接抛 ENOENT 和内部源码堆栈，不是稳定 JSON。 | **不符合。** 未知 submission 应返回结构化 `SUBMISSION_NOT_FOUND`；还应有 `verification list` 或其他自然发现 ID 的入口。 |
-| 26 | `qmd-prover verification revoke @thm-ID --reason "..."` | 退出 2，稳定结构化 `retired`。缺少必填 `--reason` 时也返回相同 retired 结果，没有参数校验。 | **部分符合。** 退役命令不写入且给 remediation 符合预期；但 help 与实现应一致，要么不再声明 reason 必填，要么仍校验旧语法。 |
-| 27 | `qmd-prover render` | 退出 0，但状态是 `prepared-with-errors`，summary 有 7 个 errors；仍写入 3 个生成文件，并建议当前环境中不存在的 `quarto render`。 | **不符合。** 默认情况下存在 7 个错误应返回非零和 `ok:false`；若设计上允许错误产物，应要求显式 `--allow-errors`，并先检查建议的 Quarto 命令是否可用。 |
+```text
+node ../../skills/qmd-prover/scripts/qmd-prover.js
+node ../../skills/qmd-prover/scripts/qmd-prover.js help
+node ../../skills/qmd-prover/scripts/qmd-prover.js help doctor
+node ../../skills/qmd-prover/scripts/qmd-prover.js help init
+node ../../skills/qmd-prover/scripts/qmd-prover.js help inspect
+node ../../skills/qmd-prover/scripts/qmd-prover.js help inspect project
+node ../../skills/qmd-prover/scripts/qmd-prover.js help inspect fact
+node ../../skills/qmd-prover/scripts/qmd-prover.js help inspect path
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency dependencies
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency reverse
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency reverse dependencies
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency impact
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency frontier
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency path
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency alternative
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency alternative paths
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency cycles
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency findings
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency unused
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency unused imports
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency unused exports
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency isolated
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency unreachable
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency ready
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency ready for ai
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency reused
+node ../../skills/qmd-prover/scripts/qmd-prover.js help dependency search
+node ../../skills/qmd-prover/scripts/qmd-prover.js help check
+node ../../skills/qmd-prover/scripts/qmd-prover.js help check staleness
+node ../../skills/qmd-prover/scripts/qmd-prover.js help verification
+node ../../skills/qmd-prover/scripts/qmd-prover.js help verification list
+node ../../skills/qmd-prover/scripts/qmd-prover.js help verification show
+node ../../skills/qmd-prover/scripts/qmd-prover.js help render
+```
 
-另外测试了未知命令、一级组缺参、叶子缺参、额外位置参数、冲突 init 选项、未知 ID/路径、非法 limit、非法枚举和不支持的 `--print`。大部分参数错误退出 1，但直接输出 Node 堆栈。
+结果摘要：
 
-## 4. 痛点、复现与期望
+- 叶子 help 的签名基本与 SKILL 一致。
+- `help dependency` 把多词叶子压成 `reverse`、`alternative`、`unused`、`ready` 等中间节点。
+- `help dependency ready` 只显示孤立的 `for`，看不到最终命令 `ready for ai` 的语义。
+- 根 help 未列退役入口、兼容别名或迁移说明。
+- `verification show` 的 help 不说明 submission ID 格式。
 
-| 来源 | 痛点 | 复现 | 期望 |
+## 3. 全部叶子命令及结果摘要
+
+成功解析项目时使用：
+
+```text
+env QMD_PROVER_PANDOC=/tmp/qmd-prover-pandoc-wrapper
+```
+
+### `doctor [--print]`
+
+- `doctor` 无包装器时退出 2：Node 和 Quarto 可用，Pandoc 缺失，verifier 未配置。
+- `doctor --print` 同样退出 2，文本相对简洁。
+- 使用临时 Pandoc 包装器后退出 0。
+- `QMD_PROVER_PANDOC=quarto doctor --print` 错误地退出 0 并声称 Pandoc 可用；随后 `inspect project` 对全部 7 个 QMD 报 `Unknown option --from`。
+
+### `init [--adopt-existing|--append-contract|--sync-contract]`
+
+- `init` 退出 0，状态为 `already-initialized`。
+- CLI 发现 7 个 QMD、已有 qmd-prover state、外部基础模式 `unrestricted`。
+- `init --adopt-existing`、`init --append-contract`、`init --sync-contract` 均退出 0，仍报告 `already-initialized`，未产生项目内容差异。
+- 同时给出两个 mutation flag 时退出 1，互斥参数提示明确。
+
+### `inspect project [--print]`
+
+- 无 Pandoc 时退出 2，对同一缺失依赖分别产生 7 个 `PARSE_ERROR`；JSON 还带空 graph、空 findings 和空 verification 树。
+- 成功时退出 0：1 个主目标、7 个 note、32 个事实、0 个错误。
+- 默认 JSON 约 39,968 token，耗时约 2.8 秒。
+- `--print` 仍约 7,583 token，耗时约 2.4 秒。
+- `--print` 顶部错误显示 `files: 0`、`kinds: none`、`statuses: none`，但后面实际列出 7 个文件和 32 个事实。
+
+### `inspect fact @ID [--print]`
+
+- `inspect fact @thm-main-godel-completeness --print` 退出 0。
+- 主目标机械层通过，直接依赖为 4 个；局部/全局统计覆盖 31 个事实的依赖闭包。
+- 3 个最低 frontier 为 `@def-consistency`、`@def-fol-signature`、`@def-henkin-theory`。
+- 裸 ID 和 `@ID` 均可用，输出规范化为 `@ID`。
+- 未知 ID 退出 2，约 2.23 秒后返回 `FACT_UNKNOWN`。
+
+### `inspect path FILE_OR_FOLDER [--print]`
+
+- `inspect path workspace/semantics.qmd --print` 退出 0，scope 选中 1 个文件、11 个事实，但 verification 统计覆盖 20 个闭包事实。
+- `inspect path workspace --print` 退出 0，选中 6 个 workspace 文件，但输出仍列出 workspace 外的 `completeness.qmd`；约 9,014 token。
+- 不存在路径退出 2，返回 `PATH_NOT_FOUND`，速度较快。
+
+### `dependency dependencies @ID [--print]`
+
+- 对主目标返回 4 个直接依赖、30 个传递依赖。
+- 默认 JSON 约 20,287 token。
+- `--print` 已补充实测：退出 0，耗时约 2.31 秒，仍约 3,588 token。
+- `--print` 不仅输出 target、direct 和 transitive，还输出全部 32 个事实及文件分组、项目全部依赖边、全部跨文件依赖。
+- 未知 ID 退出 2，返回 `FACT_UNKNOWN`。
+
+### `dependency reverse dependencies @ID [--print]`
+
+- `@def-fol-signature` 有 3 个直接 dependents、29 个传递 dependents。
+- `--print` 仍附带大范围图上下文，而非只显示 reverse dependencies。
+
+### `dependency impact @ID [--print]`
+
+- `@def-fol-signature` 影响 29 个事实，包括主目标。
+- JSON 中每个 affected fact 都带完整身份、hash 和验证状态，结果远大于所需 ID 列表。
+
+### `dependency frontier @ID [--print]`
+
+- 主目标 frontier 为 3 个定义：`@def-consistency`、`@def-fol-signature`、`@def-henkin-theory`。
+- 每个 frontier 节点都返回一条代表路径。
+
+### `dependency path @FROM @TO [--print]`
+
+- 主目标到 `@def-fol-signature` 的最短路径为四节点路径。
+- 无路径时退出 0、`status: ok`、`path: none`，但仍输出约 3,366 token 的全图。
+- FROM=TO 时正确返回单节点路径，但仍输出约 3,370 token 的全图。
+
+### `dependency alternative paths @FROM @TO [options] [--print]`
+
+- `--limit 3 --max-depth 8` 返回 3 条路径，`truncated=true`，`explored=9`。
+- `--limit 0` 退出 1，正确说明合法范围为 1–25。
+
+### `dependency cycles [--print]`
+
+- 项目无环。
+- 已有成功 published snapshot 后，移除 Pandoc 包装器再运行仍退出 2 并重新解析 7 个 QMD，说明它没有直接复用已发布图。
+
+### `dependency findings [--print]`
+
+- 0 个 unused imports。
+- 0 个 unused exports。
+- 0 个 isolated facts。
+- 1 个 unreachable fact：`@lem-semantic-substitution`。
+- 32 个 ready-for-AI candidates。
+- 30 个 heavily reused facts。
+- 即使显示端去掉顶层 graph，结果仍约 16,774 token，因为每个 fact 重复完整身份和状态。
+
+### `dependency unused imports [--print]`
+
+- 退出 0，空列表。
+
+### `dependency unused exports [--print]`
+
+- 退出 0，空列表。
+
+### `dependency isolated [--print]`
+
+- 退出 0，空列表。
+
+### `dependency unreachable [--print]`
+
+- 退出 0，1 个结果：`@lem-semantic-substitution`。
+
+### `dependency ready for ai [--print]`
+
+- 退出 0，32 个候选。
+- 去掉顶层 graph 后仍约 7,461 token。
+
+### `dependency reused [--limit N] [--print]`
+
+- `--limit 5` 的前五名依次为 signature、terms、formulas、substitution、Hilbert calculus。
+- `--limit nope` 退出 1，正确说明合法范围为 1–1000。
+
+### `dependency search QUERY [filters] [--print]`
+
+- `search model` 返回 6 个匹配。
+- `search model --kind theorem --status candidate --origin fact --path workspace --used-by @thm-main-godel-completeness --direct` 精确返回 `@thm-consistent-model`。
+- `search '' --related-to @def-fol-signature --reverse --direct` 返回 3 个直接 dependents。
+- `search '' --frontier-of @thm-main-godel-completeness` 返回上述 3 个 frontier 定义。
+- `search '' --cycle-participant --print` 返回 0 matches，输出较简洁。
+- 非法 kind `proof` 退出 1，并列出合法 kind。
+
+### `check staleness [--print]`
+
+- 默认 JSON 退出 0，无 changed 或 invalidated，耗时约 2.24 秒。
+- `--print` 退出 0，文本简洁。
+- 它返回的 snapshot ID 为 `07fc…`，而 inspect/dependency 使用 `a2da…`；help 未解释两类 snapshot 的关系。
+
+### `verification list`
+
+- 退出 0，`submissions: []`。
+- 空列表没有说明为何为空或如何产生 submission，因此无法自然继续有效的 `verification show` 链路。
+- `verification list --print` 退出 1，只返回泛化的 `Invalid verification command`。
+
+### `verification show SUBMISSION_ID`
+
+- 因 list 为空，没有可用的有效 submission ID。
+- 伪造 ID 退出 2，返回 `SUBMISSION_NOT_FOUND`，并正确建议先运行 `verification list`。
+- 缺少 ID 时退出 1，但只返回 `Invalid verification command`，未指出缺少 submission ID。
+
+### `render [--allow-errors]`
+
+- 有效项目上退出 0，写入 status QMD、dependency SVG 和 status JSON，报告 `artifacts_trustworthy=true`。
+- 无 Pandoc 且不带 `--allow-errors` 时退出 2，`artifacts_written=false`；文件大小和 mtime 均未变化。
+- 无 Pandoc且带 `--allow-errors` 时退出 0，写入 `prepared-with-errors` 制品，明确报告 `artifacts_trustworthy=false`。
+- 最后使用有效 Pandoc 包装器重新 render，恢复为可信制品。
+- 重复 render 即使最终内容相同也刷新三个制品的 mtime。
+
+## 4. 退役兼容命令探测
+
+以下直接调用均退出 1、`Unknown command`，没有迁移建议：
+
+```text
+node ../../skills/qmd-prover/scripts/qmd-prover.js status
+node ../../skills/qmd-prover/scripts/qmd-prover.js prepare
+node ../../skills/qmd-prover/scripts/qmd-prover.js verify
+node ../../skills/qmd-prover/scripts/qmd-prover.js submit
+node ../../skills/qmd-prover/scripts/qmd-prover.js register
+node ../../skills/qmd-prover/scripts/qmd-prover.js revoke
+node ../../skills/qmd-prover/scripts/qmd-prover.js accept
+node ../../skills/qmd-prover/scripts/qmd-prover.js reject
+```
+
+还探测了对应 help、连字符 operation 名、`verification submit/accept/reject/revoke` 等候选，也全部 unknown。因此本版本没有可从 CLI 自然发现的退役兼容层。
+
+## 5. 痛点、复现与期望表现
+
+| 来源 | 痛点与复现 | 实际表现 | 期望表现 |
 |---|---|---|---|
-| 环境/技能 | 文档原样命令不可运行，Node 不在 PATH；随后 Pandoc/Quarto 也缺失。 | `node ../../skills/.../qmd-prover.js`；`inspect project` | SKILL 开头给出依赖预检；CLI 提供 `doctor` 或在根 help 显示缺失依赖及安装/配置方式。 |
-| CLI | 用户输入错误泄露完整堆栈、内部源码绝对路径，破坏稳定 JSON。 | `qmd-prover frobnicate`、`inspect workspace @does-not-exist`、`verification show not-a-submission` | stderr 给简洁消息；stdout 始终为稳定 JSON，除非显式 `--print`。堆栈只在 `--debug` 下显示。 |
-| CLI | `verification show` 对不存在记录抛原始 ENOENT。 | `verification show not-a-submission` | 结构化 `SUBMISSION_NOT_FOUND`，退出 2，并给发现 submission ID 的下一步。 |
-| CLI/技能 | 没有 submission 列表或搜索命令，`show` 无法自然衔接。 | 检查所有 help 后只有 `show SUBMISSION_ID` | 提供 `verification list`，并在 inspect 结果中稳定返回可复制的 submission ID。 |
-| CLI | `render` 在 7 个错误下仍退出 0，并写文件。 | `qmd-prover render` | 默认退出非零并返回 `ok:false`；若允许错误产物，应要求 `--allow-errors`，且清楚标记生成物不可信。 |
-| CLI | 人类可读 `--print` 丢失诊断文件路径。 | `inspect project --print` | 每条诊断保留 `file[:line]`；相同 Pandoc 错误可按原因聚合并列出受影响文件。 |
-| CLI | 默认失败 JSON 过大且重复。 | `inspect project` | 顶层只保留一次 diagnostics；空 graph/findings/verification 可用摘要或 `--verbose` 展开。 |
-| CLI | 同类 dependency 命令失败体积不一致。 | 比较 `dependency dependencies @ID` 与 `dependency findings` | 统一 envelope；先给“聚合图不可用”的根因，再按需附详情。 |
-| CLI | `inspect fact` 在事实 missing、解析失败时仍显示 `mechanical: pass`。 | `inspect fact @thm-main-godel-completeness` | 使用 `not-run`/`blocked`，并明确 blocked by parse failure；不能出现表面“机械通过”。 |
-| CLI | workspace 修复指引不能自然闭环。 | `inspect project` 建议运行 `workspace init`，随后 `workspace init` 只报泛化 structural errors | init 应直接返回阻塞诊断，特别区分 Pandoc 缺失、主目标不可解析和 workspace 已有文件。 |
-| CLI | help 要求 `@ID`，实现却接受不带 `@`。 | `inspect fact thm-main-godel-completeness`、`workspace init thm-main-godel-completeness` | 要么严格拒绝，要么 help 明确两种形式并统一规范化。 |
-| CLI | 非法枚举被静默接受。 | `dependency search godel --kind nonsense` | 在构图前校验枚举，列出合法 `kind/status/origin` 值。 |
-| CLI | 参数校验顺序不稳定。 | `alternative paths ... --limit nope` | 先完成所有语法与类型校验，再读取图或检查事实存在性。 |
-| CLI | 同一个别名使用不同 operation 名。 | `inspect workspace` vs `workspace inspect` | alias 输出同一 canonical operation，并另加 `invoked_as`。 |
-| CLI | `init extra`、`init --print` 的错误消息误称“只能选一个 mutation option”。 | 相应命令 | 区分未知参数、位置参数和互斥选项。 |
-| CLI | 退役 `revoke` 的 help 仍声明必填 reason，但实现完全忽略。 | `verification revoke @thm-main-godel-completeness` | 退役命令 help 应只说明 retired；或者仍严格校验旧语法，二者选一。 |
-| 技能/help | SKILL 只用自然语言提到 dependency 能力；help 多数叶子只有 Usage。 | 从 SKILL 建表，再递归 help | SKILL 至少给完整可复制清单；leaf help 增加描述、参数语义、枚举、退出码、输出模式和副作用。 |
-| 项目数据 | 已有活跃 QMD 的 workspace 缺少 `workspace.json`，snapshot stale。 | `inspect project`、`check staleness` | 给出单一、可执行且不会被同一状态再次阻塞的恢复路径。 |
-| 性能/验证 | 每个全图 dependency 命令都会再次遇到相同 7 条解析错误。 | 连续调用 cycles/findings/unused/isolated/search | 缓存“依赖缺失/解析不可用”的预检结果，避免重复工作和重复上下文。 |
+| CLI | `QMD_PROVER_PANDOC=quarto doctor --print` | 退出 0，误报 Pandoc 可用；inspect 随后全部失败。 | doctor 应执行最小 Pandoc 兼容性检查。 |
+| 环境 + CLI | 普通 `doctor` | Quarto 自带 Pandoc 3.8.3，但 PATH 无独立 pandoc，只建议安装。 | 自动发现 Quarto Pandoc，或提供可复制配置方式。 |
+| CLI | 缺 Pandoc 时 `inspect project` | 同一根因重复 7 次，并返回大量空结构。 | 聚合一个根因和文件列表；失败时省略空结构。 |
+| CLI | 成功 `inspect project` | 默认约 39,968 token，深层重复 facts、graph、findings、状态和 hash。 | 默认返回操作摘要；完整图显式请求。 |
+| CLI + SKILL | `inspect project --print` | 仍约 7,583 token，不符合“concise”。 | 只显示总数、目标状态、关键 blockers 和诊断。 |
+| CLI | `inspect project --print` | `files: 0 / kinds: none / statuses: none` 与后文矛盾。 | 统计字段与实际结果一致。 |
+| CLI | `inspect path` | selected facts 与 closure verification 数量混在一起。 | 明确输出 `selected_facts` 和 `closure_facts`。 |
+| CLI | `dependency dependencies --print` | 约 3,588 token，返回全部 32 facts、全边和跨文件边。 | 只返回 target、direct、transitive；全图由 `--include-graph` 开启。 |
+| CLI | 任一 dependency 查询 | 每次约 2–4 秒，重新要求 Pandoc并刷新状态。 | 默认只读 published graph；`--refresh` 才重编译。 |
+| CLI | path 无结果或 FROM=TO | 查询结果极小，但仍附全图；无路径仍 `ok:true`。 | 返回明确 `found`，并省略无关图。 |
+| CLI | findings/ready/reused | 每个 fact 重复 hash、验证状态和相同 reason。 | 默认返回计数和精简 fact refs；详细对象分页展开。 |
+| CLI | `help dependency` | 多词命令显示为半截；`help dependency ready` 只显示 `for`。 | 分组 help 直接列完整叶子命令。 |
+| CLI | usage 错误 | 同时输出 JSON 和重复纯文本；合并流时顺序不稳定。 | JSON 模式只输出 JSON；文本仅用于 `--print`。 |
+| CLI | verification 缺参数 | 只说 `Invalid verification command`。 | 精确指出缺少 submission ID 或不支持 `--print`。 |
+| CLI | snapshot ID | staleness 与 project graph 使用不同 ID，关系未解释。 | 区分 source/cache/graph snapshot 字段。 |
+| CLI/SKILL | inspect/dependency 副作用 | help 未说明会刷新 manifest、graph 和 snapshot 元数据。 | 每个命令明确标注 read-only、cache-write 或 canonical-write。 |
+| CLI | 重复 render | 最终内容相同仍刷新 mtime。 | 内容无变化时返回 `changed:false`，不替换文件。 |
+| CLI/SKILL | 旧入口 | 全部 unknown，无替代建议。 | 保留机器可读的退役迁移诊断。 |
+| 项目数据 | verifier 未配置 | 32 个事实机械通过但全局均未验证，submission 为空。 | 摘要突出“机器有效、AI 未运行”，避免被理解成证明失败。 |
+| 项目数据 | graph finding | 1 个 unreachable fact。 | 作为图卫生发现展示，不与错误混淆。 |
+| Agent | 初次配置 | 很容易设置 `QMD_PROVER_PANDOC=quarto`，且 doctor 会误导为成功。 | CLI 应阻断错误配置，无需 agent 临时 wrapper。 |
 
-本次没有配置 verifier，所有结果均显示 `available:false`、`verifier_calls:0`，因此无法评估重复 AI 验证、cache hit 或 verifier 性能。
-
-## 5. 按优先级排序的修改建议
+## 6. P0/P1/P2 修改建议
 
 ### P0
 
-未观察到 canonical QMD 被改写、用户内容被删除、失败提交被提升或其他数据破坏，所以本次没有确认的 P0。
+未发现已证实的数据破坏、保护声明绕过或错误发布为“已验证”的问题，因此没有已证实 P0。
 
 ### P1
 
-1. 所有错误统一为稳定结构化输出，默认隐藏堆栈；修复 `verification show` 的 ENOENT。
-2. 修正 `render` 的成功语义：有错误时非零退出，或要求显式 `--allow-errors`。
-3. 解决 workspace 初始化断链：`workspace init` 必须返回具体 blocker，并能处理“已有 QMD、缺 workspace.json”的预期恢复场景。
-4. `--print` 保留诊断文件路径，同时聚合重复 Pandoc 错误。
-5. 在执行项目扫描前校验所有参数、枚举和数值；拒绝 `--kind nonsense`。
-6. missing/parse-failed 事实不得显示 `mechanical: pass`。
-7. 增加 `doctor`/依赖预检，并在 SKILL 主页面明确 Node、Pandoc、Quarto 前提。
-8. 增加 `verification list`，让 submission ID 可被自然发现。
+1. 修复 doctor 的 Pandoc 假阳性：执行最小 Pandoc JSON 兼容性检查，并支持 Quarto bundled Pandoc 或 command+arguments 配置。
+2. dependency 查询默认只读 published snapshot，不重新解析全项目或刷新 canonical state；增加显式 `--refresh`。
+3. 查询命令默认只返回查询结果；完整图改为 `--include-graph`，大列表增加 limit/pagination。
+4. 修复 `--print` 的统计错误和 scope/closure 混淆，并保证真正简洁。
+5. JSON 模式消除重复纯文本 stderr；所有 usage/domain 错误保持单一、稳定、可解析输出。
+6. 分组 help 显示完整多词叶子命令，并为已退役旧入口提供替代命令。
 
 ### P2
 
-1. SKILL 增加完整 dependency 命令清单；leaf help 增加描述、示例、合法枚举和副作用。
-2. 减少失败 JSON 的空结构、嵌套和重复 diagnostics。
-3. 统一 `@ID` 是否必需，以及 alias 的 operation 名。
-4. 改进 init 的未知参数/互斥选项错误消息。
-5. 明确 retired 命令是否还校验旧参数；保持 help 与实现一致。
-6. FROM 与 TO 相同时避免重复两条相同 `FACT_UNKNOWN`。
-7. 在 `render` 输出中检查 Quarto 是否存在，不要仅给一个当前不可执行的命令。
+1. 明确 `ok`、`found`、`complete`、`snapshot_published` 与数学验证状态的区别。
+2. 为不同 snapshot 类型采用不同字段名，并在 help 中解释生命周期。
+3. 聚合共同根因诊断；失败输出默认不携带空 graph/findings/verification 树。
+4. `verification list` 为空时给下一步；`show` 缺参数时显示精确 usage。
+5. 所有可能写状态的命令在 help 中列出具体路径和写入语义。
+6. render 和 snapshot 写入先比较内容；无变化时保持 mtime 并返回 `changed:false`。
 
-## 6. 本次运行产生的文件变化
+## 7. 本次运行产生的文件变化
 
-运行前已经存在：
+项目内最终内容差异为无：运行前后 `git status --porcelain=v1` 均为空；没有修改 AGENTS.md、QMD、配置或数学内容。
 
-- `todo` 的已修改状态；
-- 14 个未跟踪的 qmd-prover 配置、图、验证索引和 workspace QMD 文件。
+以下状态/制品路径在审计中被重新写入或刷新 mtime，最终恢复到成功解析、`artifacts_trustworthy=true` 的状态：
 
-这些不是本次产生。
-
-本次可确证由 `qmd-prover render` 新增了 3 个未跟踪文件：
-
-- `.qmd-prover/generated/dependencies.svg`
+- `.qmd-prover/diagnostics.json`
+- `.qmd-prover/manifest.json`
+- `.qmd-prover/graph.json`
+- `.qmd-prover/graphs/latest.json`
+- `.qmd-prover/graphs/a2da6c96cbb82831b775a3bf820896eac4c6ba7b19f5f3b01c39ef7449fb4588.json`
 - `.qmd-prover/generated/proof-status.qmd`
+- `.qmd-prover/generated/dependencies.svg`
 - `.qmd-prover/reports/status.json`
 
-未创建 `workspace.json`。未删除、重置、暂存或提交任何内容。因为基线中的 qmd-prover 状态文件本来就未跟踪，且本次禁止读取或预先哈希它们，无法证明 `render`/inspect 是否重写了其中某些既有文件内容；只能确认上述 3 个路径是运行后新增的。
+项目外新增并保留了临时包装器：
+
+- `/tmp/qmd-prover-pandoc-wrapper`
+
+没有删除、重置、暂存或提交任何项目内容。

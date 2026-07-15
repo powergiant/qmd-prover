@@ -2,6 +2,7 @@ import path from 'node:path';
 import { loadConfig } from '../infrastructure/config.js';
 import { executableAvailable } from '../infrastructure/executables.js';
 import { verifierCommand } from '../verification/protocol.js';
+import { SCHEMA_VERSION } from '../shared/core.js';
 import type { OperationResult } from '../shared/types.js';
 
 interface DependencyStatus {
@@ -47,7 +48,7 @@ export async function doctorProject(root = process.cwd()): Promise<OperationResu
     }
   };
   return {
-    schema_version: 4,
+    schema_version: SCHEMA_VERSION,
     operation: 'doctor',
     ok: dependencies.node.available && dependencies.pandoc.available,
     root,

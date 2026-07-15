@@ -61,7 +61,7 @@ interface ReportResult {
   facts?: ReportItem[];
   direct_dependencies?: GraphNode[];
   transitive_dependencies?: GraphNode[];
-  direct_reverse_dependencies?: string[];
+  direct_reverse_dependencies?: GraphNode[];
   blockers?: BlockerPath[];
   frontier?: FrontierItem[];
   changed?: StalenessReport['changed'];
@@ -140,7 +140,10 @@ function reportFindings(lines: string[], findings: Partial<GraphFindings> | null
 
 export function printReport(input: OperationResult): string {
   const result = input as unknown as ReportResult;
-  const lines = [`qmd-prover ${result.operation}`, `snapshot: ${result.snapshot_id ?? 'none'}`];
+  // A labelled field, not a runnable command: the operation slug is hyphenated
+  // (dependency-reverse-dependencies) while the invocation is space-separated.
+  const lines = [`operation: ${result.operation}`];
+  if (result.snapshot_id) lines.push(`snapshot: ${result.snapshot_id}`);
   if (typeof result.ok === 'boolean') lines.push(`status: ${result.ok ? 'ok' : 'failed'}`);
   if (result.computed === false) lines.push('analysis: not computed');
   if (result.scope) lines.push(`scope: ${result.scope.type} ${result.scope.id ? `@${result.scope.id}` : result.scope.path}`);
@@ -235,7 +238,7 @@ export function printReport(input: OperationResult): string {
 
   if (result.direct_dependencies) lines.push(`direct dependencies: ${result.direct_dependencies.map((item) => `@${item.id}`).join(', ') || 'none'}`);
   if (result.transitive_dependencies) lines.push(`transitive dependencies: ${result.transitive_dependencies.map((item) => `@${item.id}`).join(', ') || 'none'}`);
-  if (result.direct_reverse_dependencies) lines.push(`direct reverse dependencies: ${result.direct_reverse_dependencies.map((id) => `@${id}`).join(', ') || 'none'}`);
+  if (result.direct_reverse_dependencies) lines.push(`direct reverse dependencies: ${result.direct_reverse_dependencies.map((item) => `@${item.id}`).join(', ') || 'none'}`);
   const blockers = result.blockers ?? [];
   if (blockers.length) {
     lines.push('blocking dependency paths:');
@@ -269,7 +272,7 @@ export function printReport(input: OperationResult): string {
     if (result.cycles.length === 0) lines.push('  none');
     for (const cycle of result.cycles) lines.push(`  ${formatPath(cycle)}`);
   }
-  if (result.affected) lines.push(`affected verified facts: ${result.affected.map((item) => `@${item.id}`).join(', ') || 'none'}`);
+  if (result.affected) lines.push(`affected facts: ${result.affected.map((item) => `@${item.id}`).join(', ') || 'none'}`);
   if (result.matches) {
     lines.push(`matches: ${result.matches.length}`);
     for (const item of result.matches) lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file ?? ''}:${item.line ?? '?'}`);

@@ -71,7 +71,7 @@ export const HELP_COMMANDS = [
     }),
     command('inspect', ['qmd-prover inspect <command> [arguments]']),
     command('inspect project', ['qmd-prover inspect project [--print]'], {
-        summary: 'Run machine analysis, optional local conditional verification, and global composition for every fact in the project; return the schema-v5 project graph.'
+        summary: 'Run machine analysis, optional local conditional verification, and global composition for every fact in the project; return the schema-v6 project graph.'
     }),
     command('inspect fact', ['qmd-prover inspect fact @ID [--print]'], {
         acceptsPositionals: true,
@@ -112,22 +112,29 @@ export const HELP_COMMANDS = [
         sections: { options: ['--limit N   Number of facts, 1-1000 (default 20).'] }
     }),
     command('dependency search', [
-        'qmd-prover dependency search QUERY [--kind KIND] [--status STATUS] [--origin ORIGIN] [--path PATH]',
-        '    [--used-by @ID|--depends-on @ID|--affected-by @ID|--stale-affected-by @ID]',
+        'qmd-prover dependency search [QUERY] [--kind KIND] [--status STATUS] [--origin ORIGIN] [--path PATH]',
+        '    [--used-by @ID] [--depends-on @ID] [--affected-by @ID] [--stale-affected-by @ID]',
         '    [--related-to @ID] [--reverse] [--frontier-of @ID] [--cycle-participant] [--direct] [--print]'
     ], {
         acceptsPositionals: true,
         summary: 'Search fact IDs, titles, paths, statements, and proofs with graph-aware filters.',
         sections: {
+            arguments: [
+                'QUERY   Optional case-insensitive substring. Omit it (or pass "") to match every fact and filter only.'
+            ],
             options: [
                 '--kind definition|lemma|theorem|proposition|corollary|unknown',
                 '--origin fact|main-goal|unresolved',
-                '--status STATUS   Use one of the statuses listed by inspect output.',
+                '--status candidate|open|rejected|disproof-candidate|revoked|missing|stale|verified|disproved|blocked|unverified|invalid',
                 '--path PATH       Match one file or directory prefix.',
-                '--used-by/--depends-on/--affected-by/--stale-affected-by/--frontier-of @ID',
-                '--related-to @ID [--reverse]   Search dependencies or reverse dependencies.',
-                '--direct          Restrict graph relationship filters to one edge.',
-                '--cycle-participant   Restrict matches to nodes in cycles.'
+                '--used-by @ID       Facts that @ID transitively depends on (its dependencies).',
+                '--depends-on @ID    Facts that transitively depend on @ID (its dependents).',
+                '--affected-by @ID / --stale-affected-by @ID   Dependents of @ID (optionally only stale ones).',
+                '--frontier-of @ID   Facts on @ID’s unresolved proof frontier.',
+                '--related-to @ID [--reverse]   Search dependencies (or reverse dependencies) of @ID.',
+                '--direct          Restrict graph relationship filters to one edge instead of the transitive closure.',
+                '--cycle-participant   Restrict matches to nodes in cycles.',
+                'Multiple filters combine with AND. QUERY and all filters are optional but at least one is usually given.'
             ]
         }
     }),

@@ -763,18 +763,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-canonical-term-model",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:d95984fa5288986767b4637d72a39318dfdc3ff50420938456b4e6919bfe4163"
-      },
       "kind": "definition",
       "line": 109,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -786,18 +780,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-consistency",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:dcb285d70c03cc3fb9fddb4e3177f9e8131a5adf0942dfd73d09a1460b8def41"
-      },
       "kind": "definition",
       "line": 70,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -809,18 +797,12 @@
       "file": "workspace/foundations.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-fol-formulas",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:00dd9093bde27e5bca8f405b392bfaf8be5eda1104bdd9e1ce930b9aa8f69aca"
-      },
       "kind": "definition",
       "line": 23,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -832,18 +814,12 @@
       "file": "workspace/foundations.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-fol-signature",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:d613154b69e18b34bc783fd2ab8ac43910a9c62c3a88a4f281f18e5666764cac"
-      },
       "kind": "definition",
       "line": 5,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -855,18 +831,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-fol-structure",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:69793bcfe8e13c9cc10098dc098227cc01e42881b8f2a04098120f1de6c0bbeb"
-      },
       "kind": "definition",
       "line": 20,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -878,18 +848,12 @@
       "file": "workspace/foundations.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-fol-substitution",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:47f0da0e48bd3994010e9c366676c85ddd85ac656b4929ebbfce970a3876e81c"
-      },
       "kind": "definition",
       "line": 39,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -901,18 +865,12 @@
       "file": "workspace/foundations.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-fol-terms",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:197108d0e5e38c60ffb7db5d123321c5eb05a5da86b701dd9748d69f7379f888"
-      },
       "kind": "definition",
       "line": 14,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -924,18 +882,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-henkin-theory",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:3c534b5d937d23db690832477a6b02acc92249981528d49578ba6926a270b0f2"
-      },
       "kind": "definition",
       "line": 84,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -947,18 +899,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-hilbert-calculus",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:333e3c1b0bbce983c9b7ee2a31b93271beb3f64d885b339a081430025fce550b"
-      },
       "kind": "definition",
       "line": 14,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -970,18 +916,12 @@
       "file": "workspace/foundations.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-language-translation",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:af9d6aee6344bec07188b591400c71a529e4f2b0c5d1d2c22fbccc49f4f62af7"
-      },
       "kind": "definition",
       "line": 83,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -993,18 +933,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-satisfaction",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:050b85c62ad6efa8c1de82fe99ef0155dbcf98b7edf4588b0875e0060659b9db"
-      },
       "kind": "definition",
       "line": 40,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1016,18 +950,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "def-term-value",
-      "identity": {
-        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "statement_hash": "sha256:5e31ced558c8ed760595610d24d8fb3cffc0b7533eaf9fe64bfdd8b8f3e1877a"
-      },
       "kind": "definition",
       "line": 29,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1039,18 +967,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-canonical-truth",
-      "identity": {
-        "proof_hash": "sha256:f527f188eb77b6a5a6267dc84854f8d3604e5cdd7e43c9ff583bc47734364f92",
-        "statement_hash": "sha256:3cf781fdbcb57cd41729ee02c3e11db89f5162e16b8fa11134cf05004b7edcc6"
-      },
       "kind": "lemma",
       "line": 162,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1062,18 +984,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-chain-union-consistent",
-      "identity": {
-        "proof_hash": "sha256:32a5948086cb610353ba195fddfe2430fd246c43e24527d531c946594f5bc22e",
-        "statement_hash": "sha256:45a5320010de49d7ff24b45c6d0d57d4087aca4a4f6ef202458b56b8f4bdc4ea"
-      },
       "kind": "lemma",
       "line": 100,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1085,18 +1001,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-complete-theory-boolean",
-      "identity": {
-        "proof_hash": "sha256:fd798e28c74656eb2f5466a992c3afaffc7e3918767fa03e7b795d6eef6d0b2e",
-        "statement_hash": "sha256:04f34d38f0d3e84b94b7bcd37d6895549767370da1dacc9e80757d0d77a60b0c"
-      },
       "kind": "lemma",
       "line": 139,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1108,18 +1018,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-consistency-characterizations",
-      "identity": {
-        "proof_hash": "sha256:135ce2a2de30ff4cec146a7d99de2ae713c130fa48b3c6d3db8ec5bd5bd0b7b1",
-        "statement_hash": "sha256:55fbf6a6a283187bf00f893fce7b93a3c5b5ba3d75dec8d24b29ad3e92445ac0"
-      },
       "kind": "lemma",
       "line": 78,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1131,18 +1035,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-constant-elimination",
-      "identity": {
-        "proof_hash": "sha256:60a384e52759850a80d61cf48e09a45d5f8b5c15857cc71061de34f42d9201b5",
-        "statement_hash": "sha256:0bdce03e6cbb8682a15ee029362821e69b4e28c3b126cb27ee2f5e28e4eb1ecc"
-      },
       "kind": "lemma",
       "line": 154,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1154,18 +1052,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-deduction",
-      "identity": {
-        "proof_hash": "sha256:7a4b4130786ae9950817416e57a7f737c961159aec169166b7704fc993b42335",
-        "statement_hash": "sha256:0bc38e289d3634805c7153aa9b0e9c877102b7630cb22dde20a3501581c43b6d"
-      },
       "kind": "lemma",
       "line": 51,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1177,18 +1069,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-equality-congruence",
-      "identity": {
-        "proof_hash": "sha256:022fc4c0aa1c5d513802d2d5118930901457946c0394536fccfddeb9627e52fd",
-        "statement_hash": "sha256:5c663b26eb859126ccdbab7affd1eb4d2c6c1322ecefe67f16dbda727bbde9c9"
-      },
       "kind": "lemma",
       "line": 91,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1200,18 +1086,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-existential-membership",
-      "identity": {
-        "proof_hash": "sha256:869cff4add7a6806cfba5ab12c6a52ed2e8a9ade925598b4013cdaf20f8ab905",
-        "statement_hash": "sha256:9fcf430a0aadae7deee0afe1a2eb88ee43c654bb65e4e9621f8fbb5d872a9117"
-      },
       "kind": "lemma",
       "line": 144,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1223,18 +1103,12 @@
       "file": "workspace/foundations.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-fresh-variable",
-      "identity": {
-        "proof_hash": "sha256:75bba48841d82dc687966d407146e20ccf1477589c42ddbfcaf772ce040b9418",
-        "statement_hash": "sha256:02c7be7629c641f08af8bbaacc0b96ab2261eaab2d77e02935e7785f7f048da3"
-      },
       "kind": "lemma",
       "line": 49,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1246,18 +1120,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-henkin-witness-consistency",
-      "identity": {
-        "proof_hash": "sha256:aa379446e48efe586efa6a0680c8aa335f005611e5ded14b5527afdfb4f5981d",
-        "statement_hash": "sha256:8481036618102399b61cdf9324186b8105f9dd464e88562f3abc12773d51c632"
-      },
       "kind": "lemma",
       "line": 177,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1269,18 +1137,12 @@
       "file": "workspace/henkin.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-henkinization",
-      "identity": {
-        "proof_hash": "sha256:fa13e01f2626883c3ec1ccc3c507d502b58c41c2fbed325d910ad3753daafe21",
-        "statement_hash": "sha256:45286c28f2fd126c502cf118a634d77879d3a22dd0b5b0b32c92470910e34fae"
-      },
       "kind": "lemma",
       "line": 38,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1292,18 +1154,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-maximal-consistent",
-      "identity": {
-        "proof_hash": "sha256:09a496dfac51528f1b6c7d461eb4c694ba43eed651f27006269469378c3dcd34",
-        "statement_hash": "sha256:cafb24ed01e2c556a8fdda47952630a620b557c94e445d0106bb2319366d0dcc"
-      },
       "kind": "lemma",
       "line": 114,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1315,18 +1171,12 @@
       "file": "workspace/calculus.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-proof-finitary",
-      "identity": {
-        "proof_hash": "sha256:52cbda8b5c4c2cbf35af0c6153c090de339135f47748fc000f98415937ed08f5",
-        "statement_hash": "sha256:d621f872eadadd5036689c02bae879f0efb048574cff84c2622d59f23eca0244"
-      },
       "kind": "lemma",
       "line": 40,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1338,18 +1188,12 @@
       "file": "workspace/henkin.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-pure-language-extension",
-      "identity": {
-        "proof_hash": "sha256:8b20399028a94e2d24f9ba2f706b217688158249069f0261416cf467192227f0",
-        "statement_hash": "sha256:881110a853c1c74a88408550a2ff9c0db9367625be423908b9ffeff783045a7f"
-      },
       "kind": "lemma",
       "line": 24,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1361,18 +1205,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-reduct-satisfaction",
-      "identity": {
-        "proof_hash": "sha256:02624e839958daea2e15b3de98822c0a27079a65730c711ad2b1862f2d8ff7ad",
-        "statement_hash": "sha256:bfe0dd3a35498de15bb42f8b67139ce1584d5def3d2a395c1cff2139e1430a6f"
-      },
       "kind": "lemma",
       "line": 197,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1384,18 +1222,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-semantic-substitution",
-      "identity": {
-        "proof_hash": "sha256:00033d801d1710160a5f0ba4fa5f51eb1d913e28845be39dcd049ddd6d2f5378",
-        "statement_hash": "sha256:becb4f37e2a5741af3d74288aaf0e84fd3c2f2bb3a200c8b39af74af23050283"
-      },
       "kind": "lemma",
       "line": 62,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1407,18 +1239,12 @@
       "file": "workspace/foundations.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-substitution-composition",
-      "identity": {
-        "proof_hash": "sha256:c2c7c84dc32905448de85259cef84bf227d571bea176f525a7f25ff5b346dae1",
-        "statement_hash": "sha256:3b0ec738785a87123fc11d1b8b5dde4b72011c4383105fadd7772b1e4f456404"
-      },
       "kind": "lemma",
       "line": 61,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1430,18 +1256,12 @@
       "file": "workspace/semantics.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "lem-term-model-evaluation",
-      "identity": {
-        "proof_hash": "sha256:72d625b150947ffba9d4eaf9c2add819344ecfeb2c08799cdfb4041e483c242c",
-        "statement_hash": "sha256:8f08c4166e9064d977a994ea3629302dc8f8c35993d7b3fa117475e6cf95b929"
-      },
       "kind": "lemma",
       "line": 126,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1453,18 +1273,12 @@
       "file": "workspace/henkin.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "thm-consistent-model",
-      "identity": {
-        "proof_hash": "sha256:82a0a57951af93328dee50b1fe5ae6c78339e555838b8ff79a1b7cc4bd1fdf37",
-        "statement_hash": "sha256:3c8d783b9e278348e7c88a119a2a66526d4bc6633494ed976047bb7da4d72025"
-      },
       "kind": "theorem",
       "line": 78,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "fact",
@@ -1476,18 +1290,12 @@
       "file": "completeness.qmd",
       "global_verification": {
         "blockers": [],
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "unverified"
       },
       "id": "thm-main-godel-completeness",
-      "identity": {
-        "proof_hash": "sha256:f531e8923f0ae80b921f33d25c63f504772943ed9d27bb37e824f3cfa8b4641d",
-        "statement_hash": "sha256:4c0097f5058c40780b562875568aaa578b1412f89d25ff2d20b199f17518f370"
-      },
       "kind": "theorem",
       "line": 5,
       "local_verification": {
-        "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
         "status": "not-run"
       },
       "origin": "main-goal",
@@ -1496,6 +1304,6 @@
       "title": "Gödel completeness theorem"
     }
   ],
-  "schema_version": 5,
-  "snapshot_id": "sha256:a2da6c96cbb82831b775a3bf820896eac4c6ba7b19f5f3b01c39ef7449fb4588"
+  "schema_version": 6,
+  "snapshot_id": "sha256:5d3448ce6298ae961a2c51c684b4f32718f0a3ebca72c7965c60f00356670c93"
 }
