@@ -1,0 +1,4003 @@
+{
+  "context_hash": "sha256:f4473b46a1f4cb6b1d4b1274d0db61082648a884e7985aefab5989e4d07dd35c",
+  "diagnostics": [],
+  "goals": [
+    {
+      "file": "completeness.qmd",
+      "id": "thm-main-godel-completeness",
+      "line": 5,
+      "status": "candidate"
+    }
+  ],
+  "graph": {
+    "cycles": [],
+    "edges": [
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-canonical-term-model",
+        "to": "lem-equality-congruence"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-fol-formulas",
+        "to": "def-fol-signature"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-fol-formulas",
+        "to": "def-fol-terms"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-fol-structure",
+        "to": "def-fol-signature"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-fol-substitution",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-fol-terms",
+        "to": "def-fol-signature"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-hilbert-calculus",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-hilbert-calculus",
+        "to": "def-fol-substitution"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-language-translation",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-language-translation",
+        "to": "def-fol-substitution"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-satisfaction",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-satisfaction",
+        "to": "def-fol-structure"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-satisfaction",
+        "to": "def-term-value"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "def-term-value",
+        "to": "def-fol-structure"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "def-canonical-term-model"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "def-satisfaction"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "lem-complete-theory-boolean"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "lem-equality-congruence"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "lem-existential-membership"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "lem-fresh-variable"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "lem-substitution-composition"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-canonical-truth",
+        "to": "lem-term-model-evaluation"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-chain-union-consistent",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-chain-union-consistent",
+        "to": "lem-consistency-characterizations"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-chain-union-consistent",
+        "to": "lem-proof-finitary"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-complete-theory-boolean",
+        "to": "def-consistency"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-complete-theory-boolean",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-consistency-characterizations",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-consistency-characterizations",
+        "to": "lem-deduction"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-constant-elimination",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-constant-elimination",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-constant-elimination",
+        "to": "def-language-translation"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-constant-elimination",
+        "to": "lem-fresh-variable"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-constant-elimination",
+        "to": "lem-substitution-composition"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-deduction",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-deduction",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-equality-congruence",
+        "to": "def-consistency"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-equality-congruence",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-existential-membership",
+        "to": "def-consistency"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-existential-membership",
+        "to": "def-henkin-theory"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-existential-membership",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-fresh-variable",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-fresh-variable",
+        "to": "def-fol-terms"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkin-witness-consistency",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkin-witness-consistency",
+        "to": "lem-consistency-characterizations"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkin-witness-consistency",
+        "to": "lem-constant-elimination"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkin-witness-consistency",
+        "to": "lem-deduction"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkin-witness-consistency",
+        "to": "lem-fresh-variable"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkinization",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkinization",
+        "to": "def-henkin-theory"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkinization",
+        "to": "lem-henkin-witness-consistency"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkinization",
+        "to": "lem-proof-finitary"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-henkinization",
+        "to": "lem-pure-language-extension"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-maximal-consistent",
+        "to": "def-consistency"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-maximal-consistent",
+        "to": "lem-chain-union-consistent"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-maximal-consistent",
+        "to": "lem-consistency-characterizations"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-maximal-consistent",
+        "to": "lem-deduction"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-proof-finitary",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-pure-language-extension",
+        "to": "def-consistency"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-pure-language-extension",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-pure-language-extension",
+        "to": "lem-constant-elimination"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-reduct-satisfaction",
+        "to": "def-satisfaction"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-reduct-satisfaction",
+        "to": "def-term-value"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-semantic-substitution",
+        "to": "def-fol-formulas"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-semantic-substitution",
+        "to": "def-fol-substitution"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-semantic-substitution",
+        "to": "def-fol-terms"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-semantic-substitution",
+        "to": "def-satisfaction"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-semantic-substitution",
+        "to": "lem-fresh-variable"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-substitution-composition",
+        "to": "def-fol-substitution"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-substitution-composition",
+        "to": "lem-fresh-variable"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-term-model-evaluation",
+        "to": "def-canonical-term-model"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-term-model-evaluation",
+        "to": "def-fol-substitution"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "lem-term-model-evaluation",
+        "to": "def-fol-terms"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-consistent-model",
+        "to": "def-canonical-term-model"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-consistent-model",
+        "to": "def-henkin-theory"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-consistent-model",
+        "to": "lem-canonical-truth"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-consistent-model",
+        "to": "lem-henkinization"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-consistent-model",
+        "to": "lem-maximal-consistent"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-consistent-model",
+        "to": "lem-reduct-satisfaction"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-main-godel-completeness",
+        "to": "def-hilbert-calculus"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-main-godel-completeness",
+        "to": "def-satisfaction"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-main-godel-completeness",
+        "to": "lem-consistency-characterizations"
+      },
+      {
+        "checks": {
+          "cycle": "pass",
+          "existence": "pass",
+          "scope": "pass"
+        },
+        "from": "thm-main-godel-completeness",
+        "to": "thm-consistent-model"
+      }
+    ],
+    "nodes": [
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-canonical-term-model",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:d95984fa5288986767b4637d72a39318dfdc3ff50420938456b4e6919bfe4163"
+        },
+        "kind": "definition",
+        "line": 109,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Canonical term model"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-consistency",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:dcb285d70c03cc3fb9fddb4e3177f9e8131a5adf0942dfd73d09a1460b8def41"
+        },
+        "kind": "definition",
+        "line": 70,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Syntactic consistency and completeness"
+      },
+      {
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-formulas",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:00dd9093bde27e5bca8f405b392bfaf8be5eda1104bdd9e1ce930b9aa8f69aca"
+        },
+        "kind": "definition",
+        "line": 23,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Formulas and sentences"
+      },
+      {
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-signature",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:d613154b69e18b34bc783fd2ab8ac43910a9c62c3a88a4f281f18e5666764cac"
+        },
+        "kind": "definition",
+        "line": 5,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "First-order signature"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-structure",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:69793bcfe8e13c9cc10098dc098227cc01e42881b8f2a04098120f1de6c0bbeb"
+        },
+        "kind": "definition",
+        "line": 20,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Structures and assignments"
+      },
+      {
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-substitution",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:47f0da0e48bd3994010e9c366676c85ddd85ac656b4929ebbfce970a3876e81c"
+        },
+        "kind": "definition",
+        "line": 39,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Capture-avoiding substitution"
+      },
+      {
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-terms",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:197108d0e5e38c60ffb7db5d123321c5eb05a5da86b701dd9748d69f7379f888"
+        },
+        "kind": "definition",
+        "line": 14,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Terms and variables"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-henkin-theory",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:3c534b5d937d23db690832477a6b02acc92249981528d49578ba6926a270b0f2"
+        },
+        "kind": "definition",
+        "line": 84,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Henkin theory"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-hilbert-calculus",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:333e3c1b0bbce983c9b7ee2a31b93271beb3f64d885b339a081430025fce550b"
+        },
+        "kind": "definition",
+        "line": 14,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Classical first-order proof calculus"
+      },
+      {
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-language-translation",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:af9d6aee6344bec07188b591400c71a529e4f2b0c5d1d2c22fbccc49f4f62af7"
+        },
+        "kind": "definition",
+        "line": 83,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Reduct translation"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-satisfaction",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:050b85c62ad6efa8c1de82fe99ef0155dbcf98b7edf4588b0875e0060659b9db"
+        },
+        "kind": "definition",
+        "line": 40,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Satisfaction"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-term-value",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:5e31ced558c8ed760595610d24d8fb3cffc0b7533eaf9fe64bfdd8b8f3e1877a"
+        },
+        "kind": "definition",
+        "line": 29,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Value of a term"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-canonical-truth",
+        "identity": {
+          "proof_hash": "sha256:f527f188eb77b6a5a6267dc84854f8d3604e5cdd7e43c9ff583bc47734364f92",
+          "statement_hash": "sha256:3cf781fdbcb57cd41729ee02c3e11db89f5162e16b8fa11134cf05004b7edcc6"
+        },
+        "kind": "lemma",
+        "line": 162,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Canonical truth lemma"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-chain-union-consistent",
+        "identity": {
+          "proof_hash": "sha256:32a5948086cb610353ba195fddfe2430fd246c43e24527d531c946594f5bc22e",
+          "statement_hash": "sha256:45a5320010de49d7ff24b45c6d0d57d4087aca4a4f6ef202458b56b8f4bdc4ea"
+        },
+        "kind": "lemma",
+        "line": 100,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Unions of consistency chains"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-complete-theory-boolean",
+        "identity": {
+          "proof_hash": "sha256:fd798e28c74656eb2f5466a992c3afaffc7e3918767fa03e7b795d6eef6d0b2e",
+          "statement_hash": "sha256:04f34d38f0d3e84b94b7bcd37d6895549767370da1dacc9e80757d0d77a60b0c"
+        },
+        "kind": "lemma",
+        "line": 139,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Boolean laws in a complete theory"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-consistency-characterizations",
+        "identity": {
+          "proof_hash": "sha256:135ce2a2de30ff4cec146a7d99de2ae713c130fa48b3c6d3db8ec5bd5bd0b7b1",
+          "statement_hash": "sha256:55fbf6a6a283187bf00f893fce7b93a3c5b5ba3d75dec8d24b29ad3e92445ac0"
+        },
+        "kind": "lemma",
+        "line": 78,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Consistency characterizations"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-constant-elimination",
+        "identity": {
+          "proof_hash": "sha256:60a384e52759850a80d61cf48e09a45d5f8b5c15857cc71061de34f42d9201b5",
+          "statement_hash": "sha256:0bdce03e6cbb8682a15ee029362821e69b4e28c3b126cb27ee2f5e28e4eb1ecc"
+        },
+        "kind": "lemma",
+        "line": 154,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Elimination of fresh constants"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-deduction",
+        "identity": {
+          "proof_hash": "sha256:7a4b4130786ae9950817416e57a7f737c961159aec169166b7704fc993b42335",
+          "statement_hash": "sha256:0bc38e289d3634805c7153aa9b0e9c877102b7630cb22dde20a3501581c43b6d"
+        },
+        "kind": "lemma",
+        "line": 51,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Deduction theorem"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-equality-congruence",
+        "identity": {
+          "proof_hash": "sha256:022fc4c0aa1c5d513802d2d5118930901457946c0394536fccfddeb9627e52fd",
+          "statement_hash": "sha256:5c663b26eb859126ccdbab7affd1eb4d2c6c1322ecefe67f16dbda727bbde9c9"
+        },
+        "kind": "lemma",
+        "line": 91,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Provable equality is a congruence"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-existential-membership",
+        "identity": {
+          "proof_hash": "sha256:869cff4add7a6806cfba5ab12c6a52ed2e8a9ade925598b4013cdaf20f8ab905",
+          "statement_hash": "sha256:9fcf430a0aadae7deee0afe1a2eb88ee43c654bb65e4e9621f8fbb5d872a9117"
+        },
+        "kind": "lemma",
+        "line": 144,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Existential membership in a complete Henkin theory"
+      },
+      {
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-fresh-variable",
+        "identity": {
+          "proof_hash": "sha256:75bba48841d82dc687966d407146e20ccf1477589c42ddbfcaf772ce040b9418",
+          "statement_hash": "sha256:02c7be7629c641f08af8bbaacc0b96ab2261eaab2d77e02935e7785f7f048da3"
+        },
+        "kind": "lemma",
+        "line": 49,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Fresh-variable lemma"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-henkin-witness-consistency",
+        "identity": {
+          "proof_hash": "sha256:aa379446e48efe586efa6a0680c8aa335f005611e5ded14b5527afdfb4f5981d",
+          "statement_hash": "sha256:8481036618102399b61cdf9324186b8105f9dd464e88562f3abc12773d51c632"
+        },
+        "kind": "lemma",
+        "line": 177,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Fresh witness preserves consistency"
+      },
+      {
+        "file": "workspace/henkin.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-henkinization",
+        "identity": {
+          "proof_hash": "sha256:fa13e01f2626883c3ec1ccc3c507d502b58c41c2fbed325d910ad3753daafe21",
+          "statement_hash": "sha256:45286c28f2fd126c502cf118a634d77879d3a22dd0b5b0b32c92470910e34fae"
+        },
+        "kind": "lemma",
+        "line": 38,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Consistent Henkinization"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-maximal-consistent",
+        "identity": {
+          "proof_hash": "sha256:09a496dfac51528f1b6c7d461eb4c694ba43eed651f27006269469378c3dcd34",
+          "statement_hash": "sha256:cafb24ed01e2c556a8fdda47952630a620b557c94e445d0106bb2319366d0dcc"
+        },
+        "kind": "lemma",
+        "line": 114,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Maximal consistent extension"
+      },
+      {
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-proof-finitary",
+        "identity": {
+          "proof_hash": "sha256:52cbda8b5c4c2cbf35af0c6153c090de339135f47748fc000f98415937ed08f5",
+          "statement_hash": "sha256:d621f872eadadd5036689c02bae879f0efb048574cff84c2622d59f23eca0244"
+        },
+        "kind": "lemma",
+        "line": 40,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Finitarity of derivability"
+      },
+      {
+        "file": "workspace/henkin.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-pure-language-extension",
+        "identity": {
+          "proof_hash": "sha256:8b20399028a94e2d24f9ba2f706b217688158249069f0261416cf467192227f0",
+          "statement_hash": "sha256:881110a853c1c74a88408550a2ff9c0db9367625be423908b9ffeff783045a7f"
+        },
+        "kind": "lemma",
+        "line": 24,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Fresh symbols preserve consistency"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-reduct-satisfaction",
+        "identity": {
+          "proof_hash": "sha256:02624e839958daea2e15b3de98822c0a27079a65730c711ad2b1862f2d8ff7ad",
+          "statement_hash": "sha256:bfe0dd3a35498de15bb42f8b67139ce1584d5def3d2a395c1cff2139e1430a6f"
+        },
+        "kind": "lemma",
+        "line": 197,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Reduct preserves old-language truth"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-semantic-substitution",
+        "identity": {
+          "proof_hash": "sha256:00033d801d1710160a5f0ba4fa5f51eb1d913e28845be39dcd049ddd6d2f5378",
+          "statement_hash": "sha256:becb4f37e2a5741af3d74288aaf0e84fd3c2f2bb3a200c8b39af74af23050283"
+        },
+        "kind": "lemma",
+        "line": 62,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Semantic substitution lemma"
+      },
+      {
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-substitution-composition",
+        "identity": {
+          "proof_hash": "sha256:c2c7c84dc32905448de85259cef84bf227d571bea176f525a7f25ff5b346dae1",
+          "statement_hash": "sha256:3b0ec738785a87123fc11d1b8b5dde4b72011c4383105fadd7772b1e4f456404"
+        },
+        "kind": "lemma",
+        "line": 61,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Substitution composition"
+      },
+      {
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-term-model-evaluation",
+        "identity": {
+          "proof_hash": "sha256:72d625b150947ffba9d4eaf9c2add819344ecfeb2c08799cdfb4041e483c242c",
+          "statement_hash": "sha256:8f08c4166e9064d977a994ea3629302dc8f8c35993d7b3fa117475e6cf95b929"
+        },
+        "kind": "lemma",
+        "line": 126,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Evaluation by closed representatives"
+      },
+      {
+        "file": "workspace/henkin.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "thm-consistent-model",
+        "identity": {
+          "proof_hash": "sha256:82a0a57951af93328dee50b1fe5ae6c78339e555838b8ff79a1b7cc4bd1fdf37",
+          "statement_hash": "sha256:3c8d783b9e278348e7c88a119a2a66526d4bc6633494ed976047bb7da4d72025"
+        },
+        "kind": "theorem",
+        "line": 78,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "fact",
+        "ownership": "agent",
+        "status": "candidate",
+        "title": "Model existence for consistent theories"
+      },
+      {
+        "file": "completeness.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "thm-main-godel-completeness",
+        "identity": {
+          "proof_hash": "sha256:f531e8923f0ae80b921f33d25c63f504772943ed9d27bb37e824f3cfa8b4641d",
+          "statement_hash": "sha256:4c0097f5058c40780b562875568aaa578b1412f89d25ff2d20b199f17518f370"
+        },
+        "kind": "theorem",
+        "line": 5,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "origin": "main-goal",
+        "ownership": "user",
+        "status": "candidate",
+        "title": "Gödel completeness theorem"
+      }
+    ],
+    "schema_version": 5,
+    "snapshot_id": "sha256:a2da6c96cbb82831b775a3bf820896eac4c6ba7b19f5f3b01c39ef7449fb4588"
+  },
+  "manifest": {
+    "files": [
+      {
+        "imports": [],
+        "path": "completeness.qmd",
+        "proofs": [],
+        "results": [
+          "thm-main-godel-completeness"
+        ]
+      },
+      {
+        "imports": [
+          {
+            "from": "foundations.qmd",
+            "use": [
+              "def-fol-formulas",
+              "def-fol-substitution",
+              "def-language-translation",
+              "lem-fresh-variable",
+              "lem-substitution-composition"
+            ]
+          }
+        ],
+        "path": "workspace/calculus.qmd",
+        "proofs": [
+          "lem-proof-finitary",
+          "lem-deduction",
+          "lem-consistency-characterizations",
+          "lem-chain-union-consistent",
+          "lem-maximal-consistent",
+          "lem-complete-theory-boolean",
+          "lem-constant-elimination",
+          "lem-henkin-witness-consistency"
+        ],
+        "results": [
+          "def-hilbert-calculus",
+          "lem-proof-finitary",
+          "lem-deduction",
+          "def-consistency",
+          "lem-consistency-characterizations",
+          "lem-chain-union-consistent",
+          "lem-maximal-consistent",
+          "lem-complete-theory-boolean",
+          "lem-constant-elimination",
+          "lem-henkin-witness-consistency"
+        ]
+      },
+      {
+        "imports": [],
+        "path": "workspace/foundations.qmd",
+        "proofs": [
+          "lem-fresh-variable",
+          "lem-substitution-composition"
+        ],
+        "results": [
+          "def-fol-signature",
+          "def-fol-terms",
+          "def-fol-formulas",
+          "def-fol-substitution",
+          "lem-fresh-variable",
+          "lem-substitution-composition",
+          "def-language-translation"
+        ]
+      },
+      {
+        "imports": [
+          {
+            "from": "foundations.qmd",
+            "use": [
+              "def-fol-formulas"
+            ]
+          },
+          {
+            "from": "calculus.qmd",
+            "use": [
+              "def-consistency",
+              "def-hilbert-calculus",
+              "lem-constant-elimination",
+              "lem-henkin-witness-consistency",
+              "lem-maximal-consistent",
+              "lem-proof-finitary"
+            ]
+          },
+          {
+            "from": "semantics.qmd",
+            "use": [
+              "def-canonical-term-model",
+              "def-henkin-theory",
+              "lem-canonical-truth",
+              "lem-reduct-satisfaction"
+            ]
+          }
+        ],
+        "path": "workspace/henkin.qmd",
+        "proofs": [
+          "lem-pure-language-extension",
+          "lem-henkinization",
+          "thm-consistent-model"
+        ],
+        "results": [
+          "lem-pure-language-extension",
+          "lem-henkinization",
+          "thm-consistent-model"
+        ]
+      },
+      {
+        "imports": [
+          {
+            "from": "calculus.qmd",
+            "use": [
+              "def-hilbert-calculus",
+              "lem-consistency-characterizations"
+            ]
+          },
+          {
+            "from": "semantics.qmd",
+            "use": [
+              "def-satisfaction"
+            ]
+          },
+          {
+            "from": "henkin.qmd",
+            "use": [
+              "thm-consistent-model"
+            ]
+          }
+        ],
+        "path": "workspace/main-proof.qmd",
+        "proofs": [
+          "thm-main-godel-completeness"
+        ],
+        "results": []
+      },
+      {
+        "imports": [],
+        "path": "workspace/progress.qmd",
+        "proofs": [],
+        "results": []
+      },
+      {
+        "imports": [
+          {
+            "from": "foundations.qmd",
+            "use": [
+              "def-fol-formulas",
+              "def-fol-signature",
+              "def-fol-substitution",
+              "def-fol-terms",
+              "lem-fresh-variable",
+              "lem-substitution-composition"
+            ]
+          },
+          {
+            "from": "calculus.qmd",
+            "use": [
+              "def-consistency",
+              "def-hilbert-calculus",
+              "lem-complete-theory-boolean"
+            ]
+          }
+        ],
+        "path": "workspace/semantics.qmd",
+        "proofs": [
+          "lem-semantic-substitution",
+          "lem-equality-congruence",
+          "lem-term-model-evaluation",
+          "lem-existential-membership",
+          "lem-canonical-truth",
+          "lem-reduct-satisfaction"
+        ],
+        "results": [
+          "def-fol-structure",
+          "def-term-value",
+          "def-satisfaction",
+          "lem-semantic-substitution",
+          "def-henkin-theory",
+          "lem-equality-congruence",
+          "def-canonical-term-model",
+          "lem-term-model-evaluation",
+          "lem-existential-membership",
+          "lem-canonical-truth",
+          "lem-reduct-satisfaction"
+        ]
+      }
+    ],
+    "proofs": [
+      {
+        "dependencies": [
+          "def-hilbert-calculus"
+        ],
+        "file": "workspace/calculus.qmd",
+        "line": 45,
+        "marker": null,
+        "proof_hash": "sha256:52cbda8b5c4c2cbf35af0c6153c090de339135f47748fc000f98415937ed08f5",
+        "proof_present": true,
+        "proof_text": "A derivation in @def-hilbert-calculus is finite. Take (_0) to be the set of its lines justified as assumptions. The same finite sequence is a derivation from (_0).",
+        "target": "lem-proof-finitary"
+      },
+      {
+        "dependencies": [
+          "def-fol-formulas",
+          "def-hilbert-calculus"
+        ],
+        "file": "workspace/calculus.qmd",
+        "line": 56,
+        "marker": null,
+        "proof_hash": "sha256:7a4b4130786ae9950817416e57a7f737c961159aec169166b7704fc993b42335",
+        "proof_present": true,
+        "proof_text": "For the forward implication, induct on the finite derivation specified in @def-hilbert-calculus. If a line (C) is (A), use the propositional tautology (AA). If it is an axiom or belongs to (), derive (AC) from (C) and the tautology (C(AC)). The modus-ponens step follows from the tautology ((A(CD))((AC)(AD))). If (C) was generalized to (xC), the induction hypothesis gives (AC); generalize to (x(AC)), and apply quantifier axiom 4 of @def-hilbert-calculus to obtain (AxC), since the sentence (A) has no free variables by @def-fol-formulas. The reverse implication is one modus-ponens step using the added assumption (A).",
+        "target": "lem-deduction"
+      },
+      {
+        "dependencies": [
+          "def-hilbert-calculus",
+          "lem-deduction"
+        ],
+        "file": "workspace/calculus.qmd",
+        "line": 89,
+        "marker": null,
+        "proof_hash": "sha256:135ce2a2de30ff4cec146a7d99de2ae713c130fa48b3c6d3db8ec5bd5bd0b7b1",
+        "proof_present": true,
+        "proof_text": "If () derives (C) and (C), a propositional tautology and two modus-ponens steps in @def-hilbert-calculus derive (). From (), the tautology (B) derives every (B); (iii) plainly implies (i). For the last assertion, inconsistency of ({A}) would give a derivation of (). By @lem-deduction, (_LA); classical propositional logic proves ((A)A), contradicting (_L A).",
+        "target": "lem-consistency-characterizations"
+      },
+      {
+        "dependencies": [
+          "def-hilbert-calculus",
+          "lem-consistency-characterizations",
+          "lem-proof-finitary"
+        ],
+        "file": "workspace/calculus.qmd",
+        "line": 105,
+        "marker": null,
+        "proof_hash": "sha256:32a5948086cb610353ba195fddfe2430fd246c43e24527d531c946594f5bc22e",
+        "proof_present": true,
+        "proof_text": "If the union were inconsistent, @lem-consistency-characterizations and @lem-proof-finitary would place a finite inconsistent subset in the union. Each of its finitely many members belongs to some element of (C); since (C) is linearly ordered, one element contains them all. It would be inconsistent by monotonicity of derivations in @def-hilbert-calculus, a contradiction.",
+        "target": "lem-chain-union-consistent"
+      },
+      {
+        "dependencies": [
+          "def-consistency",
+          "lem-chain-union-consistent",
+          "lem-consistency-characterizations",
+          "lem-deduction"
+        ],
+        "file": "workspace/calculus.qmd",
+        "line": 120,
+        "marker": null,
+        "proof_hash": "sha256:09a496dfac51528f1b6c7d461eb4c694ba43eed651f27006269469378c3dcd34",
+        "proof_present": true,
+        "proof_text": "Consider the partially ordered set of consistent extensions of (), ordered by inclusion. It is nonempty, and every chain has an upper bound by @lem-chain-union-consistent. Apply Zorn’s lemma (the set-theoretic principle: if every chain in a nonempty partially ordered set has an upper bound, then a maximal element exists) to obtain a maximal consistent extension (T). Its hypotheses have just been verified.If (T_L A) but (AT), then (T{A}) has exactly the same consequences as (T) (replace each use of the new assumption by the given finite derivation), so it is consistent, contradicting maximality. Thus (T) is deductively closed. For a sentence (A), if (AT), maximality makes (T{A}) inconsistent. By @lem-consistency-characterizations and @lem-deduction, (T_L A), hence (T_LA) by propositional logic; deductive closure puts (A) in (T). Thus @def-consistency gives all three claimed properties.",
+        "target": "lem-maximal-consistent"
+      },
+      {
+        "dependencies": [
+          "def-consistency",
+          "def-hilbert-calculus"
+        ],
+        "file": "workspace/calculus.qmd",
+        "line": 146,
+        "marker": null,
+        "proof_hash": "sha256:fd798e28c74656eb2f5466a992c3afaffc7e3918767fa03e7b795d6eef6d0b2e",
+        "proof_present": true,
+        "proof_text": "Negation-completeness from @def-consistency supplies at least one of (A,A); consistency forbids both because assumptions are derivable in @def-hilbert-calculus. The conjunction eliminations and introduction are classical propositional tautologies, so deductive closure proves the second equivalence.",
+        "target": "lem-complete-theory-boolean"
+      },
+      {
+        "dependencies": [
+          "def-fol-formulas",
+          "def-hilbert-calculus",
+          "def-language-translation",
+          "lem-fresh-variable",
+          "lem-substitution-composition"
+        ],
+        "file": "workspace/calculus.qmd",
+        "line": 164,
+        "marker": null,
+        "proof_hash": "sha256:60a384e52759850a80d61cf48e09a45d5f8b5c15857cc71061de34f42d9201b5",
+        "proof_present": true,
+        "proof_text": "Choose distinct variables (y_i) absent from the finite derivation using @lem-fresh-variable. Translate every line by replacing (c_i) with (y_i) as in @def-language-translation. Propositional and equality axiom instances remain instances; quantifier instances remain valid by @lem-substitution-composition; modus ponens is preserved. Before translating, alpha-rename generalized variables away from the (y_i), which is permitted by @def-fol-formulas, so generalization is preserved. The assumptions and conclusion, when they are (L)-sentences, are fixed. Thus the translated sequence proves the general assertion under @def-hilbert-calculus, and its special case is an (L)-derivation of (A).",
+        "target": "lem-constant-elimination"
+      },
+      {
+        "dependencies": [
+          "def-hilbert-calculus",
+          "lem-consistency-characterizations",
+          "lem-constant-elimination",
+          "lem-deduction",
+          "lem-fresh-variable"
+        ],
+        "file": "workspace/calculus.qmd",
+        "line": 184,
+        "marker": null,
+        "proof_hash": "sha256:aa379446e48efe586efa6a0680c8aa335f005611e5ded14b5527afdfb4f5981d",
+        "proof_present": true,
+        "proof_text": "Suppose the extension is inconsistent. By @lem-consistency-characterizations and @lem-deduction it derives, from (), the negation of (xA(x)A(c)), and propositional logic consequently gives both (xA(x)) and (A(c)). The latter derivation uses the fresh constant only. Replace (c) by a variable (y) fresh for the finite derivation using @lem-fresh-variable. Propositional logic gives (A(y)); generalization gives (y(A(y))), and quantifier axiom 5 of @def-hilbert-calculus gives (yA(y)), hence (yA(y)). Alpha-equivalence identifies this with (xA(x)), contradicting the simultaneously derived existential and consistency of (). The replacement step is the one-constant argument of @lem-constant-elimination.",
+        "target": "lem-henkin-witness-consistency"
+      },
+      {
+        "dependencies": [
+          "def-fol-formulas",
+          "def-fol-terms"
+        ],
+        "file": "workspace/foundations.qmd",
+        "line": 54,
+        "marker": null,
+        "proof_hash": "sha256:75bba48841d82dc687966d407146e20ccf1477589c42ddbfcaf772ce040b9418",
+        "proof_present": true,
+        "proof_text": "Every term and formula has a finite parse tree by @def-fol-terms and @def-fol-formulas, hence contains finitely many variables. A finite union of finite sets is finite, while () in @def-fol-terms is infinite. Choose a variable outside that union.",
+        "target": "lem-fresh-variable"
+      },
+      {
+        "dependencies": [
+          "def-fol-substitution",
+          "lem-fresh-variable"
+        ],
+        "file": "workspace/foundations.qmd",
+        "line": 70,
+        "marker": null,
+        "proof_hash": "sha256:c2c7c84dc32905448de85259cef84bf227d571bea176f525a7f25ff5b346dae1",
+        "proof_present": true,
+        "proof_text": "Use @lem-fresh-variable to rename every binder of (A) away from all variables occurring in (t,u). For variables and constants the term identity follows directly from substitution; the function-term case follows by applying the induction hypothesis to every argument. For formulas, atomic cases follow from the term identity, while negation and conjunction follow by applying the induction hypothesis to their immediate subformulas. For (z B), the chosen renaming makes (z) distinct from (x,y) and absent from (t,u), so both sides are obtained by applying the induction hypothesis inside the unchanged binder (z). This proves the identity specified by @def-fol-substitution.",
+        "target": "lem-substitution-composition"
+      },
+      {
+        "dependencies": [
+          "def-consistency",
+          "def-hilbert-calculus",
+          "lem-constant-elimination"
+        ],
+        "file": "workspace/henkin.qmd",
+        "line": 30,
+        "marker": null,
+        "proof_hash": "sha256:8b20399028a94e2d24f9ba2f706b217688158249069f0261416cf467192227f0",
+        "proof_present": true,
+        "proof_text": "If an (L’)-derivation made () inconsistent, it would be finite by @def-hilbert-calculus and hence mention only finitely many new constants. @lem-constant-elimination would translate it to an inconsistent (L)-derivation, contrary to consistency of () in @def-consistency.",
+        "target": "lem-pure-language-extension"
+      },
+      {
+        "dependencies": [
+          "def-fol-formulas",
+          "def-henkin-theory",
+          "lem-henkin-witness-consistency",
+          "lem-proof-finitary",
+          "lem-pure-language-extension"
+        ],
+        "file": "workspace/henkin.qmd",
+        "line": 44,
+        "marker": null,
+        "proof_hash": "sha256:fa13e01f2626883c3ec1ccc3c507d502b58c41c2fbed325d910ad3753daafe21",
+        "proof_present": true,
+        "proof_text": "We use two standard set-theoretic construction principles, neither of which has logical model-existence content: the well-ordering theorem (every set can be well ordered) and transfinite recursion (a uniquely prescribed successor/union-limit construction along an ordinal exists). Their hypotheses apply to the sets of formulas generated by @def-fol-formulas.Put (L_0=L), except that if (L) has no constant, adjoin a new constant (d); put (H_0=). This remains consistent by @lem-pure-language-extension. Suppose (L_n,H_n) have been constructed and (H_n) is consistent. Well-order all existential (L_n)-sentences as ((E_){<n}), writing (E=xA(x)). By transfinite recursion, at successor (+1) adjoin a new constant (c_{n,}) and the sentence [ E_A_(c_{n,}). ] @lem-henkin-witness-consistency preserves consistency. At a limit ordinal take unions. Such a union is consistent: a hypothetical contradictory derivation is finite by @lem-proof-finitary, so the finitely many assumptions and new constants it mentions all occur below one earlier ordinal, where the theory is consistent. Let (L_{n+1}) and (H_{n+1}) be the unions after the enumeration.Finally put (L^={n<}L_n) and (H={n<}H_n). The same finite-derivation argument, now taking the maximum of finitely many natural-number stages, proves consistency. Every existential (L^)-sentence contains finitely many symbols, hence is already an (L_n)-sentence for some (n). At the next stage its enumeration adds a witness constant and its witness implication, which remains in (H). Thus (H) has the property in @def-henkin-theory, contains (), and is consistent.",
+        "target": "lem-henkinization"
+      },
+      {
+        "dependencies": [
+          "def-canonical-term-model",
+          "def-henkin-theory",
+          "lem-canonical-truth",
+          "lem-henkinization",
+          "lem-maximal-consistent",
+          "lem-reduct-satisfaction"
+        ],
+        "file": "workspace/henkin.qmd",
+        "line": 84,
+        "marker": null,
+        "proof_hash": "sha256:82a0a57951af93328dee50b1fe5ae6c78339e555838b8ff79a1b7cc4bd1fdf37",
+        "proof_present": true,
+        "proof_text": "Apply @lem-henkinization to obtain a consistent Henkin extension (H) in (L^*). Apply @lem-maximal-consistent in that fixed language to extend (H) to a consistent, deductively closed, negation-complete theory (T). Because every witness implication belonging to (H) still belongs to (T), it remains Henkin by @def-henkin-theory. Form its canonical term model (M_T) using @def-canonical-term-model. The sentence case of @lem-canonical-truth gives (M_TA) for every (AT), hence for every (A). Take the (L)-reduct (M=M_TL). Since every member of () is an (L)-sentence, @lem-reduct-satisfaction yields (M).",
+        "target": "thm-consistent-model"
+      },
+      {
+        "dependencies": [
+          "def-hilbert-calculus",
+          "def-satisfaction",
+          "lem-consistency-characterizations",
+          "thm-consistent-model"
+        ],
+        "file": "workspace/main-proof.qmd",
+        "line": 17,
+        "marker": null,
+        "proof_hash": "sha256:f531e8923f0ae80b921f33d25c63f504772943ed9d27bb37e824f3cfa8b4641d",
+        "proof_present": true,
+        "proof_text": "Fix a first-order signature (L), a set () of (L)-sentences, and an (L)-sentence (), exactly as in the protected main statement. Assume (_L) in the sense of @def-satisfaction.Suppose for contradiction that (_L) in the calculus @def-hilbert-calculus. By @lem-consistency-characterizations, the set (={}) is syntactically consistent. @thm-consistent-model therefore supplies an (L)-structure (M) satisfying every member of (). In particular, (M) and (M). By the negation clause of @def-satisfaction, (M), contradicting (_L). Hence (_L), as required.",
+        "target": "thm-main-godel-completeness"
+      },
+      {
+        "dependencies": [
+          "def-fol-formulas",
+          "def-fol-substitution",
+          "def-fol-terms",
+          "def-satisfaction",
+          "lem-fresh-variable"
+        ],
+        "file": "workspace/semantics.qmd",
+        "line": 72,
+        "marker": null,
+        "proof_hash": "sha256:00033d801d1710160a5f0ba4fa5f51eb1d913e28845be39dcd049ddd6d2f5378",
+        "proof_present": true,
+        "proof_text": "Induct on the construction of terms in @def-fol-terms to prove the term-value identity. Then induct on the construction of formulas in @def-fol-formulas. Atomic cases use that identity and @def-satisfaction; Boolean cases are immediate. In the case (yB), use @lem-fresh-variable and alpha-renaming to have (yx) and (y(t)). Updating an assignment at (y) then at (x) commutes, and the value of (t) is unchanged by the (y)-update, so the induction hypothesis under each candidate witness gives the equivalence. This is exactly the capture avoidance required by @def-fol-substitution.",
+        "target": "lem-semantic-substitution"
+      },
+      {
+        "dependencies": [
+          "def-consistency",
+          "def-hilbert-calculus"
+        ],
+        "file": "workspace/semantics.qmd",
+        "line": 98,
+        "marker": null,
+        "proof_hash": "sha256:022fc4c0aa1c5d513802d2d5118930901457946c0394536fccfddeb9627e52fd",
+        "proof_present": true,
+        "proof_text": "The equality axioms in @def-hilbert-calculus give (t=t) and, by taking appropriate instances of the replacement schema, symmetry (t=uu=t), transitivity ((t=uu=v)t=v), function congruence, and relation substitutivity. Apply modus ponens and deductive closure from @def-consistency. Repeating one coordinate at a time proves the assertions for all finite arities. Thus the relation and interpretations below do not depend on representatives.",
+        "target": "lem-equality-congruence"
+      },
+      {
+        "dependencies": [
+          "def-canonical-term-model",
+          "def-fol-substitution",
+          "def-fol-terms"
+        ],
+        "file": "workspace/semantics.qmd",
+        "line": 136,
+        "marker": null,
+        "proof_hash": "sha256:72d625b150947ffba9d4eaf9c2add819344ecfeb2c08799cdfb4041e483c242c",
+        "proof_present": true,
+        "proof_text": "Structural induction on @def-fol-terms. The variable case is the definition of (s); the function case follows from the function interpretation in @def-canonical-term-model. Simultaneous substitution is the operation of @def-fol-substitution, and all substituted terms are closed, so no capture is possible.",
+        "target": "lem-term-model-evaluation"
+      },
+      {
+        "dependencies": [
+          "def-consistency",
+          "def-henkin-theory",
+          "def-hilbert-calculus"
+        ],
+        "file": "workspace/semantics.qmd",
+        "line": 154,
+        "marker": null,
+        "proof_hash": "sha256:869cff4add7a6806cfba5ab12c6a52ed2e8a9ade925598b4013cdaf20f8ab905",
+        "proof_present": true,
+        "proof_text": "For left-to-right, choose the witness term supplied by @def-henkin-theory and use modus ponens plus deductive closure from @def-consistency. Conversely, quantifier axiom 5 in @def-hilbert-calculus directly gives (A(t)xA). Modus ponens and deductive closure put the existential in (T).",
+        "target": "lem-existential-membership"
+      },
+      {
+        "dependencies": [
+          "def-canonical-term-model",
+          "def-fol-formulas",
+          "def-satisfaction",
+          "lem-complete-theory-boolean",
+          "lem-equality-congruence",
+          "lem-existential-membership",
+          "lem-fresh-variable",
+          "lem-substitution-composition",
+          "lem-term-model-evaluation"
+        ],
+        "file": "workspace/semantics.qmd",
+        "line": 176,
+        "marker": null,
+        "proof_hash": "sha256:f527f188eb77b6a5a6267dc84854f8d3604e5cdd7e43c9ff583bc47734364f92",
+        "proof_present": true,
+        "proof_text": "Induct on formulas generated by @def-fol-formulas. For relation atoms, use @lem-term-model-evaluation and the relation interpretation in @def-canonical-term-model. For equality atoms, the two evaluated classes are equal exactly when the substituted equality belongs to (T), by @lem-equality-congruence. Negation and conjunction follow respectively from @def-satisfaction and @lem-complete-theory-boolean.For (xB), alpha-rename using @lem-fresh-variable so (x) differs from the other displayed variables. By @def-satisfaction, the existential is true exactly when it is true after updating (s(x)) to some domain element. Every domain element is ([t]) for a closed term by @def-canonical-term-model. The induction hypothesis says this is equivalent to membership of the corresponding closed instance (B(t)) in (T). By @lem-substitution-composition, that instance is the capture-avoiding instance of the formula after the other representatives were substituted. @lem-existential-membership now makes this equivalent to membership of the substituted existential. This completes the induction. Sentences require no representatives and are assignment-independent by @def-satisfaction.",
+        "target": "lem-canonical-truth"
+      },
+      {
+        "dependencies": [
+          "def-satisfaction",
+          "def-term-value"
+        ],
+        "file": "workspace/semantics.qmd",
+        "line": 204,
+        "marker": null,
+        "proof_hash": "sha256:02624e839958daea2e15b3de98822c0a27079a65730c711ad2b1862f2d8ff7ad",
+        "proof_present": true,
+        "proof_text": "Term induction using @def-term-value shows equal values because all symbols of an (L)-term retain their interpretations. Formula induction using @def-satisfaction then gives the claim: atomic cases use those term values and unchanged relations, Boolean cases use the induction hypothesis, and the existential case quantifies over the same nonempty domain.",
+        "target": "lem-reduct-satisfaction"
+      }
+    ],
+    "results": [
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "lem-equality-congruence"
+        ],
+        "construction_hash": "sha256:d95984fa5288986767b4637d72a39318dfdc3ff50420938456b4e6919bfe4163",
+        "construction_text": "Let (T) be a deductively closed consistent theory in a language (L^*) with a constant. Its canonical term model (M_T) has as domain the (_T)-classes ([t]) of closed (L^*)-terms, using @lem-equality-congruence. Define [ f^{M_T}([t_1],,[t_n])=[f(t_1,,t_n)] ] and [ ([t_1],,[t_n])R^{M_T} R(t_1,,t_n)T. ] The domain is nonempty because the language has a constant, and @lem-equality-congruence makes all interpretations well-defined.",
+        "date": "2026-07-12",
+        "dependencies": [
+          "lem-equality-congruence"
+        ],
+        "export": "def-canonical-term-model",
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-canonical-term-model",
+        "kind": "definition",
+        "line": 109,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "lem-equality-congruence",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:d95984fa5288986767b4637d72a39318dfdc3ff50420938456b4e6919bfe4163",
+        "statement_text": "Let (T) be a deductively closed consistent theory in a language (L^*) with a constant. Its canonical term model (M_T) has as domain the (_T)-classes ([t]) of closed (L^*)-terms, using @lem-equality-congruence. Define [ f^{M_T}([t_1],,[t_n])=[f(t_1,,t_n)] ] and [ ([t_1],,[t_n])R^{M_T} R(t_1,,t_n)T. ] The domain is nonempty because the language has a constant, and @lem-equality-congruence makes all interpretations well-defined.",
+        "status": "candidate",
+        "title": "Canonical term model",
+        "title_hash": "sha256:f2097f715746ae583cafeacaf39679080479e393aa67559880497392911b009d",
+        "uses": [
+          "lem-equality-congruence"
+        ]
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [],
+        "construction_hash": "sha256:dcb285d70c03cc3fb9fddb4e3177f9e8131a5adf0942dfd73d09a1460b8def41",
+        "construction_text": "A set () of (L)-sentences is consistent when there is no sentence (A) such that both (_L A) and (_LA). It is negation-complete when for every (L)-sentence (A), either (A) or (A). It is deductively closed when (_L A) implies (A).",
+        "date": "2026-07-12",
+        "dependencies": [],
+        "export": "def-consistency",
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-consistency",
+        "kind": "definition",
+        "line": 70,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [],
+        "statement_hash": "sha256:dcb285d70c03cc3fb9fddb4e3177f9e8131a5adf0942dfd73d09a1460b8def41",
+        "statement_text": "A set () of (L)-sentences is consistent when there is no sentence (A) such that both (_L A) and (_LA). It is negation-complete when for every (L)-sentence (A), either (A) or (A). It is deductively closed when (_L A) implies (A).",
+        "status": "candidate",
+        "title": "Syntactic consistency and completeness",
+        "title_hash": "sha256:ef9bfcd8b6f1bad074d3193ff7038db0dfaabf1f3d0633757d6c60cf21c95223",
+        "uses": []
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "def-fol-signature",
+          "def-fol-terms"
+        ],
+        "construction_hash": "sha256:00dd9093bde27e5bca8f405b392bfaf8be5eda1104bdd9e1ce930b9aa8f69aca",
+        "construction_text": "For @def-fol-signature and @def-fol-terms, atomic formulas are (R(t_1,,t_n)) and (t=u). Formulas are generated from atomic formulas using (), (), and (x). Write the other Boolean connectives and (x,A:=xA) as abbreviations. Every variable occurrence in a term is free. In an atomic formula all occurrences are free; negation preserves free occurrences, conjunction takes their union, and (x A) binds exactly the free occurrences of (x) in (A). Thus ((x A)=(A){x}), with the evident recursive clauses for atomic formulas, negation, and conjunction. A sentence has no free variables. Alpha-equivalence is the least congruence identifying (x A) with (y,A[y/x]) whenever (y) is fresh for (A); formulas are considered modulo this congruence.",
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-signature",
+          "def-fol-terms"
+        ],
+        "export": "def-fol-formulas",
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-formulas",
+        "kind": "definition",
+        "line": 23,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-signature",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-terms",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:00dd9093bde27e5bca8f405b392bfaf8be5eda1104bdd9e1ce930b9aa8f69aca",
+        "statement_text": "For @def-fol-signature and @def-fol-terms, atomic formulas are (R(t_1,,t_n)) and (t=u). Formulas are generated from atomic formulas using (), (), and (x). Write the other Boolean connectives and (x,A:=xA) as abbreviations. Every variable occurrence in a term is free. In an atomic formula all occurrences are free; negation preserves free occurrences, conjunction takes their union, and (x A) binds exactly the free occurrences of (x) in (A). Thus ((x A)=(A){x}), with the evident recursive clauses for atomic formulas, negation, and conjunction. A sentence has no free variables. Alpha-equivalence is the least congruence identifying (x A) with (y,A[y/x]) whenever (y) is fresh for (A); formulas are considered modulo this congruence.",
+        "status": "candidate",
+        "title": "Formulas and sentences",
+        "title_hash": "sha256:f5f33498efb5370f087014d8448cace4bc5afcd0cadef1897ec00423a696dd79",
+        "uses": [
+          "def-fol-signature",
+          "def-fol-terms"
+        ]
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [],
+        "construction_hash": "sha256:d613154b69e18b34bc783fd2ab8ac43910a9c62c3a88a4f281f18e5666764cac",
+        "construction_text": "A first-order signature (L) consists of sets (F_n) of (n)-ary function symbols and sets (R_n) of (n)-ary relation symbols for each (nN). Constants are the members of (F_0). Equality is a distinguished logical binary predicate, not a member of (R_2). A language extension keeps the old symbols with their arities and adds new ones.",
+        "date": "2026-07-12",
+        "dependencies": [],
+        "export": "def-fol-signature",
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-signature",
+        "kind": "definition",
+        "line": 5,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [],
+        "statement_hash": "sha256:d613154b69e18b34bc783fd2ab8ac43910a9c62c3a88a4f281f18e5666764cac",
+        "statement_text": "A first-order signature (L) consists of sets (F_n) of (n)-ary function symbols and sets (R_n) of (n)-ary relation symbols for each (nN). Constants are the members of (F_0). Equality is a distinguished logical binary predicate, not a member of (R_2). A language extension keeps the old symbols with their arities and adds new ones.",
+        "status": "candidate",
+        "title": "First-order signature",
+        "title_hash": "sha256:2240f28c14edfcceeb12c2ebe31b0881c873808a0c1195b718d7be520d39553a",
+        "uses": []
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "def-fol-signature"
+        ],
+        "construction_hash": "sha256:69793bcfe8e13c9cc10098dc098227cc01e42881b8f2a04098120f1de6c0bbeb",
+        "construction_text": "For a signature (L) from @def-fol-signature, an (L)-structure (M) has a nonempty domain (M), interprets every (fF_n) as a function (M^nM), and every (RR_n) as a subset of (M^n). Logical equality is interpreted as actual equality on (M). An assignment is a function (s:M); write (s[xa]) for its update at (x).",
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-signature"
+        ],
+        "export": null,
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-structure",
+        "kind": "definition",
+        "line": 20,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-signature",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:69793bcfe8e13c9cc10098dc098227cc01e42881b8f2a04098120f1de6c0bbeb",
+        "statement_text": "For a signature (L) from @def-fol-signature, an (L)-structure (M) has a nonempty domain (M), interprets every (fF_n) as a function (M^nM), and every (RR_n) as a subset of (M^n). Logical equality is interpreted as actual equality on (M). An assignment is a function (s:M); write (s[xa]) for its update at (x).",
+        "status": "candidate",
+        "title": "Structures and assignments",
+        "title_hash": "sha256:897d8477dcc4cf306edaafd742ba94ec1746081319e53fd164dff6a1af9c0c23",
+        "uses": [
+          "def-fol-signature"
+        ]
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "def-fol-formulas"
+        ],
+        "construction_hash": "sha256:47f0da0e48bd3994010e9c366676c85ddd85ac656b4929ebbfce970a3876e81c",
+        "construction_text": "For a term (t), variable (x), and formula (A) from @def-fol-formulas, (A[t/x]) is simultaneous replacement of the free occurrences of (x) by (t), after renaming bound variables when necessary so that no variable of (t) becomes bound. The notation (A[t_1/x_1,,t_k/x_k]) means simultaneous capture-avoiding substitution. A term (t) is free for (x) in (A) when the direct replacement causes no capture.",
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas"
+        ],
+        "export": "def-fol-substitution",
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-substitution",
+        "kind": "definition",
+        "line": 39,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:47f0da0e48bd3994010e9c366676c85ddd85ac656b4929ebbfce970a3876e81c",
+        "statement_text": "For a term (t), variable (x), and formula (A) from @def-fol-formulas, (A[t/x]) is simultaneous replacement of the free occurrences of (x) by (t), after renaming bound variables when necessary so that no variable of (t) becomes bound. The notation (A[t_1/x_1,,t_k/x_k]) means simultaneous capture-avoiding substitution. A term (t) is free for (x) in (A) when the direct replacement causes no capture.",
+        "status": "candidate",
+        "title": "Capture-avoiding substitution",
+        "title_hash": "sha256:b602a2a0a4458fea45231258e01876dc184ebb968839055a4b721961bffe3d61",
+        "uses": [
+          "def-fol-formulas"
+        ]
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "def-fol-signature"
+        ],
+        "construction_hash": "sha256:197108d0e5e38c60ffb7db5d123321c5eb05a5da86b701dd9748d69f7379f888",
+        "construction_text": "Fix a countably infinite set () of variables. For a signature (L) as in @def-fol-signature, the (L)-terms are the least set containing every variable and every constant and closed under (f(t_1,,t_n)) for (fF_n). A term is closed when it has no variable. The finite set of variables occurring in (t) is ((t)).",
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-signature"
+        ],
+        "export": "def-fol-terms",
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-fol-terms",
+        "kind": "definition",
+        "line": 14,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-signature",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:197108d0e5e38c60ffb7db5d123321c5eb05a5da86b701dd9748d69f7379f888",
+        "statement_text": "Fix a countably infinite set () of variables. For a signature (L) as in @def-fol-signature, the (L)-terms are the least set containing every variable and every constant and closed under (f(t_1,,t_n)) for (fF_n). A term is closed when it has no variable. The finite set of variables occurring in (t) is ((t)).",
+        "status": "candidate",
+        "title": "Terms and variables",
+        "title_hash": "sha256:6a76ccdae53bd83874a1437b7069ea14026e4c64b75638a16bb51cc9e0a68c03",
+        "uses": [
+          "def-fol-signature"
+        ]
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [],
+        "construction_hash": "sha256:3c534b5d937d23db690832477a6b02acc92249981528d49578ba6926a270b0f2",
+        "construction_text": "A set (T) of sentences in a language with at least one constant is a Henkin theory if, for every sentence (xA(x)), there is a closed term (t) such that (xA(x)A(t)T). Such a (t) is a witness term.",
+        "date": "2026-07-12",
+        "dependencies": [],
+        "export": "def-henkin-theory",
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-henkin-theory",
+        "kind": "definition",
+        "line": 84,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [],
+        "statement_hash": "sha256:3c534b5d937d23db690832477a6b02acc92249981528d49578ba6926a270b0f2",
+        "statement_text": "A set (T) of sentences in a language with at least one constant is a Henkin theory if, for every sentence (xA(x)), there is a closed term (t) such that (xA(x)A(t)T). Such a (t) is a witness term.",
+        "status": "candidate",
+        "title": "Henkin theory",
+        "title_hash": "sha256:eba5746b0bd5144f1289bf7bac79984bb5663ad441f9233db50b78814d849c16",
+        "uses": []
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "def-fol-formulas",
+          "def-fol-substitution"
+        ],
+        "construction_hash": "sha256:333e3c1b0bbce983c9b7ee2a31b93271beb3f64d885b339a081430025fce550b",
+        "construction_text": "For a signature (L), an (L)-derivation from a set () of (L)-sentences is a finite sequence of (L)-formulas. Each line is:a member of ();an instance (under uniform formula substitution) of a classical propositional tautology;(x AA[t/x]), where (t) is free for (x) in (A) as in @def-fol-substitution;(x(AB)(AxB)), where (x(A));(A[t/x]xA), where (t) is free for (x) in (A), and (x(AB)(xAB)), where (x(B));an equality axiom: (t=t), or (s=t(C[s/x]C[t/x])), where the displayed substitutions are free (this schema includes symmetry, transitivity, and substitutivity for functions and relations);obtained by modus ponens from earlier (A) and (AB); orobtained by generalization from an earlier (A), yielding (xA).Because assumptions are sentences by @def-fol-formulas, generalization has no free-variable side condition on assumptions. Write (_L A) if such a sequence ends in (A), and (_L A) when (=). This is the proof calculus meant by the main goal.",
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas",
+          "def-fol-substitution"
+        ],
+        "export": "def-hilbert-calculus",
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-hilbert-calculus",
+        "kind": "definition",
+        "line": 14,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-substitution",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:333e3c1b0bbce983c9b7ee2a31b93271beb3f64d885b339a081430025fce550b",
+        "statement_text": "For a signature (L), an (L)-derivation from a set () of (L)-sentences is a finite sequence of (L)-formulas. Each line is:a member of ();an instance (under uniform formula substitution) of a classical propositional tautology;(x AA[t/x]), where (t) is free for (x) in (A) as in @def-fol-substitution;(x(AB)(AxB)), where (x(A));(A[t/x]xA), where (t) is free for (x) in (A), and (x(AB)(xAB)), where (x(B));an equality axiom: (t=t), or (s=t(C[s/x]C[t/x])), where the displayed substitutions are free (this schema includes symmetry, transitivity, and substitutivity for functions and relations);obtained by modus ponens from earlier (A) and (AB); orobtained by generalization from an earlier (A), yielding (xA).Because assumptions are sentences by @def-fol-formulas, generalization has no free-variable side condition on assumptions. Write (_L A) if such a sequence ends in (A), and (_L A) when (=). This is the proof calculus meant by the main goal.",
+        "status": "candidate",
+        "title": "Classical first-order proof calculus",
+        "title_hash": "sha256:9b7b8fef20ef16725742c70894b39b30272a0fdb5adc4be1a54624b3f72dc013",
+        "uses": [
+          "def-fol-formulas",
+          "def-fol-substitution"
+        ]
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "def-fol-formulas",
+          "def-fol-substitution"
+        ],
+        "construction_hash": "sha256:af9d6aee6344bec07188b591400c71a529e4f2b0c5d1d2c22fbccc49f4f62af7",
+        "construction_text": "If (LL’) and (A) is an (L’)-formula, replacing selected new constants by distinct variables means the capture-avoiding simultaneous substitution of those variables for the constants, after bound-variable renaming as in @def-fol-substitution. It fixes every (L)-symbol and commutes with the logical constructors of @def-fol-formulas.",
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas",
+          "def-fol-substitution"
+        ],
+        "export": "def-language-translation",
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-language-translation",
+        "kind": "definition",
+        "line": 83,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-substitution",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:af9d6aee6344bec07188b591400c71a529e4f2b0c5d1d2c22fbccc49f4f62af7",
+        "statement_text": "If (LL’) and (A) is an (L’)-formula, replacing selected new constants by distinct variables means the capture-avoiding simultaneous substitution of those variables for the constants, after bound-variable renaming as in @def-fol-substitution. It fixes every (L)-symbol and commutes with the logical constructors of @def-fol-formulas.",
+        "status": "candidate",
+        "title": "Reduct translation",
+        "title_hash": "sha256:0e87c28dba00d47c1812ba4e7dd30f9d8adb964b5e6d822b59a4e821738959f4",
+        "uses": [
+          "def-fol-formulas",
+          "def-fol-substitution"
+        ]
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "def-fol-formulas",
+          "def-fol-structure",
+          "def-term-value"
+        ],
+        "construction_hash": "sha256:050b85c62ad6efa8c1de82fe99ef0155dbcf98b7edf4588b0875e0060659b9db",
+        "construction_text": "For @def-fol-formulas, @def-fol-structure, and @def-term-value, satisfaction is defined recursively by [] For a sentence (A), write (MA); its truth is assignment independent. Write (M) when it satisfies every member of (), and (_L A) when every (L)-structure satisfying () satisfies (A).",
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas",
+          "def-fol-structure",
+          "def-term-value"
+        ],
+        "export": "def-satisfaction",
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-satisfaction",
+        "kind": "definition",
+        "line": 40,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-structure",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-term-value",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:050b85c62ad6efa8c1de82fe99ef0155dbcf98b7edf4588b0875e0060659b9db",
+        "statement_text": "For @def-fol-formulas, @def-fol-structure, and @def-term-value, satisfaction is defined recursively by [] For a sentence (A), write (MA); its truth is assignment independent. Write (M) when it satisfies every member of (), and (_L A) when every (L)-structure satisfying () satisfies (A).",
+        "status": "candidate",
+        "title": "Satisfaction",
+        "title_hash": "sha256:07674f7ecdcb96939749ec9fae4f89fc2c995baba79002c7b65c405369182ec7",
+        "uses": [
+          "def-fol-formulas",
+          "def-fol-structure",
+          "def-term-value"
+        ]
+      },
+      {
+        "classes": [
+          "definition"
+        ],
+        "construction_dependencies": [
+          "def-fol-structure"
+        ],
+        "construction_hash": "sha256:5e31ced558c8ed760595610d24d8fb3cffc0b7533eaf9fe64bfdd8b8f3e1877a",
+        "construction_text": "For @def-fol-structure, define recursively (x^{M}_s=s(x)) and [ f(t_1,,t_n)^{M}_s =f^{M}(t_1^{M}_s,, t_n^{M}_s). ] For a closed term the value is independent of (s).",
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-structure"
+        ],
+        "export": null,
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "def-term-value",
+        "kind": "definition",
+        "line": 29,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-structure",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:5e31ced558c8ed760595610d24d8fb3cffc0b7533eaf9fe64bfdd8b8f3e1877a",
+        "statement_text": "For @def-fol-structure, define recursively (x^{M}_s=s(x)) and [ f(t_1,,t_n)^{M}_s =f^{M}(t_1^{M}_s,, t_n^{M}_s). ] For a closed term the value is independent of (s).",
+        "status": "candidate",
+        "title": "Value of a term",
+        "title_hash": "sha256:55b90e25142689e35d177d282ccdb91b4751331d3357c915ef3295febb8fa629",
+        "uses": [
+          "def-fol-structure"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-canonical-term-model",
+          "def-fol-formulas",
+          "def-satisfaction",
+          "lem-complete-theory-boolean",
+          "lem-equality-congruence",
+          "lem-existential-membership",
+          "lem-fresh-variable",
+          "lem-substitution-composition",
+          "lem-term-model-evaluation"
+        ],
+        "export": "lem-canonical-truth",
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-canonical-truth",
+        "kind": "lemma",
+        "line": 162,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/semantics.qmd",
+        "proof_hash": "sha256:f527f188eb77b6a5a6267dc84854f8d3604e5cdd7e43c9ff583bc47734364f92",
+        "proof_line": 176,
+        "proof_present": true,
+        "proof_text": "Induct on formulas generated by @def-fol-formulas. For relation atoms, use @lem-term-model-evaluation and the relation interpretation in @def-canonical-term-model. For equality atoms, the two evaluated classes are equal exactly when the substituted equality belongs to (T), by @lem-equality-congruence. Negation and conjunction follow respectively from @def-satisfaction and @lem-complete-theory-boolean.For (xB), alpha-rename using @lem-fresh-variable so (x) differs from the other displayed variables. By @def-satisfaction, the existential is true exactly when it is true after updating (s(x)) to some domain element. Every domain element is ([t]) for a closed term by @def-canonical-term-model. The induction hypothesis says this is equivalent to membership of the corresponding closed instance (B(t)) in (T). By @lem-substitution-composition, that instance is the capture-avoiding instance of the formula after the other representatives were substituted. @lem-existential-membership now makes this equivalent to membership of the substituted existential. This completes the induction. Sentences require no representatives and are assignment-independent by @def-satisfaction.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-canonical-term-model",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-satisfaction",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-complete-theory-boolean",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-equality-congruence",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-existential-membership",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-fresh-variable",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-substitution-composition",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-term-model-evaluation",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:3cf781fdbcb57cd41729ee02c3e11db89f5162e16b8fa11134cf05004b7edcc6",
+        "statement_text": "Let (T) be a consistent, deductively closed, negation-complete Henkin theory. Choose closed representatives (r_x) and the corresponding assignment (s) as in @lem-term-model-evaluation. For every formula (A) whose free variables are among (x_1,,x_k), [ M_T,sA A[r_{x_1}/x_1,,r_{x_k}/x_k]T. ] In particular, for every sentence (A), (M_TA) iff (AT).",
+        "status": "candidate",
+        "title": "Canonical truth lemma",
+        "title_hash": "sha256:5b5e6fc24e0cb8e6df64adea55a8fffc19997b0cff1923e3f82af92d5a4f0a3d",
+        "uses": [
+          "def-canonical-term-model",
+          "def-fol-formulas",
+          "def-satisfaction",
+          "lem-complete-theory-boolean",
+          "lem-equality-congruence",
+          "lem-existential-membership",
+          "lem-fresh-variable",
+          "lem-substitution-composition",
+          "lem-term-model-evaluation"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-hilbert-calculus",
+          "lem-consistency-characterizations",
+          "lem-proof-finitary"
+        ],
+        "export": null,
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-chain-union-consistent",
+        "kind": "lemma",
+        "line": 100,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/calculus.qmd",
+        "proof_hash": "sha256:32a5948086cb610353ba195fddfe2430fd246c43e24527d531c946594f5bc22e",
+        "proof_line": 105,
+        "proof_present": true,
+        "proof_text": "If the union were inconsistent, @lem-consistency-characterizations and @lem-proof-finitary would place a finite inconsistent subset in the union. Each of its finitely many members belongs to some element of (C); since (C) is linearly ordered, one element contains them all. It would be inconsistent by monotonicity of derivations in @def-hilbert-calculus, a contradiction.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-consistency-characterizations",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-proof-finitary",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:45a5320010de49d7ff24b45c6d0d57d4087aca4a4f6ef202458b56b8f4bdc4ea",
+        "statement_text": "If (C) is a nonempty chain under inclusion of consistent sets of (L)-sentences, then (C) is consistent.",
+        "status": "candidate",
+        "title": "Unions of consistency chains",
+        "title_hash": "sha256:01c8237596580d810a2667a092ee47cd9f9ade18d1f0d52172caf83531d638be",
+        "uses": [
+          "def-hilbert-calculus",
+          "lem-consistency-characterizations",
+          "lem-proof-finitary"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-consistency",
+          "def-hilbert-calculus"
+        ],
+        "export": "lem-complete-theory-boolean",
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-complete-theory-boolean",
+        "kind": "lemma",
+        "line": 139,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/calculus.qmd",
+        "proof_hash": "sha256:fd798e28c74656eb2f5466a992c3afaffc7e3918767fa03e7b795d6eef6d0b2e",
+        "proof_line": 146,
+        "proof_present": true,
+        "proof_text": "Negation-completeness from @def-consistency supplies at least one of (A,A); consistency forbids both because assumptions are derivable in @def-hilbert-calculus. The conjunction eliminations and introduction are classical propositional tautologies, so deductive closure proves the second equivalence.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-consistency",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:04f34d38f0d3e84b94b7bcd37d6895549767370da1dacc9e80757d0d77a60b0c",
+        "statement_text": "If (T) is consistent, deductively closed, and negation-complete, then for sentences (A,B): (AT) iff (AT), and (ABT) iff both (AT) and (BT).",
+        "status": "candidate",
+        "title": "Boolean laws in a complete theory",
+        "title_hash": "sha256:c4108e6f9c7b4ef5aed152a9a91144917963ad88c8968059a96750020628bf74",
+        "uses": [
+          "def-consistency",
+          "def-hilbert-calculus"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-hilbert-calculus",
+          "lem-deduction"
+        ],
+        "export": "lem-consistency-characterizations",
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-consistency-characterizations",
+        "kind": "lemma",
+        "line": 78,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/calculus.qmd",
+        "proof_hash": "sha256:135ce2a2de30ff4cec146a7d99de2ae713c130fa48b3c6d3db8ec5bd5bd0b7b1",
+        "proof_line": 89,
+        "proof_present": true,
+        "proof_text": "If () derives (C) and (C), a propositional tautology and two modus-ponens steps in @def-hilbert-calculus derive (). From (), the tautology (B) derives every (B); (iii) plainly implies (i). For the last assertion, inconsistency of ({A}) would give a derivation of (). By @lem-deduction, (_LA); classical propositional logic proves ((A)A), contradicting (_L A).",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-deduction",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:55fbf6a6a283187bf00f893fce7b93a3c5b5ba3d75dec8d24b29ad3e92445ac0",
+        "statement_text": "For a set () of sentences and any sentence (A), the following are equivalent: (i) () is inconsistent in the sense of @def-consistency; (ii) (_L), where () abbreviates the fixed sentential contradiction ((z,z=z)(z,z=z)); (iii) (_L B) for every sentence (B). Moreover, if (_L A), then ({A}) is consistent.",
+        "status": "candidate",
+        "title": "Consistency characterizations",
+        "title_hash": "sha256:80e55794e8d96ac060e23c130484263cbe4bb1dcf98132ee401408ea49087335",
+        "uses": [
+          "def-hilbert-calculus",
+          "lem-deduction"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas",
+          "def-hilbert-calculus",
+          "def-language-translation",
+          "lem-fresh-variable",
+          "lem-substitution-composition"
+        ],
+        "export": "lem-constant-elimination",
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-constant-elimination",
+        "kind": "lemma",
+        "line": 154,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/calculus.qmd",
+        "proof_hash": "sha256:60a384e52759850a80d61cf48e09a45d5f8b5c15857cc71061de34f42d9201b5",
+        "proof_line": 164,
+        "proof_present": true,
+        "proof_text": "Choose distinct variables (y_i) absent from the finite derivation using @lem-fresh-variable. Translate every line by replacing (c_i) with (y_i) as in @def-language-translation. Propositional and equality axiom instances remain instances; quantifier instances remain valid by @lem-substitution-composition; modus ponens is preserved. Before translating, alpha-rename generalized variables away from the (y_i), which is permitted by @def-fol-formulas, so generalization is preserved. The assumptions and conclusion, when they are (L)-sentences, are fixed. Thus the translated sequence proves the general assertion under @def-hilbert-calculus, and its special case is an (L)-derivation of (A).",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-language-translation",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-fresh-variable",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-substitution-composition",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:0bdce03e6cbb8682a15ee029362821e69b4e28c3b126cb27ee2f5e28e4eb1ecc",
+        "statement_text": "Let (L’=L{c_1,,c_n}), where the displayed constants are new. If a set () of (L)-sentences derives an (L)-sentence (A) in (L’), then (_L A). More generally, if distinct variables (y_i) are fresh for a finite (L’)-derivation, replacing every (c_i) by (y_i) throughout yields a valid derivation of the correspondingly translated conclusion from ().",
+        "status": "candidate",
+        "title": "Elimination of fresh constants",
+        "title_hash": "sha256:1af8e048aca2773d9ff4ca79078a691777eea065bfe6f757a682807872f0833a",
+        "uses": [
+          "def-fol-formulas",
+          "def-hilbert-calculus",
+          "def-language-translation",
+          "lem-fresh-variable",
+          "lem-substitution-composition"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas",
+          "def-hilbert-calculus"
+        ],
+        "export": null,
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-deduction",
+        "kind": "lemma",
+        "line": 51,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/calculus.qmd",
+        "proof_hash": "sha256:7a4b4130786ae9950817416e57a7f737c961159aec169166b7704fc993b42335",
+        "proof_line": 56,
+        "proof_present": true,
+        "proof_text": "For the forward implication, induct on the finite derivation specified in @def-hilbert-calculus. If a line (C) is (A), use the propositional tautology (AA). If it is an axiom or belongs to (), derive (AC) from (C) and the tautology (C(AC)). The modus-ponens step follows from the tautology ((A(CD))((AC)(AD))). If (C) was generalized to (xC), the induction hypothesis gives (AC); generalize to (x(AC)), and apply quantifier axiom 4 of @def-hilbert-calculus to obtain (AxC), since the sentence (A) has no free variables by @def-fol-formulas. The reverse implication is one modus-ponens step using the added assumption (A).",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:0bc38e289d3634805c7153aa9b0e9c877102b7630cb22dde20a3501581c43b6d",
+        "statement_text": "For a set () of sentences and sentences (A,B), ({A}_L B) iff (_L AB).",
+        "status": "candidate",
+        "title": "Deduction theorem",
+        "title_hash": "sha256:566b3b3e2553179c44fa31d68dcedec6ae68e1b1b9b957ce4b2a0151e205bfd5",
+        "uses": [
+          "def-fol-formulas",
+          "def-hilbert-calculus"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-consistency",
+          "def-hilbert-calculus"
+        ],
+        "export": null,
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-equality-congruence",
+        "kind": "lemma",
+        "line": 91,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/semantics.qmd",
+        "proof_hash": "sha256:022fc4c0aa1c5d513802d2d5118930901457946c0394536fccfddeb9627e52fd",
+        "proof_line": 98,
+        "proof_present": true,
+        "proof_text": "The equality axioms in @def-hilbert-calculus give (t=t) and, by taking appropriate instances of the replacement schema, symmetry (t=uu=t), transitivity ((t=uu=v)t=v), function congruence, and relation substitutivity. Apply modus ponens and deductive closure from @def-consistency. Repeating one coordinate at a time proves the assertions for all finite arities. Thus the relation and interpretations below do not depend on representatives.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-consistency",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:5c663b26eb859126ccdbab7affd1eb4d2c6c1322ecefe67f16dbda727bbde9c9",
+        "statement_text": "Let (T) be deductively closed and consistent. On closed terms put (t_Tu) iff (t=uT). Then (_T) is an equivalence relation, is preserved by every function symbol, and replacement of (_T)-equal arguments preserves membership in (T) of every atomic relation formula.",
+        "status": "candidate",
+        "title": "Provable equality is a congruence",
+        "title_hash": "sha256:4166850a4e181cdbf1115d523b86efe36f775c6ca28be894fbbeb5e77a9c21aa",
+        "uses": [
+          "def-consistency",
+          "def-hilbert-calculus"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-consistency",
+          "def-henkin-theory",
+          "def-hilbert-calculus"
+        ],
+        "export": null,
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-existential-membership",
+        "kind": "lemma",
+        "line": 144,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/semantics.qmd",
+        "proof_hash": "sha256:869cff4add7a6806cfba5ab12c6a52ed2e8a9ade925598b4013cdaf20f8ab905",
+        "proof_line": 154,
+        "proof_present": true,
+        "proof_text": "For left-to-right, choose the witness term supplied by @def-henkin-theory and use modus ponens plus deductive closure from @def-consistency. Conversely, quantifier axiom 5 in @def-hilbert-calculus directly gives (A(t)xA). Modus ponens and deductive closure put the existential in (T).",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-consistency",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-henkin-theory",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:9fcf430a0aadae7deee0afe1a2eb88ee43c654bb65e4e9621f8fbb5d872a9117",
+        "statement_text": "If (T) is consistent, deductively closed, negation-complete, and Henkin, then for every one-free-variable formula (A(x)), [ xA(x)T A(t)Tt. ]",
+        "status": "candidate",
+        "title": "Existential membership in a complete Henkin theory",
+        "title_hash": "sha256:870ac67e9b6b4cb1f820fe79335adef79071555f1c4bf76a2e38fe7d089de07a",
+        "uses": [
+          "def-consistency",
+          "def-henkin-theory",
+          "def-hilbert-calculus"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas",
+          "def-fol-terms"
+        ],
+        "export": "lem-fresh-variable",
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-fresh-variable",
+        "kind": "lemma",
+        "line": 49,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/foundations.qmd",
+        "proof_hash": "sha256:75bba48841d82dc687966d407146e20ccf1477589c42ddbfcaf772ce040b9418",
+        "proof_line": 54,
+        "proof_present": true,
+        "proof_text": "Every term and formula has a finite parse tree by @def-fol-terms and @def-fol-formulas, hence contains finitely many variables. A finite union of finite sets is finite, while () in @def-fol-terms is infinite. Choose a variable outside that union.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-terms",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:02c7be7629c641f08af8bbaacc0b96ab2261eaab2d77e02935e7785f7f048da3",
+        "statement_text": "For every finite collection of terms and formulas there is a variable that does not occur in any member of the collection.",
+        "status": "candidate",
+        "title": "Fresh-variable lemma",
+        "title_hash": "sha256:829bd95859434c07f68505185a9fe2ef8571e75762f235fb1f27184f31170bdc",
+        "uses": [
+          "def-fol-formulas",
+          "def-fol-terms"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-hilbert-calculus",
+          "lem-consistency-characterizations",
+          "lem-constant-elimination",
+          "lem-deduction",
+          "lem-fresh-variable"
+        ],
+        "export": "lem-henkin-witness-consistency",
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-henkin-witness-consistency",
+        "kind": "lemma",
+        "line": 177,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/calculus.qmd",
+        "proof_hash": "sha256:aa379446e48efe586efa6a0680c8aa335f005611e5ded14b5527afdfb4f5981d",
+        "proof_line": 184,
+        "proof_present": true,
+        "proof_text": "Suppose the extension is inconsistent. By @lem-consistency-characterizations and @lem-deduction it derives, from (), the negation of (xA(x)A(c)), and propositional logic consequently gives both (xA(x)) and (A(c)). The latter derivation uses the fresh constant only. Replace (c) by a variable (y) fresh for the finite derivation using @lem-fresh-variable. Propositional logic gives (A(y)); generalization gives (y(A(y))), and quantifier axiom 5 of @def-hilbert-calculus gives (yA(y)), hence (yA(y)). Alpha-equivalence identifies this with (xA(x)), contradicting the simultaneously derived existential and consistency of (). The replacement step is the one-constant argument of @lem-constant-elimination.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-consistency-characterizations",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-constant-elimination",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-deduction",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-fresh-variable",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:8481036618102399b61cdf9324186b8105f9dd464e88562f3abc12773d51c632",
+        "statement_text": "Let () be a consistent set of (L)-sentences, let (x A(x)) be an (L)-sentence, and let (c) be a new constant. Then ({xA(x)A(c)}) is consistent in (L{c}).",
+        "status": "candidate",
+        "title": "Fresh witness preserves consistency",
+        "title_hash": "sha256:cbb3cc011f4ad029a377b8a174f866439536780258174c904e9dc2485285be7c",
+        "uses": [
+          "def-hilbert-calculus",
+          "lem-consistency-characterizations",
+          "lem-constant-elimination",
+          "lem-deduction",
+          "lem-fresh-variable"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas",
+          "def-henkin-theory",
+          "lem-henkin-witness-consistency",
+          "lem-proof-finitary",
+          "lem-pure-language-extension"
+        ],
+        "export": null,
+        "file": "workspace/henkin.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-henkinization",
+        "kind": "lemma",
+        "line": 38,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/henkin.qmd",
+        "proof_hash": "sha256:fa13e01f2626883c3ec1ccc3c507d502b58c41c2fbed325d910ad3753daafe21",
+        "proof_line": 44,
+        "proof_present": true,
+        "proof_text": "We use two standard set-theoretic construction principles, neither of which has logical model-existence content: the well-ordering theorem (every set can be well ordered) and transfinite recursion (a uniquely prescribed successor/union-limit construction along an ordinal exists). Their hypotheses apply to the sets of formulas generated by @def-fol-formulas.Put (L_0=L), except that if (L) has no constant, adjoin a new constant (d); put (H_0=). This remains consistent by @lem-pure-language-extension. Suppose (L_n,H_n) have been constructed and (H_n) is consistent. Well-order all existential (L_n)-sentences as ((E_){<n}), writing (E=xA(x)). By transfinite recursion, at successor (+1) adjoin a new constant (c_{n,}) and the sentence [ E_A_(c_{n,}). ] @lem-henkin-witness-consistency preserves consistency. At a limit ordinal take unions. Such a union is consistent: a hypothetical contradictory derivation is finite by @lem-proof-finitary, so the finitely many assumptions and new constants it mentions all occur below one earlier ordinal, where the theory is consistent. Let (L_{n+1}) and (H_{n+1}) be the unions after the enumeration.Finally put (L^={n<}L_n) and (H={n<}H_n). The same finite-derivation argument, now taking the maximum of finitely many natural-number stages, proves consistency. Every existential (L^)-sentence contains finitely many symbols, hence is already an (L_n)-sentence for some (n). At the next stage its enumeration adds a witness constant and its witness implication, which remains in (H). Thus (H) has the property in @def-henkin-theory, contains (), and is consistent.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-henkin-theory",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-henkin-witness-consistency",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-proof-finitary",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-pure-language-extension",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:45286c28f2fd126c502cf118a634d77879d3a22dd0b5b0b32c92470910e34fae",
+        "statement_text": "For every consistent set () of (L)-sentences there are a language (L^L), obtained only by adjoining constants, and a consistent Henkin theory (H) of (L^)-sentences with (H).",
+        "status": "candidate",
+        "title": "Consistent Henkinization",
+        "title_hash": "sha256:a5d6e3c70c3fc20237f5cab57d45002e6e8143389939aee4a4568282a544d71b",
+        "uses": [
+          "def-fol-formulas",
+          "def-henkin-theory",
+          "lem-henkin-witness-consistency",
+          "lem-proof-finitary",
+          "lem-pure-language-extension"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-consistency",
+          "lem-chain-union-consistent",
+          "lem-consistency-characterizations",
+          "lem-deduction"
+        ],
+        "export": "lem-maximal-consistent",
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-maximal-consistent",
+        "kind": "lemma",
+        "line": 114,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/calculus.qmd",
+        "proof_hash": "sha256:09a496dfac51528f1b6c7d461eb4c694ba43eed651f27006269469378c3dcd34",
+        "proof_line": 120,
+        "proof_present": true,
+        "proof_text": "Consider the partially ordered set of consistent extensions of (), ordered by inclusion. It is nonempty, and every chain has an upper bound by @lem-chain-union-consistent. Apply Zorn’s lemma (the set-theoretic principle: if every chain in a nonempty partially ordered set has an upper bound, then a maximal element exists) to obtain a maximal consistent extension (T). Its hypotheses have just been verified.If (T_L A) but (AT), then (T{A}) has exactly the same consequences as (T) (replace each use of the new assumption by the given finite derivation), so it is consistent, contradicting maximality. Thus (T) is deductively closed. For a sentence (A), if (AT), maximality makes (T{A}) inconsistent. By @lem-consistency-characterizations and @lem-deduction, (T_L A), hence (T_LA) by propositional logic; deductive closure puts (A) in (T). Thus @def-consistency gives all three claimed properties.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-consistency",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-chain-union-consistent",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-consistency-characterizations",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-deduction",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:cafb24ed01e2c556a8fdda47952630a620b557c94e445d0106bb2319366d0dcc",
+        "statement_text": "Every consistent set () of (L)-sentences is contained in a consistent, deductively closed, negation-complete set (T) of (L)-sentences.",
+        "status": "candidate",
+        "title": "Maximal consistent extension",
+        "title_hash": "sha256:3e98766f695a0a44cc688a1ef1dde822a257daccddd7e40b9034206a4f2bdfce",
+        "uses": [
+          "def-consistency",
+          "lem-chain-union-consistent",
+          "lem-consistency-characterizations",
+          "lem-deduction"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-hilbert-calculus"
+        ],
+        "export": "lem-proof-finitary",
+        "file": "workspace/calculus.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-proof-finitary",
+        "kind": "lemma",
+        "line": 40,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/calculus.qmd",
+        "proof_hash": "sha256:52cbda8b5c4c2cbf35af0c6153c090de339135f47748fc000f98415937ed08f5",
+        "proof_line": 45,
+        "proof_present": true,
+        "proof_text": "A derivation in @def-hilbert-calculus is finite. Take (_0) to be the set of its lines justified as assumptions. The same finite sequence is a derivation from (_0).",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:d621f872eadadd5036689c02bae879f0efb048574cff84c2622d59f23eca0244",
+        "statement_text": "If (_L A), some finite (_0) satisfies (_0_L A).",
+        "status": "candidate",
+        "title": "Finitarity of derivability",
+        "title_hash": "sha256:c55fde113a3a48ffe38e834c976a83ab9dc323919bfe5d9e154c49d2b172cb29",
+        "uses": [
+          "def-hilbert-calculus"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-consistency",
+          "def-hilbert-calculus",
+          "lem-constant-elimination"
+        ],
+        "export": null,
+        "file": "workspace/henkin.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-pure-language-extension",
+        "kind": "lemma",
+        "line": 24,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/henkin.qmd",
+        "proof_hash": "sha256:8b20399028a94e2d24f9ba2f706b217688158249069f0261416cf467192227f0",
+        "proof_line": 30,
+        "proof_present": true,
+        "proof_text": "If an (L’)-derivation made () inconsistent, it would be finite by @def-hilbert-calculus and hence mention only finitely many new constants. @lem-constant-elimination would translate it to an inconsistent (L)-derivation, contrary to consistency of () in @def-consistency.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-consistency",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-constant-elimination",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:881110a853c1c74a88408550a2ff9c0db9367625be423908b9ffeff783045a7f",
+        "statement_text": "If () is consistent in (L) and (L’) is obtained by adjoining any set of new constants, then (), regarded as an (L’)-theory, is consistent.",
+        "status": "candidate",
+        "title": "Fresh symbols preserve consistency",
+        "title_hash": "sha256:e64f69768da244cd46b62ace3b4e276992e89e51c47097117e80500b9bb11986",
+        "uses": [
+          "def-consistency",
+          "def-hilbert-calculus",
+          "lem-constant-elimination"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-satisfaction",
+          "def-term-value"
+        ],
+        "export": "lem-reduct-satisfaction",
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-reduct-satisfaction",
+        "kind": "lemma",
+        "line": 197,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/semantics.qmd",
+        "proof_hash": "sha256:02624e839958daea2e15b3de98822c0a27079a65730c711ad2b1862f2d8ff7ad",
+        "proof_line": 204,
+        "proof_present": true,
+        "proof_text": "Term induction using @def-term-value shows equal values because all symbols of an (L)-term retain their interpretations. Formula induction using @def-satisfaction then gives the claim: atomic cases use those term values and unchanged relations, Boolean cases use the induction hypothesis, and the existential case quantifies over the same nonempty domain.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-satisfaction",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-term-value",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:bfe0dd3a35498de15bb42f8b67139ce1584d5def3d2a395c1cff2139e1430a6f",
+        "statement_text": "If (LL^), (N) is an (L^)-structure, and (NL) is obtained by forgetting the new-symbol interpretations, then every (L)-formula has the same truth value in (N) and in its reduct under the same assignment.",
+        "status": "candidate",
+        "title": "Reduct preserves old-language truth",
+        "title_hash": "sha256:df27d790e05d5ff547635d1dbb65727a088108151db7d7ec42b373322a673407",
+        "uses": [
+          "def-satisfaction",
+          "def-term-value"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-formulas",
+          "def-fol-substitution",
+          "def-fol-terms",
+          "def-satisfaction",
+          "lem-fresh-variable"
+        ],
+        "export": null,
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-semantic-substitution",
+        "kind": "lemma",
+        "line": 62,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/semantics.qmd",
+        "proof_hash": "sha256:00033d801d1710160a5f0ba4fa5f51eb1d913e28845be39dcd049ddd6d2f5378",
+        "proof_line": 72,
+        "proof_present": true,
+        "proof_text": "Induct on the construction of terms in @def-fol-terms to prove the term-value identity. Then induct on the construction of formulas in @def-fol-formulas. Atomic cases use that identity and @def-satisfaction; Boolean cases are immediate. In the case (yB), use @lem-fresh-variable and alpha-renaming to have (yx) and (y(t)). Updating an assignment at (y) then at (x) commutes, and the value of (t) is unchanged by the (y)-update, so the induction hypothesis under each candidate witness gives the equivalence. This is exactly the capture avoidance required by @def-fol-substitution.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-formulas",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-substitution",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-terms",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-satisfaction",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-fresh-variable",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:becb4f37e2a5741af3d74288aaf0e84fd3c2f2bb3a200c8b39af74af23050283",
+        "statement_text": "If (t) is free for (x) in (A), then [ M,sA[t/x] M,s[xt_s^{M}]A. ] The corresponding term-value identity also holds.",
+        "status": "candidate",
+        "title": "Semantic substitution lemma",
+        "title_hash": "sha256:79b74f46dd7074dcdcb64757d14154ae228f16ffef06a54ffad1efdcfdaabc34",
+        "uses": [
+          "def-fol-formulas",
+          "def-fol-substitution",
+          "def-fol-terms",
+          "def-satisfaction",
+          "lem-fresh-variable"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-fol-substitution",
+          "lem-fresh-variable"
+        ],
+        "export": "lem-substitution-composition",
+        "file": "workspace/foundations.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-substitution-composition",
+        "kind": "lemma",
+        "line": 61,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/foundations.qmd",
+        "proof_hash": "sha256:c2c7c84dc32905448de85259cef84bf227d571bea176f525a7f25ff5b346dae1",
+        "proof_line": 70,
+        "proof_present": true,
+        "proof_text": "Use @lem-fresh-variable to rename every binder of (A) away from all variables occurring in (t,u). For variables and constants the term identity follows directly from substitution; the function-term case follows by applying the induction hypothesis to every argument. For formulas, atomic cases follow from the term identity, while negation and conjunction follow by applying the induction hypothesis to their immediate subformulas. For (z B), the chosen renaming makes (z) distinct from (x,y) and absent from (t,u), so both sides are obtained by applying the induction hypothesis inside the unchanged binder (z). This proves the identity specified by @def-fol-substitution.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-substitution",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-fresh-variable",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:3b0ec738785a87123fc11d1b8b5dde4b72011c4383105fadd7772b1e4f456404",
+        "statement_text": "Let (A) be a formula, let (xy), and suppose the displayed substitutions are capture-free and (y(t)). Then [ (A[u/y])[t/x]= (A[t/x])[u[t/x]/y] ] up to alpha-equivalence. The analogous identity holds for terms.",
+        "status": "candidate",
+        "title": "Substitution composition",
+        "title_hash": "sha256:3f37da3c353096c5025077f1acf254049270d5fe5c32333f37e2e4844bb307ab",
+        "uses": [
+          "def-fol-substitution",
+          "lem-fresh-variable"
+        ]
+      },
+      {
+        "classes": [
+          "lemma"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-canonical-term-model",
+          "def-fol-substitution",
+          "def-fol-terms"
+        ],
+        "export": null,
+        "file": "workspace/semantics.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "lem-term-model-evaluation",
+        "kind": "lemma",
+        "line": 126,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/semantics.qmd",
+        "proof_hash": "sha256:72d625b150947ffba9d4eaf9c2add819344ecfeb2c08799cdfb4041e483c242c",
+        "proof_line": 136,
+        "proof_present": true,
+        "proof_text": "Structural induction on @def-fol-terms. The variable case is the definition of (s); the function case follows from the function interpretation in @def-canonical-term-model. Simultaneous substitution is the operation of @def-fol-substitution, and all substituted terms are closed, so no capture is possible.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-canonical-term-model",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-substitution",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-fol-terms",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:8f08c4166e9064d977a994ea3629302dc8f8c35993d7b3fa117475e6cf95b929",
+        "statement_text": "Choose for every variable (x) a closed term (r_x), and define the assignment (s(x)=[r_x]) in @def-canonical-term-model. For every term (t(x_1,,x_k)), [ t_s^{M_T} =[t[r_{x_1}/x_1,,r_{x_k}/x_k]]. ]",
+        "status": "candidate",
+        "title": "Evaluation by closed representatives",
+        "title_hash": "sha256:ae6cd1470a4f37a1a07921df52fc8934cb7ffd845c1560708d8a75d265336332",
+        "uses": [
+          "def-canonical-term-model",
+          "def-fol-substitution",
+          "def-fol-terms"
+        ]
+      },
+      {
+        "classes": [
+          "theorem"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-canonical-term-model",
+          "def-henkin-theory",
+          "lem-canonical-truth",
+          "lem-henkinization",
+          "lem-maximal-consistent",
+          "lem-reduct-satisfaction"
+        ],
+        "export": "thm-consistent-model",
+        "file": "workspace/henkin.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "thm-consistent-model",
+        "kind": "theorem",
+        "line": 78,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "agent",
+        "proof_file": "workspace/henkin.qmd",
+        "proof_hash": "sha256:82a0a57951af93328dee50b1fe5ae6c78339e555838b8ff79a1b7cc4bd1fdf37",
+        "proof_line": 84,
+        "proof_present": true,
+        "proof_text": "Apply @lem-henkinization to obtain a consistent Henkin extension (H) in (L^*). Apply @lem-maximal-consistent in that fixed language to extend (H) to a consistent, deductively closed, negation-complete theory (T). Because every witness implication belonging to (H) still belongs to (T), it remains Henkin by @def-henkin-theory. Form its canonical term model (M_T) using @def-canonical-term-model. The sentence case of @lem-canonical-truth gives (M_TA) for every (AT), hence for every (A). Take the (L)-reduct (M=M_TL). Since every member of () is an (L)-sentence, @lem-reduct-satisfaction yields (M).",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-canonical-term-model",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-henkin-theory",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-canonical-truth",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-henkinization",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-maximal-consistent",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-reduct-satisfaction",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:3c8d783b9e278348e7c88a119a2a66526d4bc6633494ed976047bb7da4d72025",
+        "statement_text": "For every signature (L) and every syntactically consistent set () of (L)-sentences, there is an (L)-structure (M) such that (M).",
+        "status": "candidate",
+        "title": "Model existence for consistent theories",
+        "title_hash": "sha256:960677b2d95ec1cb49a2c65e789029bff5f74177bfc0be4e159399f5a17cbefd",
+        "uses": [
+          "def-canonical-term-model",
+          "def-henkin-theory",
+          "lem-canonical-truth",
+          "lem-henkinization",
+          "lem-maximal-consistent",
+          "lem-reduct-satisfaction"
+        ]
+      },
+      {
+        "classes": [
+          "goal",
+          "theorem"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [
+          "def-hilbert-calculus",
+          "def-satisfaction",
+          "lem-consistency-characterizations",
+          "thm-consistent-model"
+        ],
+        "export": null,
+        "file": "completeness.qmd",
+        "global_verification": {
+          "blockers": [],
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "unverified"
+        },
+        "id": "thm-main-godel-completeness",
+        "kind": "theorem",
+        "line": 5,
+        "local_verification": {
+          "reason": "No verifier is configured; the machine dependency analysis remains available and this local result is unverified.",
+          "status": "not-run"
+        },
+        "marker": null,
+        "marker_valid": true,
+        "origin": "user",
+        "proof_file": "workspace/main-proof.qmd",
+        "proof_hash": "sha256:f531e8923f0ae80b921f33d25c63f504772943ed9d27bb37e824f3cfa8b4641d",
+        "proof_line": 17,
+        "proof_present": true,
+        "proof_text": "Fix a first-order signature (L), a set () of (L)-sentences, and an (L)-sentence (), exactly as in the protected main statement. Assume (_L) in the sense of @def-satisfaction.Suppose for contradiction that (_L) in the calculus @def-hilbert-calculus. By @lem-consistency-characterizations, the set (={}) is syntactically consistent. @thm-consistent-model therefore supplies an (L)-structure (M) satisfying every member of (). In particular, (M) and (M). By the negation clause of @def-satisfaction, (M), contradicting (_L). Hence (_L), as required.",
+        "reference_checks": [
+          {
+            "cycle": "pass",
+            "dependency": "def-hilbert-calculus",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "def-satisfaction",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "lem-consistency-characterizations",
+            "existence": "pass",
+            "scope": "pass"
+          },
+          {
+            "cycle": "pass",
+            "dependency": "thm-consistent-model",
+            "existence": "pass",
+            "scope": "pass"
+          }
+        ],
+        "statement_hash": "sha256:4c0097f5058c40780b562875568aaa578b1412f89d25ff2d20b199f17518f370",
+        "statement_text": "For every first-order signature (L), every set () of (L)-sentences, and every (L)-sentence (), if every (L)-structure satisfying () also satisfies (), then () in the proof calculus developed in this project.",
+        "status": "candidate",
+        "title": "Gödel completeness theorem",
+        "title_hash": "sha256:1a56002ec01133e18f83b443690ad033070b6ae1ff7c0e48d32dc7cd25cd54ab",
+        "uses": [
+          "def-hilbert-calculus",
+          "def-satisfaction",
+          "lem-consistency-characterizations",
+          "thm-consistent-model"
+        ]
+      }
+    ],
+    "schema_version": 5,
+    "snapshot_id": "sha256:a2da6c96cbb82831b775a3bf820896eac4c6ba7b19f5f3b01c39ef7449fb4588"
+  },
+  "notes": [
+    {
+      "goals": [
+        "thm-main-godel-completeness"
+      ],
+      "path": "completeness.qmd"
+    },
+    {
+      "goals": [],
+      "path": "workspace/calculus.qmd"
+    },
+    {
+      "goals": [],
+      "path": "workspace/foundations.qmd"
+    },
+    {
+      "goals": [],
+      "path": "workspace/henkin.qmd"
+    },
+    {
+      "goals": [],
+      "path": "workspace/main-proof.qmd"
+    },
+    {
+      "goals": [],
+      "path": "workspace/progress.qmd"
+    },
+    {
+      "goals": [],
+      "path": "workspace/semantics.qmd"
+    }
+  ],
+  "schema_version": 5,
+  "snapshot_id": "sha256:a2da6c96cbb82831b775a3bf820896eac4c6ba7b19f5f3b01c39ef7449fb4588",
+  "source_signature": "sha256:f6fc5d7b909d2af2ce771857d0ec2533fc0b7a66ee1caf0c049ba4e8d8d547f3",
+  "summary": {
+    "errors": 0,
+    "facts": 32,
+    "goals": 1,
+    "notes": 7
+  }
+}

@@ -1,7 +1,7 @@
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { findHelpCommand, hasExactHelpCommand, isHelpGroup, renderHelp, rootUsage } from './help.js';
-import { AUX, cleanId, readJson } from '../infrastructure/files.js';
+import { AUX, readJson } from '../infrastructure/files.js';
 import { analyzeDependencies, inspectFact, inspectPath, inspectProject } from '../inspection/operations.js';
 import { boundedInteger } from '../inspection/graph.js';
 import { printReport } from '../inspection/report.js';
@@ -9,9 +9,7 @@ import { renderProject } from './render.js';
 import { doctorProject } from './doctor.js';
 import { initializeProject } from './project.js';
 import { checkStaleness } from '../verification/staleness.js';
-import { listVerifications, revokeVerification, showVerification, submitProof } from '../verification/submissions.js';
-import { initializeWorkspace } from '../workspace/initialize.js';
-import { inspectWorkspace } from '../workspace/inspect.js';
+import { listVerifications, showVerification } from '../verification/submissions.js';
 import { asRecord, hasErrorCode } from '../shared/core.js';
 import type { JsonObject, OperationResult, RuntimeOptions } from '../shared/types.js';
 
@@ -161,14 +159,7 @@ export async function main(
       emit(await inspectPath(root, tail[0], options), parsed.print);
       return;
     }
-    if (subcommand === 'workspace') {
-      if (tail.length !== 1) throw new Error('inspect workspace requires one thm-main-* ID and optional --print');
-      const result: OperationResult = await inspectWorkspace(root, tail[0], options);
-      result.operation = 'inspect-workspace';
-      emit(result, parsed.print);
-      return;
-    }
-    throw new Error('inspect requires project, fact, path, or workspace');
+    throw new Error('inspect requires project, fact, or path');
   }
   if (command === 'dependency') {
     const parsed = presentation(rest);
@@ -187,12 +178,10 @@ export async function main(
         ...options,
         kind: enumOption('kind', optionString(extracted.options.kind), ['definition', 'lemma', 'theorem', 'proposition', 'corollary', 'unknown']),
         status: enumOption('status', optionString(extracted.options.status), [
-          'candidate', 'open', 'rejected', 'missing', 'stale',
-          'workspace-candidate', 'workspace-disproof-candidate', 'workspace-open', 'workspace-rejected',
-          'workspace-revoked', 'workspace-unverified', 'workspace-verified', 'workspace-disproved',
-          'workspace-blocked', 'workspace-invalid', 'workspace-unavailable'
+          'candidate', 'open', 'rejected', 'disproof-candidate', 'revoked', 'missing', 'stale',
+          'verified', 'disproved', 'blocked', 'unverified', 'invalid'
         ]),
-        origin: enumOption('origin', optionString(extracted.options.origin), ['workspace', 'main-goal', 'unresolved']),
+        origin: enumOption('origin', optionString(extracted.options.origin), ['fact', 'main-goal', 'unresolved']),
         path: optionString(extracted.options.path),
         relatedTo: optionString(extracted.options.relatedto),
         frontierOf: optionString(extracted.options.frontierof),
@@ -242,43 +231,10 @@ export async function main(
     emit(await checkStaleness(root, options), parsed.print);
     return;
   }
-  if (command === 'submit') {
-    const [subcommand, ...tail] = rest;
-    if (subcommand !== 'proof') throw new Error('submit requires the proof subcommand');
-    const destinationIndex = tail.indexOf('--to');
-    const proposal = tail[0];
-    const destination = destinationIndex >= 0 ? tail[destinationIndex + 1] : undefined;
-    if (!proposal || (tail.length !== 1 && !(tail.length === 3 && destinationIndex === 1 && destination))) throw new Error('submit proof requires one proposal QMD file and optional --to QMD');
-    emit(await submitProof(root, proposal, { ...options, destination }), false);
-    return;
-  }
-  if (command === 'workspace') {
-    const parsed = presentation(rest);
-    const [subcommand, value, ...tail] = parsed.args;
-    if (!value || tail.length) throw new Error('workspace requires init or inspect and one thm-main-* ID');
-    if (subcommand === 'init') { emit(await initializeWorkspace(root, value, options), false); return; }
-    if (subcommand === 'inspect') {
-      const result: OperationResult = await inspectWorkspace(root, value, options);
-      result.operation = 'inspect-workspace';
-      result.invoked_as = 'workspace inspect';
-      emit(result, parsed.print);
-      return;
-    }
-    throw new Error('Invalid workspace command');
-  }
   if (command === 'verification') {
     const [subcommand, value, ...tail] = rest;
     if (subcommand === 'list' && value === undefined) { emit(await listVerifications(root), false); return; }
     if (subcommand === 'show' && value && tail.length === 0) { emit(await showVerification(root, value), false); return; }
-    if (subcommand === 'revoke' && value) {
-      if (!(tail.length === 0 || (tail.length === 2 && tail[0] === '--reason' && tail[1]))) {
-        throw new Error('verification revoke accepts an ID and optional --reason TEXT; the command is retired and writes nothing');
-      }
-      const index = tail.indexOf('--reason');
-      const reason = index >= 0 ? tail[index + 1] : '';
-      emit(await revokeVerification(root, cleanId(value), reason, options), false);
-      return;
-    }
     throw new Error('Invalid verification command');
   }
   if (command === 'render') {

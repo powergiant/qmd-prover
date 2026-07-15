@@ -49,9 +49,7 @@ interface ReportResult {
   snapshot_id?: string;
   ok?: boolean;
   scope?: { type: string; id?: string; path?: string };
-  workspace?: string;
   target?: GraphNode;
-  workspace_staleness?: { stale: boolean; target_stale: boolean; dependency_stale: boolean };
   summary?: { files?: number; facts?: number; results?: number; kinds?: Record<string, number>; statuses?: Record<string, number>; errors?: number };
   verification?: InspectionVerificationSummary;
   staleness?: StalenessReport;
@@ -146,7 +144,6 @@ export function printReport(input: OperationResult): string {
   if (typeof result.ok === 'boolean') lines.push(`status: ${result.ok ? 'ok' : 'failed'}`);
   if (result.computed === false) lines.push('analysis: not computed');
   if (result.scope) lines.push(`scope: ${result.scope.type} ${result.scope.id ? `@${result.scope.id}` : result.scope.path}`);
-  if (result.workspace) lines.push(`workspace: ${result.workspace}`);
   if (result.target?.id) lines.push(`target: @${result.target.id} [${result.target.status ?? 'missing'}]`);
   if (result.dependencies) {
     lines.push('dependencies:');
@@ -159,7 +156,6 @@ export function printReport(input: OperationResult): string {
     lines.push(`verification submissions: ${result.submissions.length}`);
     for (const submission of result.submissions) lines.push(`  ${submission.submission_id}: @${submission.target ?? 'unknown'} [${submission.outcome ?? 'unknown'}] ${submission.file}`);
   }
-  if (result.workspace_staleness) lines.push(`workspace snapshot: ${result.workspace_staleness.stale ? 'stale' : 'current'} (target=${result.workspace_staleness.target_stale ? 'stale' : 'current'}, dependencies=${result.workspace_staleness.dependency_stale ? 'stale' : 'current'})`);
   if (result.summary) {
     lines.push(`files: ${result.summary.files ?? 0}`);
     lines.push(`facts: ${result.summary.facts ?? result.summary.results ?? 0}`);
@@ -206,13 +202,6 @@ export function printReport(input: OperationResult): string {
       lines.push(`${node.disproof?.status ?? 'conditional'} disproof @${node.id}: ${node.disproof?.refutation}`);
     }
   }
-  if (result.manifest?.protected_goal_results?.length) {
-    lines.push('protected main-goal references rejected by workspace scope:');
-    for (const item of [...result.manifest.protected_goal_results].sort((left, right) => left.id.localeCompare(right.id))) {
-      lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file}:${item.line ?? '?'}`);
-    }
-  }
-
   const checks: CheckedReportItem[] = result.check ? [result.check] : (result.facts ?? []).filter(
     (item): item is ReportItem & CheckedReportItem => item.mechanical !== undefined
       && item.local_verification !== undefined && item.global_verification !== undefined
@@ -247,7 +236,7 @@ export function printReport(input: OperationResult): string {
   if (result.direct_dependencies) lines.push(`direct dependencies: ${result.direct_dependencies.map((item) => `@${item.id}`).join(', ') || 'none'}`);
   if (result.transitive_dependencies) lines.push(`transitive dependencies: ${result.transitive_dependencies.map((item) => `@${item.id}`).join(', ') || 'none'}`);
   if (result.direct_reverse_dependencies) lines.push(`direct reverse dependencies: ${result.direct_reverse_dependencies.map((id) => `@${id}`).join(', ') || 'none'}`);
-  const blockers = result.blockers ?? (result.graph && result.manifest?.target ? blockerPaths(result.graph, [result.manifest.target]) : []);
+  const blockers = result.blockers ?? [];
   if (blockers.length) {
     lines.push('blocking dependency paths:');
     for (const item of blockers) lines.push(`  @${item.root}: @${item.blocker.id} [${item.blocker.status}] via ${formatPath(item.path)}`);
@@ -286,10 +275,7 @@ export function printReport(input: OperationResult): string {
     for (const item of result.matches) lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file ?? ''}:${item.line ?? '?'}`);
   }
 
-  const reportDerivedFindings = result.findings ?? (result.operation === 'workspace-inspect' && result.graph && result.manifest
-    ? deriveGraphFindings({ graph: result.graph, manifest: result.manifest, diagnostics: result.diagnostics ?? [] })
-    : null);
-  reportFindings(lines, reportDerivedFindings);
+  reportFindings(lines, result.findings ?? null);
   if (result.unused_imports) reportFindings(lines, { unused_imports: result.unused_imports });
   if (result.unused_exports) reportFindings(lines, { unused_exports: result.unused_exports });
   if (result.candidates) {

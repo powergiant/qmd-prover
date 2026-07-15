@@ -15,13 +15,12 @@ second regular-expression semantic parser.
 
 ```text
 lib/
-├── application/      CLI dispatch, help, project setup, and rendering
-├── infrastructure/   configuration, filesystem safety, and external policy
-├── inspection/       project index, aggregate snapshots, queries, findings, reports
-├── semantic/         Pandoc JSON parsing, compilation, discovery, dependency cycles
+├── application/      CLI dispatch, help, doctor, project setup, and rendering
+├── infrastructure/   configuration, executables, filesystem safety, external policy
+├── inspection/       project index, verification driver, snapshots, graph queries, findings, reports
+├── semantic/         Pandoc JSON parsing, sources, compilation, discovery, dependency cycles
 ├── shared/           dependency-free types and compact runtime primitives
-├── verification/     verifier protocol, read-only staleness, legacy command surfaces
-└── workspace/        workspace initialization, inspection, cache, and fingerprints
+└── verification/     verifier protocol, exact caches, read-only staleness, submissions
 ```
 
 There are no compatibility facades or barrel-only files under `src/lib`.
@@ -29,9 +28,9 @@ Source, tests, and tooling import the owning domain module directly. This keeps
 the filesystem representation aligned with the actual dependency graph and
 makes it clear which layer owns a safety decision.
 
-`inspection/index.ts` and `inspection/aggregate.ts` are deliberate first-class
-modules. The former discovers project scopes and performs project-wide
-preflight; the latter constructs and publishes the schema-v4 project view.
+`inspection/index.ts` and `inspection/snapshot.ts` are deliberate first-class
+modules. The former discovers project sources and performs project-wide
+preflight; the latter constructs and publishes the schema-v5 project view.
 Neither belongs in the application dispatcher, because rendering, inspection,
 and dependency analysis all need the same project model.
 
@@ -42,16 +41,12 @@ The intended file-level dependency direction is:
 ```text
 application
   ├── inspection/operations
-  │     └── workspace/inspect
-  │           └── inspection/{index,aggregate,findings}
-  ├── workspace/initialize
+  │     └── inspection/verify
+  │           └── inspection/{index,snapshot,graph,findings}
   └── application/render
               │
               v
-workspace/support ── inspection primitives
-              │
-              v
-semantic + verification protocol
+semantic + verification (protocol, cache, staleness)
               │
               v
 infrastructure + shared
@@ -64,15 +59,16 @@ and produces typed manifests and dependency graphs. Verification owns the
 external protocol and exact decision identity. None of those layers introduces
 an alternative parser.
 
-The inspection domain deliberately has two levels. Project indexing,
-aggregation, findings, and graph mechanics are lower-level primitives; they
-may depend on `workspace/support.ts`, but never on the workspace verifier.
-`workspace/inspect.ts` consumes those primitives to verify and publish one
-workspace. The higher-level `inspection/operations.ts` may then invoke that one
-workspace path repeatedly and compose project, fact, path, and dependency
+The inspection domain deliberately has two levels. Project indexing, snapshot
+construction, findings, and graph mechanics are lower-level primitives; they
+may depend on the verification cache and protocol, but never on the
+verification driver. `inspection/verify.ts` consumes those primitives to run
+local conditional verification and compose global status. The higher-level
+`inspection/operations.ts` invokes that driver over the selected closure and
+composes project, fact, path, and dependency
 results. This ordering keeps the file import graph acyclic:
-`workspace/inspect.ts` never imports `inspection/operations.ts`, and the index
-and aggregate builder never import `workspace/inspect.ts` at runtime. The
+`inspection/verify.ts` never imports `inspection/operations.ts`, and the index
+and snapshot builder never import `inspection/verify.ts` at runtime. The
 application layer coordinates these public operations, project setup,
 rendering, help, and stable output formatting; it does not reimplement
 semantic or verifier decisions.
@@ -81,36 +77,37 @@ semantic or verifier decisions.
 
 Large workflows keep orchestration separate from reusable mechanics:
 
-- `semantic/compiler.ts` owns `full`, `project-goals`, and `workspace`
-  compilation modes. `project-goals` recognizes only protected main goals in
-  user notes; `workspace` applies the complete semantic-QMD contract.
-- `semantic/discovery.ts` owns deterministic QMD discovery and exclusions.
+- `semantic/compiler.ts` owns the single full compilation pass. Every
+  discovered QMD file receives the complete semantic-QMD contract, and
+  protected main goals are recognized where they are declared.
+- `semantic/discovery.ts` owns deterministic QMD discovery; `.qmd-prover/` is
+  excluded as derived state.
+- `semantic/pandoc.ts` and `semantic/source.ts` own Pandoc invocation and
+  exact source reading and fingerprints.
 - `semantic/dependency-graph.ts` owns cycle normalization and detection.
-- `inspection/index.ts` discovers notes, main goals, initialized workspaces,
-  goal-like uninitialized directories, orphan workspaces, global IDs, and
-  forbidden cross-scope dependencies without calling the verifier.
-- `inspection/aggregate.ts` normalizes project-relative locations, merges
-  current workspace snapshots, computes the schema-v4 total graph, and
-  publishes it atomically when publication is safe.
+- `inspection/index.ts` discovers project QMD, protected main goals, global
+  IDs, and duplicate-ID conflicts without calling the verifier.
+- `inspection/verify.ts` drives local conditional verification over a selected
+  dependency closure and deterministically composes global status.
+- `inspection/snapshot.ts` normalizes project-relative locations, computes the
+  schema-v5 total graph with its `source_signature`, and publishes it
+  atomically when publication is safe.
 - `inspection/graph.ts` owns traversal, subgraphs, shortest paths, alternative
   paths, and proof-frontier mechanics.
 - `inspection/findings.ts` derives reusable graph findings.
 - `inspection/operations.ts` coordinates project, fact, path, and dependency
-  operations and converts domain failures into stable schema-v4 results.
+  operations and converts domain failures into stable schema-v5 results.
 - `inspection/report.ts` is presentation-only and must not change selection,
   checking, or publication semantics.
-- `workspace/initialize.ts` creates protected goal-workspace state only after
-  an explicit command.
-- `workspace/support.ts` owns exact-cache validation, deterministic scheduling,
-  source fingerprints, workspace paths, and current snapshot signatures.
-- `workspace/inspect.ts` builds the protected-main-goal overlay, verifies a
-  selected dependency closure or the full workspace, writes only workspace
-  cache/snapshot state, and refreshes the aggregate project snapshot for a
-  direct workspace inspection.
-- `verification/staleness.ts` audits current protected snapshots, workspace
-  sources, external basis, checker contract, and caches without mutating QMD.
-- `verification/submissions.ts` retains the retired command surfaces; it must
-  return structured results without reading or writing a proposed destination.
+- `verification/protocol.ts` owns the protocol-version-5 packet contract and
+  the interpretation of structured verifier results.
+- `verification/cache.ts` owns the project-level content-addressed exact
+  decision cache under `.qmd-prover/verification/checks/`, exact-cache
+  validation, and deterministic scheduling.
+- `verification/staleness.ts` audits current cache records against sources,
+  external basis, and checker contract without mutating QMD.
+- `verification/submissions.ts` records verifier submissions and retained
+  failure reports under `.qmd-prover/verification/failures/`.
 - `shared/core.ts` combines only small dependency-free primitives that are
   broadly reused; domain-specific helpers stay with their owner.
 
@@ -123,9 +120,10 @@ together merely because they are short.
 Reorganization must preserve the stable dispatcher and JSON contracts. The
 following invariants are architectural, not merely test conveniences:
 
-- User QMD is notes and protected main-goal storage, never a proof destination.
-- Inspection never initializes a workspace or overwrites `progress.qmd`.
-- Main-goal statement locks and workspace protected snapshots fail closed.
+- Protected main-goal statements and titles are locked through
+  `statement-locks.json` and fail closed: `MAIN_STATEMENT_MUTATED` and
+  `MAIN_TITLE_MUTATED` stop verification rather than adopting a mutated goal.
+- Inspection never scaffolds proof QMD and never overwrites `progress.qmd`.
 - Mechanical compilation and graph analysis never read AI verdicts, proof
   acceptance, or upstream verification state.
 - A local verifier call requires a materializable target and exact direct
@@ -133,36 +131,42 @@ following invariants are architectural, not merely test conveniences:
   accepted proofs. Scope and cycle errors remain machine diagnostics and can
   invalidate global composition without becoming claims about the local
   mathematical implication.
-- Exact locally verified, disproved, and rejected decisions are keyed by the
-  target statement or construction, submitted proof or refutation, direct
-  dependency statements, semantic context, external basis, checker contract,
-  and protocol. Dependency proof text and dependency verdicts are not inputs.
+- Exact locally verified, disproved, and rejected decisions are
+  content-addressed at `.qmd-prover/verification/checks/<sha256>.json`, keyed
+  by the target statement or construction, submitted proof or refutation,
+  direct dependency statements, semantic context, external basis, checker
+  contract, and protocol. Dependency proof text and dependency verdicts are
+  not inputs.
+- The freshness gate fails closed during verifier runs: when compiled sources
+  change under a running verifier, the decision is discarded as `SOURCE_STALE`
+  rather than cached.
+- A cache write failure is fatal. `CACHE_WRITE_FAILED` fails the operation
+  instead of reporting an acceptance that was never durably recorded.
 - Global verification is a deterministic graph fold. A fact is globally
   verified only when it is mechanically valid, locally accepted, and every
   direct dependency is globally verified.
 - A source `DISPROVED` marker selects refutation review but never establishes
   falsity by itself. Only a current independent decision may publish structured
   disproof evidence, and a disproved node is never a usable premise.
-- Narrow inspection never verifies unrelated facts and never downgrades a
-  current unrelated workspace snapshot when it refreshes the aggregate graph.
-- A project-global duplicate ID stops all inspect and dependency operations
-  before verifier invocation and leaves the last aggregate pointer unchanged.
-- A malformed workspace does not suppress healthy workspace results, but it
-  does make project inspection unsuccessful.
-- Cross-workspace and workspace-to-other-main-goal edges are diagnosed and are
-  never published into the aggregate graph.
+- Narrow inspection never verifies unrelated facts; unchanged facts inherit
+  their results from the last published snapshot and are never downgraded.
+- A project-wide `DUPLICATE_ID` stops all inspect and dependency operations
+  before verifier invocation and leaves the last published pointer unchanged.
+- Citing a protected main goal is a legal edge that stays globally blocked
+  until the goal itself verifies.
+- Writing a `VERIFIED` or `REVOKED` marker anywhere is the structural error
+  `PROTECTED_MARKER_FORBIDDEN`; no legacy-marker compatibility remains.
 - Parse failure remains a parse diagnostic; it is never converted to an
   unknown-ID error.
-- Staleness auditing, retired submission, and retired revocation never modify
-  user files or legacy markers.
-- Workspace and aggregate snapshot publication is atomic. Incomplete parsing
+- Staleness auditing never modifies sources, caches, or published snapshots.
+- Snapshot publication is atomic. Incomplete parsing
   and project-fatal preflight prevent unsafe publication.
 
 The repository instruction still requires protection against stale verifier
 results, rejection-unsafe writes, and partial canonical state. In the current
-workspace-centric design, the strongest way to preserve those invariants is to
-retire canonical proof writes entirely while keeping exact workspace caches,
-post-verifier source fingerprint checks, and atomic state publication.
+project-centric design, the strongest way to preserve those invariants is to
+retire canonical proof writes entirely while keeping exact content-addressed
+caches, post-verifier source fingerprint checks, and atomic state publication.
 
 Run `npm test` after every change. It rebuilds the installable JavaScript,
 compiles fixtures, and runs the behavioral suite. Run `npm run typecheck` when

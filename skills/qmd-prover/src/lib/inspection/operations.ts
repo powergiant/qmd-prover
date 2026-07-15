@@ -1,18 +1,18 @@
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
-import { AUX, cleanId, readJson, relativePosix } from '../infrastructure/files.js';
-import { indexBy } from '../shared/core.js';
+import { cleanId, relativePosix } from '../infrastructure/files.js';
+import { SCHEMA_VERSION, indexBy } from '../shared/core.js';
 import { adjacency, allSimplePaths, blockerPaths, boundedInteger, frontier, requireNode, shortestPath, subgraph, traverse } from './graph.js';
 import { deriveGraphFindings, staleFactIds } from './findings.js';
-import type { ProjectSnapshot } from './findings.js';
-import { aggregateSourceSignature, buildAggregateSnapshot, publishAggregateSnapshot } from './aggregate.js';
-import type { AggregateSnapshot } from './aggregate.js';
+import { buildProjectSnapshot, publishProjectSnapshot, resolveProjectSnapshot } from './snapshot.js';
+import type { ProjectSnapshot } from './snapshot.js';
 import { buildProjectInspectionIndex } from './index.js';
-import type { ProjectInspectionIndex } from './index.js';
-import { inspectWorkspace } from '../workspace/inspect.js';
+import { verifyFacts } from './verify.js';
+import type { VerifiedFact } from './verify.js';
 import type {
-  AiCheck, DependencyGraph, Diagnostic, GlobalVerification, GraphNode, RuntimeOptions, SemanticResult, WorkspaceInspectResult,
-  InspectProjectResult, InspectFactResult, InspectPathResult, DependencyAnalysisResult, InspectionVerificationSummary
+  DependencyGraph, Diagnostic, FactInspectionCheck, GraphNode, InspectionVerificationSummary,
+  InspectFactResult, InspectPathResult, InspectProjectResult, DependencyAnalysisResult,
+  RuntimeOptions, SemanticResult, StalenessReport
 } from '../shared/types.js';
 
 
@@ -20,208 +20,77 @@ function byId<T extends { id: string }>(items: T[]): Map<string, T> {
   return indexBy(items, (item) => item.id);
 }
 
-
-
-interface FactCheck {
-  id: string;
-  status: string;
-  mechanical: { status: 'pass' | 'fail'; references: NonNullable<SemanticResult['reference_checks']>; reason?: string };
-  local_verification: AiCheck;
-  global_verification: GlobalVerification;
-  diagnostics: Diagnostic[];
-}
-
-
-
-function localCheck(result: SemanticResult, inspected: AiCheck | null = null): AiCheck {
-  if (inspected) return inspected;
-  if (result.local_verification) return result.local_verification;
-  return { status: 'not-run', reason: 'No local conditional verification is available.' };
-}
-
-function factCheck(result: SemanticResult, diagnostics: Diagnostic[], inspected: AiCheck | null = null): FactCheck {
-  const relevant = diagnostics.filter((item) => item.id ? item.id === result.id : item.file === result.file);
-  const referenceFailure = (result.reference_checks ?? []).some((check) => (
-    check.existence === 'fail' || check.scope === 'fail' || check.cycle === 'fail'
-  ));
-  const parseBlocked = diagnostics.some((item) => item.code === 'PARSE_ERROR');
-  const unavailable = result.status === 'missing' || result.status === 'workspace-unavailable';
-  const mechanical = referenceFailure || unavailable || parseBlocked || relevant.some((item) => item.severity === 'error') ? 'fail' : 'pass';
-  const local = localCheck(result, inspected);
-  return {
-    id: result.id,
-    status: result.status,
-    mechanical: {
-      status: mechanical,
-      references: result.reference_checks ?? [],
-      ...(parseBlocked ? { reason: 'blocked-by-parse-error' }
-        : unavailable ? { reason: 'fact-unavailable' }
-          : referenceFailure ? { reason: 'reference-check-failed' } : {})
-    },
-    local_verification: local,
-    global_verification: result.global_verification ?? {
-      status: mechanical === 'pass' ? 'unverified' : 'invalid', blockers: [], reason: 'workspace-not-inspected'
-    },
-    diagnostics: relevant
-  };
-}
-
-function resultSummary(results: SemanticResult[]): { facts: number; kinds: Record<string, number>; statuses: Record<string, number> } {
-  const kindCounts = new Map<string, number>();
-  const statusCounts = new Map<string, number>();
-  for (const result of results) {
-    kindCounts.set(result.kind, (kindCounts.get(result.kind) ?? 0) + 1);
-    statusCounts.set(result.status, (statusCounts.get(result.status) ?? 0) + 1);
-  }
-  const kinds = Object.fromEntries([...kindCounts].sort(([left], [right]) => left.localeCompare(right)));
-  const statuses = Object.fromEntries([...statusCounts].sort(([left], [right]) => left.localeCompare(right)));
-  return { facts: results.length, kinds, statuses };
-}
-
-
-
-function emptyGraph(): DependencyGraph { return { schema_version: 4, nodes: [], edges: [], cycles: [] }; }
+function emptyGraph(): DependencyGraph { return { schema_version: SCHEMA_VERSION, nodes: [], edges: [], cycles: [] }; }
 
 function emptyVerification(): InspectionVerificationSummary {
   return {
-    available: false, eligible: 0, verifier_calls: 0, cache_hits: 0,
+    available: false, eligible: 0, verifier_calls: 0, cache_hits: 0, cache_misses: 0, invalid_cache_entries: 0,
     local_verified: 0, local_disproved: 0, local_rejected: 0, local_errors: 0, local_not_run: 0,
     global_verified: 0, global_disproved: 0, global_blocked: 0, global_unverified: 0,
     global_rejected: 0, global_invalid: 0
   };
 }
 
+function stalenessReport(ok: boolean, snapshotId?: string): StalenessReport {
+  return {
+    schema_version: SCHEMA_VERSION, operation: 'check-staleness', ok, changed: [], invalidated: [],
+    ...(snapshotId ? { snapshot_id: snapshotId } : {})
+  };
+}
+
 function unknownFact(id: string): SemanticResult {
   return {
-    id, file: '', kind: 'unknown', classes: [], title: '', date: '', origin: 'workspace', status: 'missing', export: null,
+    id, file: '', kind: 'unknown', classes: [], title: '', date: '', origin: 'agent', status: 'missing', export: null,
     statement_text: '', statement_hash: '', title_hash: '', proof_hash: '', proof_present: false, proof_text: '', marker: null,
     construction_dependencies: [], dependencies: [], uses: []
   };
 }
 
-function workspaceVerification(result: WorkspaceInspectResult): InspectionVerificationSummary {
+function factCheck(fact: VerifiedFact, diagnostics: Diagnostic[]): FactInspectionCheck {
   return {
-    available: result.verification.available,
-    eligible: result.verification.eligible,
-    verifier_calls: result.verification.verifier_calls,
-    cache_hits: result.verification.cache_hits,
-    local_verified: result.verification.local_verified,
-    local_disproved: result.verification.local_disproved,
-    local_rejected: result.verification.local_rejected,
-    local_errors: result.verification.local_errors,
-    local_not_run: result.verification.local_not_run,
-    global_verified: result.verification.global_verified,
-    global_disproved: result.verification.global_disproved,
-    global_blocked: result.verification.global_blocked,
-    global_unverified: result.verification.global_unverified,
-    global_rejected: result.verification.global_rejected,
-    global_invalid: result.verification.global_invalid
-  };
-}
-
-function inspectedFactCheck(result: WorkspaceInspectResult, id: string): FactCheck {
-  const fact = result.manifest.results.find((item) => item.id === id) ?? unknownFact(id);
-  const outcome = result.facts.find((item) => item.id === id);
-  const diagnostics = result.diagnostics.filter((item) => item.id === id || item.file === fact.file);
-  return {
-    id,
+    id: fact.id,
     status: fact.status,
-    mechanical: {
-      status: outcome?.mechanical?.status ?? 'fail',
-      references: outcome?.mechanical?.references ?? fact.reference_checks ?? []
-    },
-    local_verification: outcome?.local_verification ?? { status: 'not-run', reason: 'No workspace outcome was recorded.' },
-    global_verification: outcome?.global_verification ?? fact.global_verification ?? { status: 'unverified', blockers: [] },
-    diagnostics
-  };
-}
-
-function addVerification(total: InspectionVerificationSummary, value: InspectionVerificationSummary): void {
-  total.available ||= value.available;
-  for (const key of [
-    'eligible', 'verifier_calls', 'cache_hits', 'local_verified', 'local_disproved', 'local_rejected',
-    'local_errors', 'local_not_run', 'global_verified', 'global_disproved', 'global_blocked',
-    'global_unverified', 'global_rejected', 'global_invalid'
-  ] as const) total[key] += value[key];
-}
-
-function projectFailure(operation: string, diagnostics: Diagnostic[]): InspectProjectResult {
-  const graph = emptyGraph();
-  return {
-    schema_version: 4, operation, ok: false, snapshot_published: false,
-    graph, facts: [], verification: emptyVerification(),
-    staleness: { schema_version: 4, operation: 'check-staleness', ok: false, changed: [], invalidated: [] },
-    diagnostics, findings: deriveGraphFindings({ graph, manifest: { schema_version: 4, files: [], results: [], proofs: [] }, diagnostics })
+    kind: fact.kind,
+    file: fact.file,
+    line: fact.line,
+    mechanical: fact.mechanical,
+    local_verification: fact.local_verification,
+    global_verification: fact.global_verification,
+    diagnostics: diagnostics.filter((item) => item.id ? item.id === fact.id : item.file === fact.file)
   };
 }
 
 export async function inspectProject(root = process.cwd(), options: RuntimeOptions = {}): Promise<InspectProjectResult> {
   root = path.resolve(root);
   const index = await buildProjectInspectionIndex(root, options);
-  if (index.fatal) {
-    return {
-      ...projectFailure('inspect-project', index.globalDiagnostics),
-      goals: index.goals.map(({ id, file, line, status }) => ({ id, file, line, status })),
-      notes: index.notes,
-      workspaces: index.workspaces.map(({ id, path: workspacePath, status, stale, diagnostics }) => ({ id, path: workspacePath, status, stale, diagnostics }))
-    };
-  }
-  const inspected = new Map<string, WorkspaceInspectResult>();
-  for (const workspace of index.workspaces.filter((entry) => entry.status === 'initialized')) {
-    inspected.set(workspace.id, await inspectWorkspace(root, workspace.id, { ...options, skipProjectPreflight: true }));
-  }
-  const snapshot = buildAggregateSnapshot(index, inspected);
-  const snapshotPublished = await publishAggregateSnapshot(index, snapshot, options);
-  const verification = emptyVerification();
-  for (const result of inspected.values()) addVerification(verification, workspaceVerification(result));
-  const workspaceByGoal = new Map(index.workspaces.map((workspace) => [workspace.id, workspace]));
-  const missingDiagnostics: Diagnostic[] = index.goals.flatMap((goal) => {
-    const workspace = workspaceByGoal.get(goal.id);
-    return workspace?.status === 'initialized' ? [] : [{
-      severity: 'error' as const, code: 'WORKSPACE_MISSING', id: goal.id, file: goal.file,
-      message: `Protected main goal @${goal.id} has no initialized workspace`,
-      remediation: `Run workspace init @${goal.id} explicitly.`
-    }];
-  });
-  const diagnostics = [...snapshot.diagnostics, ...missingDiagnostics];
-  const facts = [...inspected.values()].flatMap((result) => result.facts.map((fact) => inspectedFactCheck(result, fact.id)));
-  const represented = new Set(facts.map((fact) => fact.id));
-  for (const goal of index.goals) if (!represented.has(goal.id)) facts.push(factCheck(goal, diagnostics));
-  facts.sort((left, right) => left.id.localeCompare(right.id));
-  const ok = index.goalsCompilation.complete
-    && index.goals.length > 0
-    && missingDiagnostics.length === 0
-    && index.workspaces.every((workspace) => workspace.status === 'initialized')
-    && [...inspected.values()].every((result) => result.ok === true)
+  const run = await verifyFacts(index, options);
+  const snapshot = buildProjectSnapshot(index, run.diagnostics);
+  const snapshotPublished = await publishProjectSnapshot(index, snapshot, options);
+  const diagnostics = snapshot.diagnostics;
+  const facts = run.facts.map((fact) => factCheck(fact, diagnostics));
+  const goalIds = new Set(index.goals.map((goal) => goal.id));
+  const ok = index.compilation.complete
+    && facts.every((fact) => fact.local_verification.status !== 'error')
     && diagnostics.every((item) => item.severity !== 'error');
   return {
-    schema_version: 4,
+    schema_version: SCHEMA_VERSION,
     operation: 'inspect-project',
     ok,
+    complete: index.compilation.complete,
     snapshot_id: snapshot.snapshot_id,
     snapshot_published: snapshotPublished,
     scope: { type: 'project', path: '.' },
     summary: {
       ...snapshot.summary,
-      initialized_workspaces: inspected.size,
-      globally_verified_goals: facts.filter((fact) => fact.id.startsWith('thm-main-') && fact.global_verification.status === 'verified').length,
-      globally_disproved_goals: facts.filter((fact) => fact.id.startsWith('thm-main-') && fact.global_verification.status === 'disproved').length,
-      errors: diagnostics.filter((item) => item.severity === 'error').length
+      globally_verified_goals: facts.filter((fact) => goalIds.has(fact.id) && fact.global_verification.status === 'verified').length,
+      globally_disproved_goals: facts.filter((fact) => goalIds.has(fact.id) && fact.global_verification.status === 'disproved').length
     },
-    goals: index.goals.map(({ id, file, line, status }) => ({ id, file, line, status, workspace: workspaceByGoal.get(id)?.status ?? 'missing' })),
+    goals: index.goals.map(({ id, file, line, status }) => ({ id, file, line, status })),
     notes: index.notes,
-    workspaces: index.workspaces.map((workspace) => inspected.get(workspace.id) ?? {
-      schema_version: 4, operation: 'workspace-inspect', ok: false, workspace: workspace.path,
-      id: workspace.id, status: workspace.status, target: { id: workspace.id, status: 'missing' }, stale: workspace.stale, diagnostics: workspace.diagnostics
-    }),
     facts,
     graph: snapshot.graph,
-    staleness: {
-      schema_version: 4, operation: 'check-staleness', ok: index.workspaces.every((workspace) => !workspace.stale),
-      changed: index.workspaces.filter((workspace) => workspace.stale).map((workspace) => ({ id: workspace.id, reasons: ['workspace-snapshot-stale'] })),
-      invalidated: []
-    },
-    verification,
+    staleness: stalenessReport(true, snapshot.snapshot_id),
+    verification: run.verification,
     blockers: blockerPaths(snapshot.graph, index.goals.map((goal) => goal.id)),
     findings: deriveGraphFindings(snapshot),
     diagnostics
@@ -230,83 +99,73 @@ export async function inspectProject(root = process.cwd(), options: RuntimeOptio
 
 function factFailure(id: string, diagnostics: Diagnostic[]): InspectFactResult {
   const fact = unknownFact(id);
+  const reason = diagnostics.some((item) => item.code === 'PARSE_ERROR') ? 'blocked-by-parse-error' : 'fact-unavailable';
   return {
-    schema_version: 4, operation: 'inspect-fact', ok: false, snapshot_published: false,
-    scope: { type: 'fact', id }, fact, check: factCheck(fact, diagnostics), graph: emptyGraph(), verification: emptyVerification(),
-    staleness: { schema_version: 4, operation: 'check-staleness', ok: false, changed: [], invalidated: [] },
-    diagnostics
-  };
-}
-
-async function inspectIndexedFact(index: ProjectInspectionIndex, id: string, options: RuntimeOptions): Promise<InspectFactResult> {
-  if (index.fatal) return factFailure(id, index.globalDiagnostics);
-  const workspace = index.workspaces.find((entry) => entry.compilation?.manifest.results.some((result) => result.id === id))
-    ?? index.workspaces.find((entry) => entry.id === id && entry.status === 'initialized');
-  const goal = index.goals.find((result) => result.id === id);
-  if (!workspace) {
-    if (goal) {
-      const diagnostics: Diagnostic[] = [{
-        severity: 'error', code: 'WORKSPACE_MISSING', id, file: goal.file,
-        message: `Protected main goal @${id} has no initialized workspace`, remediation: `Run workspace init @${id} explicitly.`
-      }];
-      return { ...factFailure(id, diagnostics), fact: goal, check: factCheck(goal, diagnostics, null), source: { statement: goal.statement_text, proof: '' } };
-    }
-    const parseDiagnostics = index.diagnostics.filter((item) => item.code === 'PARSE_ERROR');
-    return factFailure(id, parseDiagnostics.length ? parseDiagnostics : [{
-      severity: 'error', code: 'FACT_UNKNOWN', id,
-      message: `No protected main goal or workspace fact named @${id} exists`
-    }]);
-  }
-  if (workspace.status !== 'initialized') {
-    const indexedFact = workspace.compilation?.manifest.results.find((result) => result.id === id);
-    if (!indexedFact) return factFailure(id, workspace.diagnostics);
-    const fact = { ...indexedFact, origin: 'workspace' as const, workspace: workspace.id, status: 'workspace-unavailable' };
-    return { ...factFailure(id, workspace.diagnostics), fact, check: factCheck(fact, workspace.diagnostics), source: { statement: fact.statement_text, proof: fact.proof_text } };
-  }
-  const inspected = await inspectWorkspace(index.root, workspace.id, { ...options, selectedIds: [id], skipProjectPreflight: true });
-  const fact = inspected.manifest.results.find((result) => result.id === id);
-  if (!fact) {
-    const parseDiagnostics = inspected.diagnostics.filter((item) => item.code === 'PARSE_ERROR');
-    return factFailure(id, parseDiagnostics.length ? parseDiagnostics : [{ severity: 'error', code: 'FACT_UNKNOWN', id, message: `Workspace @${workspace.id} has no fact @${id}` }]);
-  }
-  const dependencyIds = traverse(inspected.graph, id);
-  const selected = new Set([id, ...dependencyIds]);
-  const graph = subgraph(inspected.graph, selected);
-  const graphNodes = byId(graph.nodes);
-  const directDependencies = adjacency(graph).get(id) ?? [];
-  const selectedFiles = new Set(inspected.manifest.results.filter((result) => selected.has(result.id)).flatMap((result) => [result.file, result.proof_file].filter((file): file is string => Boolean(file))));
-  const diagnostics = inspected.diagnostics.filter((item) => item.id ? selected.has(item.id) : !item.file || selectedFiles.has(item.file) || item.code === 'WORKSPACE_STALE');
-  const check = inspectedFactCheck(inspected, id);
-  check.diagnostics = diagnostics.filter((item) => item.id === id || item.file === fact.file);
-  const aggregate = buildAggregateSnapshot(index, new Map([[workspace.id, inspected]]));
-  const snapshotPublished = await publishAggregateSnapshot(index, aggregate, options);
-  return {
-    schema_version: 4,
-    operation: 'inspect-fact',
-    ok: check.mechanical.status === 'pass' && check.local_verification.status !== 'error',
-    verified: check.global_verification.status === 'verified',
-    disproved: check.global_verification.status === 'disproved',
-    global_status: check.global_verification.status,
-    snapshot_id: aggregate.snapshot_id,
-    snapshot_published: snapshotPublished,
-    scope: { type: 'fact', id, workspace: workspace.id },
-    fact,
-    check,
-    source: { statement: fact.statement_text, proof: fact.proof_text },
-    graph,
-    direct_dependencies: directDependencies.map((dependency) => graphNodes.get(dependency)).filter(Boolean),
-    transitive_dependencies: [...dependencyIds].sort().map((dependency) => graphNodes.get(dependency)).filter(Boolean),
-    direct_reverse_dependencies: [],
-    blockers: blockerPaths(graph, [id]),
-    staleness: inspected.staleness,
-    verification: workspaceVerification(inspected),
+    schema_version: SCHEMA_VERSION, operation: 'inspect-fact', ok: false, snapshot_published: false,
+    scope: { type: 'fact', id }, fact,
+    check: {
+      id, status: fact.status,
+      mechanical: { status: 'fail', references: [], reason },
+      local_verification: { status: 'not-run', reason: 'No local conditional verification is available.' },
+      global_verification: { status: 'invalid', blockers: [], reason },
+      diagnostics
+    },
+    graph: emptyGraph(), verification: emptyVerification(),
+    staleness: stalenessReport(false),
     diagnostics
   };
 }
 
 export async function inspectFact(root: string, requested: string, options: RuntimeOptions = {}): Promise<InspectFactResult> {
+  root = path.resolve(root);
+  const id = cleanId(requested);
   const index = await buildProjectInspectionIndex(root, options);
-  return inspectIndexedFact(index, cleanId(requested), options);
+  const result = index.compilation.manifest.results.find((item) => item.id === id);
+  if (!result) {
+    const parseDiagnostics = index.diagnostics.filter((item) => item.code === 'PARSE_ERROR');
+    return factFailure(id, parseDiagnostics.length ? parseDiagnostics : [{
+      severity: 'error', code: 'FACT_UNKNOWN', id,
+      message: `No fact named @${id} exists in the project`
+    }]);
+  }
+  const run = await verifyFacts(index, { ...options, selectedIds: [id] });
+  const snapshot = buildProjectSnapshot(index, run.diagnostics);
+  const snapshotPublished = await publishProjectSnapshot(index, snapshot, options);
+  const dependencyIds = traverse(snapshot.graph, id);
+  const selected = new Set([id, ...dependencyIds]);
+  const graph = subgraph(snapshot.graph, selected);
+  const graphNodes = byId(graph.nodes);
+  const directDependencies = adjacency(graph).get(id) ?? [];
+  const selectedFiles = new Set(index.compilation.manifest.results
+    .filter((item) => selected.has(item.id))
+    .flatMap((item) => [item.file, item.proof_file].filter((file): file is string => Boolean(file))));
+  const diagnostics = run.diagnostics.filter((item) => item.id ? selected.has(item.id) : !item.file || selectedFiles.has(item.file));
+  const record = run.facts.find((fact) => fact.id === id);
+  const check = record
+    ? factCheck(record, diagnostics.filter((item) => item.id === id || item.file === result.file))
+    : factFailure(id, diagnostics).check;
+  return {
+    schema_version: SCHEMA_VERSION,
+    operation: 'inspect-fact',
+    ok: check.mechanical.status === 'pass' && check.local_verification.status !== 'error',
+    verified: check.global_verification.status === 'verified',
+    disproved: check.global_verification.status === 'disproved',
+    global_status: check.global_verification.status,
+    snapshot_id: snapshot.snapshot_id,
+    snapshot_published: snapshotPublished,
+    scope: { type: 'fact', id },
+    fact: result,
+    check,
+    source: { statement: result.statement_text, proof: result.proof_text },
+    graph,
+    direct_dependencies: directDependencies.map((dependency) => graphNodes.get(dependency)).filter(Boolean),
+    transitive_dependencies: [...dependencyIds].sort().map((dependency) => graphNodes.get(dependency)).filter(Boolean),
+    direct_reverse_dependencies: [],
+    blockers: blockerPaths(graph, [id]),
+    staleness: stalenessReport(true, snapshot.snapshot_id),
+    verification: run.verification,
+    diagnostics
+  };
 }
 
 function isWithinPath(file: string, selected: string, isDirectory: boolean): boolean {
@@ -318,11 +177,11 @@ export async function inspectPath(root: string, requestedPath: string, options: 
   const absolute = path.resolve(root, requestedPath);
   const relative = relativePosix(root, absolute);
   const failure = (diagnostics: Diagnostic[]): InspectPathResult => ({
-    schema_version: 4, operation: 'inspect-path', ok: false, snapshot_published: false,
+    schema_version: SCHEMA_VERSION, operation: 'inspect-path', ok: false, snapshot_published: false,
     scope: { type: 'path', path: relative }, summary: { files: 0, facts: 0, errors: diagnostics.length },
     facts: [], graph: emptyGraph(), verification: emptyVerification(),
-    staleness: { schema_version: 4, operation: 'check-staleness', ok: false, changed: [], invalidated: [] },
-    findings: deriveGraphFindings({ graph: emptyGraph(), manifest: { schema_version: 4, files: [], results: [], proofs: [] }, diagnostics }), diagnostics
+    staleness: stalenessReport(false),
+    findings: deriveGraphFindings({ graph: emptyGraph(), manifest: { schema_version: SCHEMA_VERSION, files: [], results: [], proofs: [] }, diagnostics }), diagnostics
   });
   if (relative === '..' || relative.startsWith('../') || path.isAbsolute(relative)) return failure([{ severity: 'error', code: 'PATH_OUTSIDE_PROJECT', message: 'Inspection path must stay inside the project' }]);
   let info;
@@ -330,101 +189,52 @@ export async function inspectPath(root: string, requestedPath: string, options: 
   catch { return failure([{ severity: 'error', code: 'PATH_NOT_FOUND', message: `Inspection path does not exist: ${relative}`, file: relative }]); }
   if (!info.isDirectory() && !(info.isFile() && absolute.endsWith('.qmd'))) return failure([{ severity: 'error', code: 'PATH_TYPE_INVALID', message: 'Inspection path must be a QMD file or directory', file: relative }]);
   const index = await buildProjectInspectionIndex(root, options);
-  if (index.fatal) return failure(index.globalDiagnostics);
-  const containing = index.workspaces.find((workspace) => absolute === workspace.directory || absolute.startsWith(`${workspace.directory}${path.sep}`));
-  if (containing) {
-    if (containing.status !== 'initialized' || !containing.compilation) return failure(containing.diagnostics);
-    const selectedFiles = new Set(containing.compilation.manifest.files.filter((file) => isWithinPath(file.path, relative, info.isDirectory())).map((file) => file.path));
-    const selectedIds = new Set(containing.compilation.manifest.results.filter((result) => selectedFiles.has(result.file)).map((result) => result.id));
-    for (const proof of containing.compilation.manifest.proofs) if (selectedFiles.has(proof.file)) selectedIds.add(proof.target);
-    if (absolute === containing.directory) {
-      for (const result of containing.compilation.manifest.results) selectedIds.add(result.id);
-      selectedIds.add(containing.id);
-    }
-    if (selectedIds.size === 0) {
-      const aggregate = buildAggregateSnapshot(index);
-      const published = await publishAggregateSnapshot(index, aggregate, options);
-      return {
-        schema_version: 4, operation: 'inspect-path', ok: true, snapshot_id: aggregate.snapshot_id, snapshot_published: published,
-        scope: { type: info.isDirectory() ? 'folder' : 'file', path: relative, workspace: containing.id },
-        summary: { files: selectedFiles.size, facts: 0, errors: 0 }, facts: [], graph: emptyGraph(), verification: emptyVerification(),
-        staleness: { schema_version: 4, operation: 'check-staleness', ok: true, changed: [], invalidated: [] },
-        findings: deriveGraphFindings({ graph: emptyGraph(), manifest: { schema_version: 4, files: [], results: [], proofs: [] }, diagnostics: [] }), diagnostics: []
-      };
-    }
-    const inspected = await inspectWorkspace(root, containing.id, { ...options, selectedIds, skipProjectPreflight: true });
-    const contextIds = new Set<string>(selectedIds);
-    for (const id of selectedIds) for (const dependency of traverse(inspected.graph, id)) contextIds.add(dependency);
-    const graph = subgraph(inspected.graph, contextIds);
-    graph.nodes = graph.nodes.map((node) => ({ ...node, scope: selectedIds.has(node.id) ? 'selected' : 'external' }));
-    const selectedFacts = inspected.facts.filter((fact) => selectedIds.has(fact.id));
-    const facts = selectedFacts.map((fact) => inspectedFactCheck(inspected, fact.id));
-    const diagnostics = inspected.diagnostics.filter((item) => (item.id && contextIds.has(item.id)) || (item.file && selectedFiles.has(item.file)));
-    const aggregate = buildAggregateSnapshot(index, new Map([[containing.id, inspected]]));
-    const published = await publishAggregateSnapshot(index, aggregate, options);
-    return {
-      schema_version: 4, operation: 'inspect-path',
-      ok: facts.every((fact) => fact.mechanical.status === 'pass' && fact.local_verification.status !== 'error')
-        && diagnostics.every((item) => item.severity !== 'error'),
-      snapshot_id: aggregate.snapshot_id, snapshot_published: published,
-      scope: { type: info.isDirectory() ? 'folder' : 'file', path: relative, workspace: containing.id },
-      summary: {
-        files: selectedFiles.size, facts: facts.length,
-        globally_verified: facts.filter((fact) => fact.global_verification.status === 'verified').length,
-        globally_disproved: facts.filter((fact) => fact.global_verification.status === 'disproved').length,
-        errors: diagnostics.filter((item) => item.severity === 'error').length
-      },
-      facts, graph, blockers: blockerPaths(graph, [...selectedIds]),
-      findings: deriveGraphFindings({ graph, manifest: inspected.manifest, diagnostics }, { selectedIds, selectedFiles }),
-      staleness: inspected.staleness, verification: workspaceVerification(inspected), diagnostics
-    };
-  }
-  const goals = index.goals.filter((goal) => isWithinPath(goal.file, relative, info.isDirectory()));
-  const parseDiagnostics = index.goalsCompilation.diagnostics.filter((item) => item.code === 'PARSE_ERROR' && item.file && isWithinPath(item.file, relative, info.isDirectory()));
+  const manifest = index.compilation.manifest;
+  const parseDiagnostics = index.diagnostics.filter((item) => item.code === 'PARSE_ERROR' && item.file && isWithinPath(item.file, relative, info.isDirectory()));
   if (parseDiagnostics.length) return failure(parseDiagnostics);
-  if (!goals.length) {
-    const aggregate = buildAggregateSnapshot(index);
-    const published = await publishAggregateSnapshot(index, aggregate, options);
+  const selectedFiles = new Set(manifest.files.filter((file) => isWithinPath(file.path, relative, info.isDirectory())).map((file) => file.path));
+  const selectedIds = new Set(manifest.results.filter((result) => selectedFiles.has(result.file)).map((result) => result.id));
+  for (const proof of manifest.proofs) if (selectedFiles.has(proof.file)) selectedIds.add(proof.target);
+  if (selectedIds.size === 0) {
+    const snapshot = await resolveProjectSnapshot(index, options);
     return {
-      schema_version: 4, operation: 'inspect-path', ok: true, snapshot_id: aggregate.snapshot_id, snapshot_published: published,
-      scope: { type: info.isDirectory() ? 'folder' : 'file', path: relative }, summary: { files: info.isDirectory() ? index.notes.filter((note) => isWithinPath(note.path, relative, true)).length : 1, facts: 0, errors: 0 },
-      facts: [], graph: emptyGraph(), verification: emptyVerification(), staleness: { schema_version: 4, operation: 'check-staleness', ok: true, changed: [], invalidated: [] }, diagnostics: []
-      , findings: deriveGraphFindings({ graph: emptyGraph(), manifest: { schema_version: 4, files: [], results: [], proofs: [] }, diagnostics: [] })
+      schema_version: SCHEMA_VERSION, operation: 'inspect-path', ok: true, snapshot_id: snapshot.snapshot_id, snapshot_published: true,
+      scope: { type: info.isDirectory() ? 'folder' : 'file', path: relative },
+      summary: { files: selectedFiles.size, facts: 0, errors: 0 }, facts: [], graph: emptyGraph(), verification: emptyVerification(),
+      staleness: stalenessReport(true, snapshot.snapshot_id),
+      findings: deriveGraphFindings({ graph: emptyGraph(), manifest: { schema_version: SCHEMA_VERSION, files: [], results: [], proofs: [] }, diagnostics: [] }), diagnostics: []
     };
   }
-  const factResults = [];
-  for (const goal of goals) factResults.push(await inspectIndexedFact(index, goal.id, options));
-  const facts = factResults.map((result) => result.check);
-  const diagnostics = factResults.flatMap((result) => result.diagnostics);
-  const verification = emptyVerification();
-  for (const result of factResults) addVerification(verification, result.verification);
-  const ids = new Set(factResults.flatMap((result) => result.graph.nodes.map((node) => node.id)));
-  const aggregate = buildAggregateSnapshot(index);
+  const run = await verifyFacts(index, { ...options, selectedIds });
+  const snapshot = buildProjectSnapshot(index, run.diagnostics);
+  const published = await publishProjectSnapshot(index, snapshot, options);
+  const contextIds = new Set<string>(selectedIds);
+  for (const id of selectedIds) for (const dependency of traverse(snapshot.graph, id)) contextIds.add(dependency);
+  const graph = subgraph(snapshot.graph, contextIds);
+  graph.nodes = graph.nodes.map((node) => ({ ...node, scope: selectedIds.has(node.id) ? 'selected' : 'external' }));
+  const diagnostics = run.diagnostics.filter((item) => (item.id && contextIds.has(item.id)) || (item.file && selectedFiles.has(item.file)));
+  const facts = run.facts.filter((fact) => selectedIds.has(fact.id)).map((fact) => factCheck(fact, diagnostics));
   return {
-    schema_version: 4, operation: 'inspect-path', ok: factResults.every((result) => result.ok === true), snapshot_id: aggregate.snapshot_id,
-    scope: { type: info.isDirectory() ? 'folder' : 'file', path: relative }, summary: { files: info.isDirectory() ? index.notes.filter((note) => isWithinPath(note.path, relative, true)).length : 1, facts: facts.length, errors: diagnostics.filter((item) => item.severity === 'error').length },
-    facts, graph: subgraph(aggregate.graph, ids), verification,
-    staleness: { schema_version: 4, operation: 'check-staleness', ok: factResults.every((result) => result.staleness.ok === true), changed: [], invalidated: [] },
-    findings: deriveGraphFindings(aggregate, { selectedIds: goals.map((goal) => goal.id) }), diagnostics
+    schema_version: SCHEMA_VERSION, operation: 'inspect-path',
+    ok: facts.every((fact) => fact.mechanical.status === 'pass' && fact.local_verification.status !== 'error')
+      && diagnostics.every((item) => item.severity !== 'error'),
+    snapshot_id: snapshot.snapshot_id, snapshot_published: published,
+    scope: { type: info.isDirectory() ? 'folder' : 'file', path: relative },
+    summary: {
+      files: selectedFiles.size, facts: facts.length,
+      globally_verified: facts.filter((fact) => fact.global_verification.status === 'verified').length,
+      globally_disproved: facts.filter((fact) => fact.global_verification.status === 'disproved').length,
+      errors: diagnostics.filter((item) => item.severity === 'error').length
+    },
+    facts, graph, blockers: blockerPaths(graph, [...selectedIds]),
+    findings: deriveGraphFindings({ graph, manifest, diagnostics }, { selectedIds, selectedFiles }),
+    staleness: stalenessReport(true, snapshot.snapshot_id), verification: run.verification, diagnostics
   };
 }
 
 async function latestSnapshot(root: string, options: RuntimeOptions = {}): Promise<ProjectSnapshot> {
   const index = await buildProjectInspectionIndex(root, options);
-  if (index.fatal) throw Object.assign(new Error('Global duplicate IDs block dependency analysis'), { code: 'GLOBAL_DUPLICATE_ID', diagnostics: index.globalDiagnostics });
-  const current = buildAggregateSnapshot(index);
-  try {
-    const pointer = await readJson<{ file: string; snapshot_id: string }>(path.join(index.root, AUX, 'graphs', 'latest.json'));
-    const snapshotFile = path.resolve(index.root, pointer.file);
-    const graphsRoot = path.join(index.root, AUX, 'graphs');
-    if (!snapshotFile.startsWith(`${graphsRoot}${path.sep}`)) throw new Error('Aggregate snapshot pointer escapes the graph directory');
-    const saved = await readJson<AggregateSnapshot>(snapshotFile);
-    if (saved.schema_version === 4
-      && saved.snapshot_id === pointer.snapshot_id
-      && aggregateSourceSignature(saved) === aggregateSourceSignature(current)) return saved;
-  } catch { /* Missing, legacy, corrupt, or stale snapshots are rebuilt below. */ }
-  await publishAggregateSnapshot(index, current, options);
-  return current;
+  return resolveProjectSnapshot(index, options);
 }
 
 
@@ -440,7 +250,7 @@ export async function analyzeDependencies(root: string, operation: string, args:
   catch (error) {
     const failure = error as { code?: string; message?: string; diagnostics?: Diagnostic[] };
     return {
-      schema_version: 4, operation: `dependency-${operation}`, ok: false,
+      schema_version: SCHEMA_VERSION, operation: `dependency-${operation}`, ok: false,
       computed: false,
       status: 'blocked',
       diagnostics: failure.diagnostics ?? [{ severity: 'error', code: failure.code ?? 'DEPENDENCY_SNAPSHOT_FAILED', message: failure.message ?? String(error) }]
@@ -448,10 +258,10 @@ export async function analyzeDependencies(root: string, operation: string, args:
   }
   const { graph } = snapshot;
   const blockingDiagnostics = (snapshot.diagnostics ?? []).filter((item) => (
-    item.code === 'PARSE_ERROR' || item.code === 'GLOBAL_DUPLICATE_ID' || item.code === 'WORKSPACE_DISCOVERY_FAILED'
+    item.code === 'PARSE_ERROR' || item.code === 'DUPLICATE_ID'
   ));
   if (blockingDiagnostics.length) return {
-    schema_version: 4,
+    schema_version: SCHEMA_VERSION,
     operation: `dependency-${operation}`,
     ok: false,
     computed: false,
@@ -459,7 +269,7 @@ export async function analyzeDependencies(root: string, operation: string, args:
     snapshot_id: snapshot.snapshot_id,
     summary: { nodes_available: graph.nodes.length, blocking_errors: blockingDiagnostics.length },
     diagnostics: blockingDiagnostics,
-    remediation: 'Repair the blocking parse or discovery diagnostics, then rerun the dependency command.'
+    remediation: 'Repair the blocking parse or duplicate-ID diagnostics, then rerun the dependency command.'
   };
   const requested = args[0];
   const requiredIds = [
@@ -469,8 +279,8 @@ export async function analyzeDependencies(root: string, operation: string, args:
   ].filter((value): value is string => typeof value === 'string' && value.length > 0);
   const missing = [...new Set(requiredIds.map(cleanId).filter((id) => !graph.nodes.some((node) => node.id === id)))];
   if (missing.length) return {
-    schema_version: 4, operation: `dependency-${operation}`, ok: false, snapshot_id: snapshot.snapshot_id,
-    diagnostics: missing.map((id) => ({ severity: 'error', code: 'FACT_UNKNOWN', id, message: `Unknown fact in aggregate workspace graph: @${id}` }))
+    schema_version: SCHEMA_VERSION, operation: `dependency-${operation}`, ok: false, snapshot_id: snapshot.snapshot_id,
+    diagnostics: missing.map((id) => ({ severity: 'error', code: 'FACT_UNKNOWN', id, message: `Unknown fact in project graph: @${id}` }))
   };
   let result;
   if (operation === 'dependencies' || operation === 'reverse-dependencies') {
@@ -590,7 +400,7 @@ export async function analyzeDependencies(root: string, operation: string, args:
   }
   const diagnostics = snapshot.diagnostics ?? [];
   return {
-    schema_version: 4,
+    schema_version: SCHEMA_VERSION,
     operation: `dependency-${operation}`,
     ok: diagnostics.every((item) => item.severity !== 'error'),
     computed: true,

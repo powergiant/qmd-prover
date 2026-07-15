@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
-import { initializeWorkspace } from '../skills/qmd-prover/src/lib/workspace/initialize.js';
-import { fakePandoc, here, options, project, result } from './support.js';
+import { fakePandoc, here, project, result } from './support.js';
 
 interface ProcessError extends Error { code?: string | number | null }
 interface ProcessResult { error: ProcessError | null; stdout: string; stderr: string }
@@ -58,27 +57,6 @@ test('doctor and verification list make prerequisites and submission IDs discove
   assert.equal(missing.error?.code, 2);
   assert.equal(JSON.parse(missing.stdout).diagnostics[0].code, 'SUBMISSION_NOT_FOUND');
   assert.doesNotMatch(missing.stderr, /ENOENT|\n\s+at /);
-});
-
-test('workspace adoption preserves existing QMD and returns concrete parse blockers without writes', async () => {
-  const root = await project();
-  await writeFile(path.join(root, 'goal.qmd'), result('thm-main-adopt-ux', 'Adopt safely.'));
-  const workspace = path.join(root, '.qmd-prover', 'workspaces', 'thm-main-adopt-ux');
-  await mkdir(workspace, { recursive: true });
-  const existingProgress = '# Existing progress\n\nDo not overwrite this.\n';
-  await writeFile(path.join(workspace, 'progress.qmd'), existingProgress);
-  await writeFile(path.join(workspace, 'attempt.qmd'), '# Existing attempt\n');
-  const adopted = await initializeWorkspace(root, '@thm-main-adopt-ux', options);
-  assert.equal(adopted.status, 'adopted');
-  assert.equal(await readFile(path.join(workspace, 'progress.qmd'), 'utf8'), existingProgress);
-  assert.equal((await stat(path.join(workspace, 'workspace.json'))).isFile(), true);
-
-  const blockedRoot = await project();
-  await writeFile(path.join(blockedRoot, 'goal.qmd'), result('thm-main-blocked-ux', 'Blocked safely.'));
-  const blocked = await initializeWorkspace(blockedRoot, '@thm-main-blocked-ux', { pandoc: 'missing-pandoc-for-workspace-test' });
-  assert.equal(blocked.status, 'blocked');
-  assert.ok(blocked.diagnostics?.some((item) => item.code === 'PARSE_ERROR'));
-  await assert.rejects(stat(path.join(blockedRoot, '.qmd-prover', 'workspaces', 'thm-main-blocked-ux', 'workspace.json')), /ENOENT/);
 });
 
 test('parse failures block mechanical checks, print source locations, and block render writes by default', async () => {

@@ -1,7 +1,7 @@
-import { mkdir, readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { readExternalPolicy } from '../infrastructure/external.js';
-import { atomicWrite, AUX, exists, relativePosix, withWriteLock } from '../infrastructure/files.js';
+import { atomicWrite, exists, relativePosix, withWriteLock } from '../infrastructure/files.js';
 const START = '<!-- qmd-prover-contract:start version=';
 const END = '<!-- qmd-prover-contract:end -->';
 const BLOCK = /<!-- qmd-prover-contract:start version=(\d+) -->[\s\S]*?<!-- qmd-prover-contract:end -->/g;
@@ -26,11 +26,6 @@ function result(root, version, status, extra = {}) {
 }
 function projectPolicy(block) {
     return `# Mathematical project instructions\n\n${block}\n\n## Project-specific additions\n\n`;
-}
-async function successfulResult(root, version, status, extra = {}) {
-    const workspaceRoot = path.join(root, AUX, 'workspaces');
-    await mkdir(workspaceRoot, { recursive: true });
-    return result(root, version, status, { workspace_root: relativePosix(root, workspaceRoot), ...extra });
 }
 async function findQmdFiles(root, directory = root) {
     const ignored = new Set(['.git', '.qmd-prover', '.quarto', 'node_modules']);
@@ -91,17 +86,17 @@ export async function initializeProject(root, { adoptExisting = false, appendCon
         if (!policyExists) {
             await atomicWrite(policyFile, projectPolicy(canonical.block));
             if (projectMaterialExists) {
-                return successfulResult(root, canonical.version, 'adopted', { existing });
+                return result(root, canonical.version, 'adopted', { existing });
             }
-            return successfulResult(root, canonical.version, 'created', { existing });
+            return result(root, canonical.version, 'created', { existing });
         }
         const source = await readFile(policyFile, 'utf8');
         if (!source.trim()) {
             await atomicWrite(policyFile, projectPolicy(canonical.block));
             if (projectMaterialExists) {
-                return successfulResult(root, canonical.version, 'adopted', { existing });
+                return result(root, canonical.version, 'adopted', { existing });
             }
-            return successfulResult(root, canonical.version, 'created', { existing });
+            return result(root, canonical.version, 'created', { existing });
         }
         const matches = [...source.matchAll(BLOCK)];
         const starts = source.split(START).length - 1;
@@ -116,7 +111,7 @@ export async function initializeProject(root, { adoptExisting = false, appendCon
             if (appendContract) {
                 const separator = source.endsWith('\n') ? '\n' : '\n\n';
                 await atomicWrite(policyFile, `${source}${separator}${canonical.block}\n`);
-                return successfulResult(root, canonical.version, 'appended', { existing });
+                return result(root, canonical.version, 'appended', { existing });
             }
             return result(root, canonical.version, 'append-required', {
                 existing,
@@ -127,11 +122,11 @@ export async function initializeProject(root, { adoptExisting = false, appendCon
         const current = matches[0][0];
         const currentVersion = Number(matches[0][1]);
         if (current === canonical.block) {
-            return successfulResult(root, canonical.version, 'already-initialized', { existing });
+            return result(root, canonical.version, 'already-initialized', { existing });
         }
         if (syncContract) {
             await atomicWrite(policyFile, source.replace(current, () => canonical.block));
-            return successfulResult(root, canonical.version, 'synchronized', { existing, previous_contract_version: currentVersion });
+            return result(root, canonical.version, 'synchronized', { existing, previous_contract_version: currentVersion });
         }
         return result(root, canonical.version, 'sync-required', {
             existing,

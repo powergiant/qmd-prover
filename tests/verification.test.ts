@@ -3,80 +3,71 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
-import { initializeWorkspace } from '../skills/qmd-prover/src/lib/workspace/initialize.js';
-import { analyzeDependencies, inspectFact } from '../skills/qmd-prover/src/lib/inspection/operations.js';
+import { analyzeDependencies, inspectFact, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
 import { printReport } from '../skills/qmd-prover/src/lib/inspection/report.js';
 import { checkStaleness } from '../skills/qmd-prover/src/lib/verification/staleness.js';
-import { inspectWorkspace } from '../skills/qmd-prover/src/lib/workspace/inspect.js';
 import { document, must, options, project, proof, result, verifier } from './support.js';
 
-test('goal workspaces preserve a protected target snapshot and report statement staleness', async () => {
+test('facts in any project folder join one unified graph and protected statements stay locked', async () => {
   const root = await project();
   const userGoal = path.join(root, 'goal.qmd');
-  await writeFile(userGoal, result('thm-main-work', 'Do the work.', { title: 'Workspace theorem' }));
-  const created = await initializeWorkspace(root, '@thm-main-work', options);
-  assert.equal(created.status, 'created');
-  const workspace = path.join(root, created.workspace);
-  assert.match(await readFile(path.join(workspace, 'target.qmd'), 'utf8'), /#thm-main-work/);
-  await mkdir(path.join(workspace, 'local-theory'));
-  await mkdir(path.join(workspace, '.machine'));
-  await mkdir(path.join(workspace, 'generated'));
-  await writeFile(path.join(workspace, 'local-theory', 'lemma.qmd'), result('lem-work', 'A working lemma.', { proofText: 'A workspace argument.', exported: true }));
-  await writeFile(path.join(workspace, '.machine', 'ignored.qmd'), result('lem-hidden-work', 'Hidden machine state.'));
-  await writeFile(path.join(workspace, 'generated', 'ignored.qmd'), result('lem-generated-work', 'Generated output.'));
-  await writeFile(path.join(workspace, 'main-attempt.qmd'), document(
+  await writeFile(userGoal, result('thm-main-work', 'Do the work.', { title: 'Unified theorem' }));
+  await mkdir(path.join(root, 'workspace', 'local-theory'), { recursive: true });
+  await writeFile(path.join(root, 'workspace', 'local-theory', 'lemma.qmd'), result('lem-work', 'A working lemma.', { proofText: 'An ordinary argument.', exported: true }));
+  await writeFile(path.join(root, 'workspace', 'main-attempt.qmd'), document(
     [{ from: 'local-theory/lemma.qmd', use: ['lem-work'] }],
     proof('thm-main-work', 'Use @lem-work.')
   ));
-  const inspected = await inspectWorkspace(root, '@thm-main-work', options);
-  assert.equal(inspected.stale, false);
-  assert.ok(inspected.manifest.results.every((item) => item.origin === 'workspace'));
-  assert.equal(must(inspected.manifest.results.find((item) => item.id === 'lem-work')).status, 'workspace-unverified');
-  assert.equal(must(inspected.manifest.results.find((item) => item.id === 'thm-main-work')).status, 'workspace-unverified');
+  const inspected = await inspectProject(root, options);
+  assert.equal(inspected.ok, true, JSON.stringify(inspected.diagnostics));
+  assert.deepEqual(inspected.graph.nodes.map((node) => ({ id: node.id, origin: node.origin })).sort((a, b) => a.id.localeCompare(b.id)), [
+    { id: 'lem-work', origin: 'fact' },
+    { id: 'thm-main-work', origin: 'main-goal' }
+  ]);
   assert.equal(inspected.verification.available, false);
-  assert.ok(inspected.facts.every((fact) => fact.mechanical?.status === 'pass'));
+  assert.ok(inspected.facts.every((fact) => fact.mechanical.status === 'pass'));
   assert.ok(inspected.facts.every((fact) => fact.local_verification.status === 'not-run'));
   assert.ok(inspected.facts.every((fact) => fact.global_verification.status === 'unverified'));
-  assert.ok(!inspected.manifest.results.some((item) => ['lem-hidden-work', 'lem-generated-work'].includes(item.id)));
   assert.ok(inspected.graph.edges.some((edge) => edge.from === 'thm-main-work' && edge.to === 'lem-work'));
-  await writeFile(userGoal, result('thm-main-work', 'Changed protected statement.', { title: 'Workspace theorem' }));
-  assert.equal((await inspectWorkspace(root, '@thm-main-work', options)).stale, true);
+  await writeFile(userGoal, result('thm-main-work', 'Changed protected statement.', { title: 'Unified theorem' }));
+  const mutated = await inspectProject(root, options);
+  assert.equal(mutated.ok, false);
+  assert.ok(mutated.diagnostics.some((item) => item.code === 'MAIN_STATEMENT_MUTATED' && item.id === 'thm-main-work'));
 });
 
-test('workspace inspection verifies a dependency chain and reuses exact caches', async () => {
+test('project inspection verifies a dependency chain and reuses exact caches', async () => {
   const root = await project();
-  const countFile = path.join(root, 'workspace-verifier-calls.txt');
+  const countFile = path.join(root, 'project-verifier-calls.txt');
   process.env.QMD_PROVER_VERIFIER = verifier;
   process.env.QMD_PROVER_VERIFIER_COUNT = countFile;
   try {
-    await writeFile(path.join(root, 'goal.qmd'), result('thm-main-workspace-ai', 'The workspace route succeeds.'));
-    const created = await initializeWorkspace(root, '@thm-main-workspace-ai', options);
-    const workspace = path.join(root, created.workspace);
-    const route = path.join(workspace, 'route.qmd');
+    await writeFile(path.join(root, 'goal.qmd'), result('thm-main-project-ai', 'The project route succeeds.'));
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
+    const route = path.join(root, 'workspace', 'route.qmd');
     await writeFile(route, [
-      result('def-workspace-object', 'Construct the workspace object.'),
-      result('lem-workspace-route', 'The workspace object has the needed property.', { proofText: 'Apply @def-workspace-object.' }),
-      proof('thm-main-workspace-ai', 'Apply @lem-workspace-route.')
+      result('def-project-object', 'Construct the project object.'),
+      result('lem-project-route', 'The project object has the needed property.', { proofText: 'Apply @def-project-object.' }),
+      proof('thm-main-project-ai', 'Apply @lem-project-route.')
     ].join('\n'));
 
-    const first = await inspectWorkspace(root, '@thm-main-workspace-ai', options);
+    const first = await inspectProject(root, options);
     assert.equal(first.ok, true, JSON.stringify(first.diagnostics));
     assert.equal(first.verification.verifier_calls, 3);
-    assert.deepEqual(first.facts.map((fact) => fact.status), ['workspace-verified', 'workspace-verified', 'workspace-verified']);
+    assert.deepEqual(first.facts.map((fact) => fact.status), ['verified', 'verified', 'verified']);
     assert.doesNotMatch(await readFile(route, 'utf8'), /VERIFIED/);
     const firstSnapshot = first.snapshot_id;
-    const firstPointer = await readJson<{ snapshot_id: string; file: string }>(path.join(workspace, 'latest.json'));
+    const firstPointer = await readJson<{ snapshot_id: string; file: string }>(path.join(root, '.qmd-prover', 'graphs', 'latest.json'));
     assert.equal(firstPointer.snapshot_id, firstSnapshot);
-    assert.equal((await readJson<{ snapshot_id: string }>(path.join(workspace, firstPointer.file))).snapshot_id, firstSnapshot);
+    assert.equal((await readJson<{ snapshot_id: string }>(path.join(root, firstPointer.file))).snapshot_id, firstSnapshot);
 
-    const second = await inspectWorkspace(root, '@thm-main-workspace-ai', options);
+    const second = await inspectProject(root, options);
     assert.equal(second.ok, true);
     assert.equal(second.verification.verifier_calls, 0);
     assert.equal(second.verification.cache_hits, 3);
     assert.equal(second.snapshot_id, firstSnapshot);
 
-    await writeFile(route, (await readFile(route, 'utf8')).replace('Apply @def-workspace-object.', 'Apply @def-workspace-object by the changed route.'));
-    const changed = await inspectWorkspace(root, '@thm-main-workspace-ai', options);
+    await writeFile(route, (await readFile(route, 'utf8')).replace('Apply @def-project-object.', 'Apply @def-project-object by the changed route.'));
+    const changed = await inspectProject(root, options);
     assert.equal(changed.ok, true);
     assert.equal(changed.verification.verifier_calls, 1);
     assert.equal(changed.verification.cache_hits, 2);
@@ -89,21 +80,21 @@ test('workspace inspection verifies a dependency chain and reuses exact caches',
 test('an unconfigured verifier exposes machine state but does not reuse AI labels', async () => {
   const root = await project();
   await writeFile(path.join(root, 'goal.qmd'), result('thm-main-no-verifier-labels', 'Every integer is even.'));
-  const created = await initializeWorkspace(root, '@thm-main-no-verifier-labels', options);
-  await writeFile(path.join(root, created.workspace, 'main-proof.qmd'), proof('thm-main-no-verifier-labels', 'DISPROVED\n\nThe integer 1 is not even.'));
+  await mkdir(path.join(root, 'workspace'), { recursive: true });
+  await writeFile(path.join(root, 'workspace', 'main-proof.qmd'), proof('thm-main-no-verifier-labels', 'DISPROVED\n\nThe integer 1 is not even.'));
   process.env.QMD_PROVER_VERIFIER = verifier;
   try {
-    const checked = await inspectWorkspace(root, '@thm-main-no-verifier-labels', options);
+    const checked = await inspectProject(root, options);
     assert.equal(checked.facts[0]?.global_verification.status, 'disproved');
     delete process.env.QMD_PROVER_VERIFIER;
-    const machineOnly = await inspectWorkspace(root, '@thm-main-no-verifier-labels', options);
+    const machineOnly = await inspectProject(root, options);
     assert.equal(machineOnly.ok, true);
     assert.equal(machineOnly.verification.available, false);
     assert.equal(machineOnly.verification.cache_hits, 0);
-    assert.equal(machineOnly.facts[0]?.mechanical?.status, 'pass');
+    assert.equal(machineOnly.facts[0]?.mechanical.status, 'pass');
     assert.equal(machineOnly.facts[0]?.local_verification.status, 'not-run');
     assert.equal(machineOnly.facts[0]?.global_verification.status, 'unverified');
-    assert.equal(machineOnly.manifest.results[0]?.disproof, undefined);
+    assert.ok(!machineOnly.graph.nodes.some((node) => node.disproof));
   } finally {
     delete process.env.QMD_PROVER_VERIFIER;
   }
@@ -116,8 +107,8 @@ test('local verification checks dependents conditionally and global verification
   process.env.QMD_PROVER_VERIFIER_COUNT = countFile;
   try {
     await writeFile(path.join(root, 'goal.qmd'), result('thm-main-conditional', 'The final conclusion holds.'));
-    const created = await initializeWorkspace(root, '@thm-main-conditional', options);
-    const route = path.join(root, created.workspace, 'route.qmd');
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
+    const route = path.join(root, 'workspace', 'route.qmd');
     await writeFile(route, [
       result('lem-conditional-premise', 'The premise holds.', { proofText: 'INVALID premise proof.' }),
       proof('thm-main-conditional', 'Use @lem-conditional-premise.')
@@ -133,8 +124,9 @@ test('local verification checks dependents conditionally and global verification
     assert.equal(targetNode.local_verification?.outcome, 'verified');
     assert.equal(targetNode.global_verification?.status, 'blocked');
     assert.deepEqual(targetNode.global_verification?.blockers, ['lem-conditional-premise']);
-    const checkFiles = await readdir(path.join(root, created.workspace, 'verification', 'checks'));
-    const records = await Promise.all(checkFiles.map((name) => readJson<Record<string, unknown>>(path.join(root, created.workspace, 'verification', 'checks', name))));
+    const checksRoot = path.join(root, '.qmd-prover', 'verification', 'checks');
+    const checkFiles = await readdir(checksRoot);
+    const records = await Promise.all(checkFiles.map((name) => readJson<Record<string, unknown>>(path.join(checksRoot, name))));
     const targetRecord = must(records.find((record) => record.target === 'thm-main-conditional'));
     const packet = targetRecord.packet as { dependencies: Array<Record<string, unknown>> };
     assert.equal(packet.dependencies.length, 1);
@@ -163,14 +155,14 @@ test('machine cycles invalidate global results without suppressing local conditi
   process.env.QMD_PROVER_VERIFIER = verifier;
   try {
     await writeFile(path.join(root, 'goal.qmd'), result('thm-main-cycle-layers', 'The cyclic target holds.'));
-    const created = await initializeWorkspace(root, '@thm-main-cycle-layers', options);
-    await writeFile(path.join(root, created.workspace, 'cycle.qmd'), [
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
+    await writeFile(path.join(root, 'workspace', 'cycle.qmd'), [
       result('lem-cycle-left', 'The left claim.', { proofText: 'Use @lem-cycle-right.' }),
       result('lem-cycle-right', 'The right claim.', { proofText: 'Use @lem-cycle-left.' }),
       proof('thm-main-cycle-layers', 'Use @lem-cycle-left.')
     ].join('\n'));
 
-    const inspected = await inspectWorkspace(root, '@thm-main-cycle-layers', options);
+    const inspected = await inspectProject(root, options);
     assert.equal(inspected.ok, false);
     assert.equal(inspected.verification.verifier_calls, 3);
     assert.equal(inspected.verification.local_verified, 3);
@@ -192,9 +184,8 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
   process.env.QMD_PROVER_VERIFIER_COUNT = countFile;
   try {
     await writeFile(path.join(root, 'goal.qmd'), result('thm-main-disproof', 'Every integer is even.'));
-    const created = await initializeWorkspace(root, '@thm-main-disproof', options);
-    const workspace = path.join(root, created.workspace);
-    const route = path.join(workspace, 'route.qmd');
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
+    const route = path.join(root, 'workspace', 'route.qmd');
     await writeFile(route, [
       result('def-parity-witness', 'The integer 1 is an admissible parity witness.'),
       result('lem-false-premise', 'Every integer is even.', {
@@ -206,7 +197,7 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
     const refutation = await inspectFact(root, '@lem-false-premise', options);
     assert.equal(refutation.ok, true, JSON.stringify(refutation.diagnostics));
     assert.equal(refutation.fact.marker, 'DISPROVED');
-    assert.equal(refutation.fact.status, 'workspace-disproved');
+    assert.equal(refutation.fact.status, 'disproved');
     assert.equal(refutation.fact.disproof?.status, 'global');
     assert.match(refutation.fact.disproof?.refutation ?? '', /integer 1/);
     assert.equal(refutation.check.local_verification.outcome, 'disproved');
@@ -214,7 +205,7 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
     assert.equal(refutation.verification.local_disproved, 1);
     assert.equal(refutation.verification.global_disproved, 1);
     const refutationNode = must(refutation.graph.nodes.find((node) => node.id === 'lem-false-premise'));
-    assert.equal(refutationNode.status, 'workspace-disproved');
+    assert.equal(refutationNode.status, 'disproved');
     assert.match(refutationNode.disproof?.refutation ?? '', /integer 1/);
     assert.match(printReport(refutation), /global=disproved/);
     assert.match(printReport(refutation), /refutation:.*integer 1/);
@@ -223,14 +214,14 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
     assert.equal(impact.ok, true, JSON.stringify(impact.diagnostics));
     const affected = impact.affected ?? [];
     assert.deepEqual(affected.map(({ id, status }) => ({ id, status })), [
-      { id: 'lem-false-premise', status: 'workspace-disproved' },
-      { id: 'thm-main-disproof', status: 'workspace-unverified' }
+      { id: 'lem-false-premise', status: 'disproved' },
+      { id: 'thm-main-disproof', status: 'candidate' }
     ]);
-    const search = await analyzeDependencies(root, 'search', ['false'], { ...options, status: 'workspace-disproved' });
+    const search = await analyzeDependencies(root, 'search', ['false'], { ...options, status: 'disproved' });
     assert.deepEqual(search.matches?.map((node) => node.id), ['lem-false-premise']);
     const frontier = await analyzeDependencies(root, 'frontier', ['@thm-main-disproof'], options);
     assert.deepEqual(frontier.frontier?.map((item) => ({ id: item.fact.id, status: item.fact.status })), [
-      { id: 'lem-false-premise', status: 'workspace-disproved' }
+      { id: 'lem-false-premise', status: 'disproved' }
     ]);
 
     const blocked = await inspectFact(root, '@thm-main-disproof', options);
@@ -241,9 +232,9 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
     assert.equal(blocked.verification.global_disproved, 1);
     assert.equal(blocked.check.local_verification.outcome, 'verified');
     assert.equal(blocked.check.global_verification.status, 'blocked');
-    assert.equal(blocked.graph.nodes.find((node) => node.id === 'lem-false-premise')?.status, 'workspace-disproved');
+    assert.equal(blocked.graph.nodes.find((node) => node.id === 'lem-false-premise')?.status, 'disproved');
     const blockers = blocked.blockers as unknown as Array<{ blocker: { status: string } }>;
-    assert.equal(blockers[0]?.blocker.status, 'workspace-disproved');
+    assert.equal(blockers[0]?.blocker.status, 'disproved');
 
     await writeFile(route, (await readFile(route, 'utf8')).replace(
       'By @def-parity-witness, the integer 1 satisfies the domain hypothesis and is not even.',
@@ -251,38 +242,37 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
     ));
     const rejectedRefutation = await inspectFact(root, '@lem-false-premise', options);
     assert.equal(rejectedRefutation.ok, true);
-    assert.equal(rejectedRefutation.fact.status, 'workspace-rejected');
+    assert.equal(rejectedRefutation.fact.status, 'rejected');
     assert.equal(rejectedRefutation.fact.disproof, undefined);
     assert.equal(rejectedRefutation.check.local_verification.outcome, 'rejected');
     assert.equal(rejectedRefutation.check.global_verification.status, 'rejected');
-    assert.ok(rejectedRefutation.diagnostics.some((item) => item.code === 'WORKSPACE_AI_DISPROOF_REJECTED'));
+    assert.ok(rejectedRefutation.diagnostics.some((item) => item.code === 'AI_DISPROOF_REJECTED'));
   } finally {
     delete process.env.QMD_PROVER_VERIFIER;
     delete process.env.QMD_PROVER_VERIFIER_COUNT;
   }
 });
 
-test('a verifier-discovered counterexample produces workspace-disproved without editing QMD', async () => {
+test('a verifier-discovered counterexample produces disproved without editing QMD', async () => {
   const root = await project();
   process.env.QMD_PROVER_VERIFIER = verifier;
   try {
     await writeFile(path.join(root, 'goal.qmd'), result('thm-main-verifier-disproof', 'Every integer is even.'));
-    const created = await initializeWorkspace(root, '@thm-main-verifier-disproof', options);
-    const workspace = path.join(root, created.workspace);
-    const candidate = path.join(workspace, 'main-proof.qmd');
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
+    const candidate = path.join(root, 'workspace', 'main-proof.qmd');
     await writeFile(candidate, proof('thm-main-verifier-disproof', 'DISCOVER_COUNTEREXAMPLE'));
 
     const inspected = await inspectFact(root, '@thm-main-verifier-disproof', options);
     assert.equal(inspected.ok, true, JSON.stringify(inspected.diagnostics));
     assert.equal(inspected.fact.marker, null);
-    assert.equal(inspected.fact.status, 'workspace-disproved');
+    assert.equal(inspected.fact.status, 'disproved');
     assert.equal(inspected.check.local_verification.outcome, 'disproved');
     assert.match(inspected.fact.disproof?.refutation ?? '', /verifier-discovered counterexample/);
     assert.equal(inspected.graph.nodes.find((node) => node.id === 'thm-main-verifier-disproof')?.disproof?.status, 'global');
     assert.doesNotMatch(await readFile(candidate, 'utf8'), /DISPROVED/);
 
     const cached = await inspectFact(root, '@thm-main-verifier-disproof', options);
-    assert.equal(cached.fact.status, 'workspace-disproved');
+    assert.equal(cached.fact.status, 'disproved');
     assert.equal(cached.verification.verifier_calls, 0);
     assert.equal(cached.verification.cache_hits, 1);
     assert.equal(cached.verification.local_disproved, 1);
@@ -297,15 +287,15 @@ test('a disproved verifier verdict without refutation evidence fails closed', as
   process.env.QMD_PROVER_VERIFIER = verifier;
   try {
     await writeFile(path.join(root, 'goal.qmd'), result('thm-main-empty-disproof', 'Every integer is even.'));
-    const created = await initializeWorkspace(root, '@thm-main-empty-disproof', options);
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
     await writeFile(
-      path.join(root, created.workspace, 'main-proof.qmd'),
+      path.join(root, 'workspace', 'main-proof.qmd'),
       proof('thm-main-empty-disproof', 'DISCOVER_EMPTY_DISPROOF')
     );
 
     const inspected = await inspectFact(root, '@thm-main-empty-disproof', options);
     assert.equal(inspected.ok, false);
-    assert.equal(inspected.fact.status, 'workspace-unverified');
+    assert.equal(inspected.fact.status, 'unverified');
     assert.equal(inspected.fact.disproof, undefined);
     assert.equal(inspected.check.local_verification.status, 'error');
     assert.match(inspected.check.local_verification.error ?? '', /requires a nonempty refutation/);
@@ -320,22 +310,21 @@ test('staleness auditing rejects a cache whose recorded disproof outcome is inco
   process.env.QMD_PROVER_VERIFIER = verifier;
   try {
     await writeFile(path.join(root, 'goal.qmd'), result('thm-main-stale-disproof', 'Every integer is even.'));
-    const created = await initializeWorkspace(root, '@thm-main-stale-disproof', options);
-    const workspace = path.join(root, created.workspace);
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
     await writeFile(
-      path.join(workspace, 'main-proof.qmd'),
+      path.join(root, 'workspace', 'main-proof.qmd'),
       proof('thm-main-stale-disproof', 'DISPROVED\n\nThe integer 1 is not even.')
     );
-    assert.equal((await inspectFact(root, '@thm-main-stale-disproof', options)).fact.status, 'workspace-disproved');
+    assert.equal((await inspectFact(root, '@thm-main-stale-disproof', options)).fact.status, 'disproved');
 
-    const checks = path.join(workspace, 'verification', 'checks');
+    const checks = path.join(root, '.qmd-prover', 'verification', 'checks');
     const [cacheName] = await readdir(checks);
     const cacheFile = path.join(checks, cacheName ?? 'missing.json');
     const cache = await readJson<Record<string, unknown>>(cacheFile);
     await writeFile(cacheFile, JSON.stringify({ ...cache, outcome: 'verified' }));
 
     const audit = await checkStaleness(root, options);
-    assert.ok(audit.changed.some((item) => item.id === 'thm-main-stale-disproof' && item.reasons.includes('workspace-cache-invalid')));
+    assert.ok(audit.changed.some((item) => item.id === 'thm-main-stale-disproof' && item.reasons.includes('cache-invalid')));
   } finally {
     delete process.env.QMD_PROVER_VERIFIER;
   }

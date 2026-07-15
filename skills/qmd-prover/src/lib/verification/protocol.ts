@@ -6,7 +6,7 @@ import type {
   VerifierPacketInput, VerifierReport, VerifierTarget
 } from '../shared/types.js';
 
-export const VERIFIER_PROTOCOL_VERSION = 4;
+export const VERIFIER_PROTOCOL_VERSION = 5;
 
 const PROTOCOL_NAME = 'qmd-prover-independent-verifier';
 

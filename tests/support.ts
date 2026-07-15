@@ -18,17 +18,13 @@ process.env.PATH = `${path.dirname(process.execPath)}:${process.env.PATH}`;
 
 export async function project() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'qmd-prover-'));
-  await mkdir(path.join(root, '.qmd-prover', 'workspaces', 'test', 'proposals'), { recursive: true });
+  await mkdir(path.join(root, '.qmd-prover'), { recursive: true });
   await Promise.all([chmod(fakePandoc, 0o755), chmod(verifier, 0o755), chmod(staleVerifier, 0o755), chmod(malformedVerifier, 0o755)]);
   return root;
 }
 
 export function bareProject() {
   return mkdtemp(path.join(os.tmpdir(), 'qmd-prover-init-'));
-}
-
-export function proposalPath(root: string, name: string): string {
-  return path.join(root, '.qmd-prover', 'workspaces', 'test', 'proposals', name);
 }
 
 export function proof(id: string, text: string): string {

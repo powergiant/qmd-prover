@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
-import { readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { renderProject } from '../skills/qmd-prover/src/lib/application/render.js';
 import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
 import { inspectFact } from '../skills/qmd-prover/src/lib/inspection/operations.js';
-import { initializeWorkspace } from '../skills/qmd-prover/src/lib/workspace/initialize.js';
 import { options, project, proof, result, verifier } from './support.js';
 
 test('render prepares Quarto-compatible status QMD and an SVG linked to user main goals', async () => {
@@ -13,8 +12,8 @@ test('render prepares Quarto-compatible status QMD and an SVG linked to user mai
   await writeFile(path.join(root, 'goal.qmd'), result('thm-main-render', 'If x < y, then x < y.', { title: 'Render < safely' }));
   const rendered = await renderProject(root, options);
   assert.equal(rendered.status, 'prepared');
-  assert.equal(rendered.render_command, undefined);
-  assert.equal((rendered.quarto as { available: boolean }).available, false);
+  const quarto = rendered.quarto as { available: boolean };
+  assert.equal(rendered.render_command, quarto.available ? 'quarto render' : undefined);
   const statusQmd = await readFile(path.join(root, '.qmd-prover', 'generated', 'proof-status.qmd'), 'utf8');
   const graph = await readFile(path.join(root, '.qmd-prover', 'generated', 'dependencies.svg'), 'utf8');
   assert.match(statusQmd, /\| @thm-main-render \| not-run \| unverified \|/);
@@ -29,13 +28,13 @@ test('render exposes independently verified disproof evidence in status QMD and 
   process.env.QMD_PROVER_VERIFIER = verifier;
   try {
     await writeFile(path.join(root, 'goal.qmd'), result('thm-main-render-disproof', 'Every integer is even.'));
-    const created = await initializeWorkspace(root, '@thm-main-render-disproof', options);
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
     await writeFile(
-      path.join(root, created.workspace, 'main-proof.qmd'),
+      path.join(root, 'workspace', 'main-proof.qmd'),
       proof('thm-main-render-disproof', 'DISPROVED\n\nThe integer 1 satisfies the hypothesis | but is not even.')
     );
     const inspected = await inspectFact(root, '@thm-main-render-disproof', options);
-    assert.equal(inspected.fact.status, 'workspace-disproved');
+    assert.equal(inspected.fact.status, 'disproved');
 
     const rendered = await renderProject(root, options);
     assert.equal(rendered.status, 'prepared');

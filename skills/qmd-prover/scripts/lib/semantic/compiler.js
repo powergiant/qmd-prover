@@ -4,7 +4,7 @@ import { AUX, atomicJson, atomicWrite, cleanId, exists, readJson, relativePosix,
 import { loadConfig } from '../infrastructure/config.js';
 import { inlineText, normalizedAst, readAst, references, walk } from './pandoc.js';
 import { locateDiv, locateProof } from './source.js';
-import { KIND_BY_PREFIX, RESULT_KINDS, SEMANTIC_ID_PATTERN, SEMANTIC_PREFIX_PATTERN, isControlMarker } from '../shared/core.js';
+import { KIND_BY_PREFIX, RESULT_KINDS, SCHEMA_VERSION, SEMANTIC_ID_PATTERN, SEMANTIC_PREFIX_PATTERN, isControlMarker } from '../shared/core.js';
 import { asArray, asRecord, asString, errorMessage, isRecord, uniqueSorted } from '../shared/core.js';
 import { discover, discoveryExclusions } from './discovery.js';
 import { findCycles } from './dependency-graph.js';
@@ -129,12 +129,21 @@ function resolveImport(importer, imported) {
     const candidate = path.posix.normalize(path.posix.join(path.posix.dirname(importer), imported));
     return candidate.startsWith('../') || path.posix.isAbsolute(candidate) ? null : candidate;
 }
+/** Marker- and proof-derived status before any verification overlay. */
+export function factStatus(result, marker = result.marker) {
+    if (marker === 'OPEN')
+        return 'open';
+    if (marker === 'REJECTED')
+        return 'rejected';
+    if (marker === 'DISPROVED')
+        return 'disproof-candidate';
+    if (marker === 'REVOKED')
+        return 'revoked';
+    return result.kind === 'definition' || result.proof_present ? 'candidate' : 'open';
+}
 async function initializeAux(root) {
-    const directories = ['workspaces', 'proposals', 'verification', 'accepted', 'rejected', 'reports', 'graphs', 'generated', 'cache'];
+    const directories = ['verification', 'reports', 'graphs', 'generated', 'cache'];
     await Promise.all(directories.map((directory) => mkdir(path.join(root, AUX, directory), { recursive: true })));
-    const indexFile = path.join(root, AUX, 'verification', 'index.json');
-    if (!await exists(indexFile))
-        await atomicJson(indexFile, {});
     const configFile = path.join(root, AUX, 'config.yml');
     if (!await exists(configFile))
         await atomicWrite(configFile, `project:\n  name: ${path.basename(root)}\n  root: ..\n  discover-qmd-recursively: true\n  exclude: [.qmd-prover]\n\ngoals:\n  id-prefix: thm-main-\n  protect-statements: true\n\nsemantic:\n  wildcard-imports: false\n\nverification:\n  backend: none\n  model: configurable\n  effort: high\n  fresh-context: true\n  require-zero-gaps: true\n\nrender:\n  graph-engine: builtin\n  output-dir: .qmd-prover/generated\n`);
@@ -155,25 +164,11 @@ export async function compileProject(root = process.cwd(), options = {}) {
     const files = [];
     const allResults = [];
     const allProofs = [];
-    const semanticMode = options.semanticMode ?? 'workspace';
     for (const file of discovered) {
         try {
             const [ast, source] = await Promise.all([readAst(file.absolute, options), readFile(file.absolute, 'utf8')]);
-            const parsedEntries = semanticDivs(ast);
-            if (semanticMode === 'project-goals') {
-                for (const entry of parsedEntries.filter((item) => item.type === 'proof')) {
-                    const target = cleanId(String(entry.attribute.values.of ?? ''));
-                    if (!target.startsWith(config.goals['id-prefix']))
-                        continue;
-                    const content = proofContent(entry.blocks);
-                    if (content.marker === 'VERIFIED' || content.marker === 'REVOKED')
-                        diagnostics.push(diagnostic('warning', 'LEGACY_CANONICAL_VERIFICATION', `Linked proof of @${target} contains the legacy ${content.marker} marker; workspace inspection ignores it and never rewrites user notes`, file.relative, locateProof(source, target)?.startLine, target));
-                }
-            }
-            const entries = semanticMode === 'project-goals'
-                ? parsedEntries.filter((entry) => entry.type === 'result' && entry.attribute.id.startsWith(config.goals['id-prefix']))
-                : parsedEntries;
-            const imports = semanticMode === 'project-goals' ? [] : importsFromMeta(ast, file.relative, diagnostics);
+            const entries = semanticDivs(ast);
+            const imports = importsFromMeta(ast, file.relative, diagnostics);
             const results = [];
             const proofs = [];
             for (const entry of entries) {
@@ -295,7 +290,6 @@ export async function compileProject(root = process.cwd(), options = {}) {
                 byExport.set(result.export, result);
         }
     }
-    const externalTargets = new Set((options.externalTargets ?? []).map(cleanId));
     const proofsByTarget = new Map();
     for (const proof of allProofs) {
         if (!proof.target)
@@ -306,7 +300,7 @@ export async function compileProject(root = process.cwd(), options = {}) {
     }
     for (const [target, proofs] of proofsByTarget) {
         const result = byId.get(target);
-        if (!result && !externalTargets.has(target)) {
+        if (!result) {
             for (const proof of proofs)
                 diagnostics.push(diagnostic('error', 'PROOF_TARGET_UNKNOWN', `Proof target @${target} does not exist`, proof.file, proof.line, target));
             continue;
@@ -320,7 +314,8 @@ export async function compileProject(root = process.cwd(), options = {}) {
         if (!proof)
             continue;
         if (result) {
-            if (proof.file !== result.file)
+            // A protected main goal keeps its statement in user notes; its linked proof may live in any project file.
+            if (proof.file !== result.file && !target.startsWith(config.goals['id-prefix']))
                 diagnostics.push(diagnostic('error', 'PROOF_DIFFERENT_FILE', `Proof of @${target} must be in the result's source file`, proof.file, proof.line, target));
             if (result.kind === 'definition' && proof.markers.length > 0)
                 diagnostics.push(diagnostic('error', 'DEFINITION_PROOF_MARKER', `@${target} must put its reserved marker at the end of the definition block, not in its linked proof`, proof.file, proof.line, target));
@@ -340,8 +335,10 @@ export async function compileProject(root = process.cwd(), options = {}) {
     }
     const fileMap = new Map(files.map((file) => [file.path, file]));
     const importAdjacency = new Map(files.map((file) => [file.path, []]));
+    const availableByFile = new Map();
     for (const file of files) {
         const available = new Set(file.results);
+        availableByFile.set(file.path, available);
         for (const declaration of file.imports) {
             if (declaration.use.includes('*') && !config.semantic['wildcard-imports'])
                 diagnostics.push(diagnostic('error', 'WILDCARD_IMPORT', 'Wildcard imports are forbidden', file.path));
@@ -361,23 +358,30 @@ export async function compileProject(root = process.cwd(), options = {}) {
                     available.add(id);
             }
         }
-        for (const id of file.results) {
-            const result = byId.get(id);
-            if (!result || result.file !== file.path)
-                continue;
-            result.reference_checks = [];
-            for (const dependency of result.dependencies) {
-                const count = idCounts.get(dependency) ?? 0;
-                const existsCheck = count === 1 ? 'pass' : 'fail';
-                const scopeCheck = count === 1 && available.has(dependency) ? 'pass' : 'fail';
-                result.reference_checks.push({ dependency, existence: existsCheck, scope: scopeCheck });
-                if (count === 0)
-                    diagnostics.push(diagnostic('error', 'DEPENDENCY_UNKNOWN', `@${dependency} cited by @${result.id} does not exist`, result.file, result.proof_line ?? result.line, result.id));
-                else if (count > 1)
-                    diagnostics.push(diagnostic('error', 'DEPENDENCY_AMBIGUOUS', `@${dependency} cited by @${result.id} is ambiguous`, result.file, result.proof_line ?? result.line, result.id));
-                else if (!available.has(dependency))
-                    diagnostics.push(diagnostic('error', 'DEPENDENCY_UNAVAILABLE', `@${dependency} cited by @${result.id} is not local or explicitly imported`, result.file, result.proof_line ?? result.line, result.id));
-            }
+    }
+    for (const result of allResults) {
+        if (byId.get(result.id) !== result)
+            continue;
+        const declared = availableByFile.get(result.file) ?? new Set();
+        // Proof-contributed dependencies resolve in the proof's file scope; this only differs
+        // from the declaration scope for a main-goal proof overlay living in another file.
+        const proofScope = result.proof_file && result.proof_file !== result.file
+            ? availableByFile.get(result.proof_file) ?? new Set()
+            : declared;
+        const constructionDependencies = new Set(result.construction_dependencies);
+        result.reference_checks = [];
+        for (const dependency of result.dependencies) {
+            const available = constructionDependencies.has(dependency) ? declared : proofScope;
+            const count = idCounts.get(dependency) ?? 0;
+            const existsCheck = count === 1 ? 'pass' : 'fail';
+            const scopeCheck = count === 1 && available.has(dependency) ? 'pass' : 'fail';
+            result.reference_checks.push({ dependency, existence: existsCheck, scope: scopeCheck });
+            if (count === 0)
+                diagnostics.push(diagnostic('error', 'DEPENDENCY_UNKNOWN', `@${dependency} cited by @${result.id} does not exist`, result.file, result.proof_line ?? result.line, result.id));
+            else if (count > 1)
+                diagnostics.push(diagnostic('error', 'DEPENDENCY_AMBIGUOUS', `@${dependency} cited by @${result.id} is ambiguous`, result.file, result.proof_line ?? result.line, result.id));
+            else if (!available.has(dependency))
+                diagnostics.push(diagnostic('error', 'DEPENDENCY_UNAVAILABLE', `@${dependency} cited by @${result.id} is not local or explicitly imported`, result.file, result.proof_line ?? result.line, result.id));
         }
     }
     const importCycles = findCycles(importAdjacency);
@@ -409,13 +413,9 @@ export async function compileProject(root = process.cwd(), options = {}) {
         }
     }
     for (const result of allResults) {
-        if (semanticMode === 'project-goals') {
-            result.status = 'open';
-            if (result.marker && result.marker !== 'OPEN')
-                diagnostics.push(diagnostic('warning', 'LEGACY_CANONICAL_VERIFICATION', `${result.id} contains the legacy ${result.marker} marker; workspace inspection ignores it and never rewrites user notes`, result.file, result.proof_line ?? result.line, result.id));
-        }
-    }
-    for (const result of allResults) {
+        result.status = factStatus(result);
+        if (result.marker === 'VERIFIED' || result.marker === 'REVOKED')
+            diagnostics.push(diagnostic('error', 'PROTECTED_MARKER_FORBIDDEN', `${result.id} must not carry the reserved ${result.marker} marker; verification state is recorded by inspection, never in QMD`, result.file, result.proof_line ?? result.line, result.id));
         for (const check of result.reference_checks ?? []) {
             check.cycle = cycleEdges.has(`${result.id}\0${check.dependency}`) ? 'fail' : 'pass';
         }
@@ -423,14 +423,14 @@ export async function compileProject(root = process.cwd(), options = {}) {
     allResults.sort((a, b) => a.id.localeCompare(b.id));
     files.sort((a, b) => a.path.localeCompare(b.path));
     diagnostics.sort((a, b) => `${a.file ?? ''}:${a.line ?? 0}:${a.code}`.localeCompare(`${b.file ?? ''}:${b.line ?? 0}:${b.code}`));
-    const manifest = { schema_version: 4, files, results: allResults, proofs: allProofs.map(({ blocks, markers, marker_index, ...proof }) => proof) };
+    const manifest = { schema_version: SCHEMA_VERSION, files, results: allResults, proofs: allProofs.map(({ blocks, markers, marker_index, ...proof }) => proof) };
     const missingIds = uniqueSorted(allResults.flatMap((result) => result.dependencies).filter((id) => !byId.has(id)));
     const graph = {
-        schema_version: 4,
+        schema_version: SCHEMA_VERSION,
         nodes: [
             ...allResults.map(({ id, title, kind, status, file, line, origin, statement_hash, proof_hash }) => ({
                 id, title, kind, status, file, line,
-                origin: semanticMode === 'project-goals' ? 'main-goal' : 'workspace',
+                origin: origin === 'user' ? 'main-goal' : 'fact',
                 ownership: origin,
                 identity: { statement_hash, proof_hash }
             })),
@@ -459,23 +459,12 @@ export async function compileProject(root = process.cwd(), options = {}) {
     };
     const ok = summary.errors === 0;
     const complete = diagnostics.every((item) => item.code !== 'PARSE_ERROR');
+    // Snapshot publishing is owned by the inspection layer; the compiler persists only
+    // diagnostics and new statement locks when invoked in write mode.
     if (options.write !== false) {
         await atomicJson(path.join(root, AUX, 'diagnostics.json'), diagnostics);
-        if (complete) {
-            const snapshot = { schema_version: 4, snapshot_id: graph.snapshot_id, manifest, graph, summary, diagnostics };
-            const snapshotFile = path.join(root, AUX, 'graphs', `${graph.snapshot_id.slice('sha256:'.length)}.json`);
-            await Promise.all([
-                atomicJson(snapshotFile, snapshot),
-                atomicJson(path.join(root, AUX, 'manifest.json'), manifest),
-                atomicJson(path.join(root, AUX, 'graph.json'), graph),
-                ...(protectStatements && ok ? [atomicJson(locksFile, locks)] : [])
-            ]);
-            await atomicJson(path.join(root, AUX, 'graphs', 'latest.json'), {
-                schema_version: 4,
-                snapshot_id: graph.snapshot_id,
-                file: relativePosix(root, snapshotFile)
-            });
-        }
+        if (complete && protectStatements && ok)
+            await atomicJson(locksFile, locks);
     }
     return { root, config, manifest, graph, diagnostics, summary, ok, complete };
 }

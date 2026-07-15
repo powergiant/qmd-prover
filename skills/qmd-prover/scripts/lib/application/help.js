@@ -45,7 +45,7 @@ export const HELP_COMMANDS = [
         summary: 'Initialize or safely adopt a qmd-prover project.',
         sections: {
             description: [
-                'Initialize the qmd-prover project contract and ensure `.qmd-prover/workspaces/` exists.',
+                'Initialize the qmd-prover project contract.',
                 'Before writing, inspect existing `AGENTS.md`, QMD files, Quarto configuration, and qmd-prover state.',
                 'When existing material needs approval, preserve it and return the required next action instead of changing it.'
             ],
@@ -65,13 +65,13 @@ export const HELP_COMMANDS = [
             notes: [
                 'Use at most one mutation option: `--adopt-existing`, `--append-contract`, or `--sync-contract`.',
                 'Without a mutation option, existing material remains unchanged when approval is needed.',
-                'A successful response includes the discovered inventory and `workspace_root`; initialization creates no theorem QMD.'
+                'A successful response includes the discovered inventory; initialization creates no theorem QMD.'
             ]
         }
     }),
     command('inspect', ['qmd-prover inspect <command> [arguments]']),
     command('inspect project', ['qmd-prover inspect project [--print]'], {
-        summary: 'Run machine analysis, optional local conditional verification, and global composition for every initialized workspace; return the aggregate schema-v4 graph.'
+        summary: 'Run machine analysis, optional local conditional verification, and global composition for every fact in the project; return the schema-v5 project graph.'
     }),
     command('inspect fact', ['qmd-prover inspect fact @ID [--print]'], {
         acceptsPositionals: true,
@@ -79,11 +79,7 @@ export const HELP_COMMANDS = [
     }),
     command('inspect path', ['qmd-prover inspect path FILE_OR_FOLDER [--print]'], {
         acceptsPositionals: true,
-        summary: 'Run machine analysis and optional local/global verification for workspace QMD, or recognize only main goals in user notes.'
-    }),
-    command('inspect workspace', ['qmd-prover inspect workspace @thm-main-ID [--print]'], {
-        acceptsPositionals: true,
-        summary: 'Analyze one initialized workspace without creating it; an absent verifier leaves local/global states incomplete rather than failing machine analysis.'
+        summary: 'Run machine analysis and optional local/global verification for the facts declared under one project QMD file or folder.'
     }),
     command('dependency', ['qmd-prover dependency <command> [arguments]']),
     command('dependency dependencies', ['qmd-prover dependency dependencies @ID [--print]'], { acceptsPositionals: true, summary: 'Show direct and transitive dependencies of one fact.' }),
@@ -125,7 +121,7 @@ export const HELP_COMMANDS = [
         sections: {
             options: [
                 '--kind definition|lemma|theorem|proposition|corollary|unknown',
-                '--origin workspace|main-goal|unresolved',
+                '--origin fact|main-goal|unresolved',
                 '--status STATUS   Use one of the statuses listed by inspect output.',
                 '--path PATH       Match one file or directory prefix.',
                 '--used-by/--depends-on/--affected-by/--stale-affected-by/--frontier-of @ID',
@@ -136,16 +132,10 @@ export const HELP_COMMANDS = [
         }
     }),
     command('check', ['qmd-prover check <command> [arguments]']),
-    command('check staleness', ['qmd-prover check staleness [--print]'], { summary: 'Audit workspace and cache freshness without modifying QMD.' }),
-    command('workspace', ['qmd-prover workspace <command> [arguments]']),
-    command('workspace init', ['qmd-prover workspace init @thm-main-ID'], { acceptsPositionals: true, summary: 'Create, resume, or safely adopt a goal workspace without overwriting existing QMD.' }),
-    command('workspace inspect', ['qmd-prover workspace inspect @thm-main-ID [--print]'], { acceptsPositionals: true, summary: 'Compatibility alias for inspect workspace.' }),
-    command('submit', ['qmd-prover submit <command> [arguments]']),
-    command('submit proof', ['qmd-prover submit proof PROPOSAL_FILE [--to QMD]'], { acceptsPositionals: true, summary: 'Retired compatibility command; returns structured status and writes nothing.' }),
+    command('check staleness', ['qmd-prover check staleness [--print]'], { summary: 'Audit verification cache freshness without modifying QMD.' }),
     command('verification', ['qmd-prover verification <command> [arguments]']),
     command('verification list', ['qmd-prover verification list'], { summary: 'List retained verification records and discover submission IDs.' }),
     command('verification show', ['qmd-prover verification show SUBMISSION_ID'], { acceptsPositionals: true, summary: 'Read one retained verification record by submission ID.' }),
-    command('verification revoke', ['qmd-prover verification revoke @thm-ID [--reason "..."]'], { acceptsPositionals: true, summary: 'Retired compatibility command; accepts legacy syntax and writes nothing.' }),
     command('render', ['qmd-prover render [--allow-errors]'], {
         summary: 'Prepare generated status QMD, graph SVG, and JSON report.',
         sections: {

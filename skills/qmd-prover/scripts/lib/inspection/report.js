@@ -79,8 +79,6 @@ export function printReport(input) {
         lines.push('analysis: not computed');
     if (result.scope)
         lines.push(`scope: ${result.scope.type} ${result.scope.id ? `@${result.scope.id}` : result.scope.path}`);
-    if (result.workspace)
-        lines.push(`workspace: ${result.workspace}`);
     if (result.target?.id)
         lines.push(`target: @${result.target.id} [${result.target.status ?? 'missing'}]`);
     if (result.dependencies) {
@@ -96,8 +94,6 @@ export function printReport(input) {
         for (const submission of result.submissions)
             lines.push(`  ${submission.submission_id}: @${submission.target ?? 'unknown'} [${submission.outcome ?? 'unknown'}] ${submission.file}`);
     }
-    if (result.workspace_staleness)
-        lines.push(`workspace snapshot: ${result.workspace_staleness.stale ? 'stale' : 'current'} (target=${result.workspace_staleness.target_stale ? 'stale' : 'current'}, dependencies=${result.workspace_staleness.dependency_stale ? 'stale' : 'current'})`);
     if (result.summary) {
         lines.push(`files: ${result.summary.files ?? 0}`);
         lines.push(`facts: ${result.summary.facts ?? result.summary.results ?? 0}`);
@@ -148,12 +144,6 @@ export function printReport(input) {
             lines.push(`${node.disproof?.status ?? 'conditional'} disproof @${node.id}: ${node.disproof?.refutation}`);
         }
     }
-    if (result.manifest?.protected_goal_results?.length) {
-        lines.push('protected main-goal references rejected by workspace scope:');
-        for (const item of [...result.manifest.protected_goal_results].sort((left, right) => left.id.localeCompare(right.id))) {
-            lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file}:${item.line ?? '?'}`);
-        }
-    }
     const checks = result.check ? [result.check] : (result.facts ?? []).filter((item) => item.mechanical !== undefined
         && item.local_verification !== undefined && item.global_verification !== undefined);
     if (checks.length) {
@@ -202,7 +192,7 @@ export function printReport(input) {
         lines.push(`transitive dependencies: ${result.transitive_dependencies.map((item) => `@${item.id}`).join(', ') || 'none'}`);
     if (result.direct_reverse_dependencies)
         lines.push(`direct reverse dependencies: ${result.direct_reverse_dependencies.map((id) => `@${id}`).join(', ') || 'none'}`);
-    const blockers = result.blockers ?? (result.graph && result.manifest?.target ? blockerPaths(result.graph, [result.manifest.target]) : []);
+    const blockers = result.blockers ?? [];
     if (blockers.length) {
         lines.push('blocking dependency paths:');
         for (const item of blockers)
@@ -254,10 +244,7 @@ export function printReport(input) {
         for (const item of result.matches)
             lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file ?? ''}:${item.line ?? '?'}`);
     }
-    const reportDerivedFindings = result.findings ?? (result.operation === 'workspace-inspect' && result.graph && result.manifest
-        ? deriveGraphFindings({ graph: result.graph, manifest: result.manifest, diagnostics: result.diagnostics ?? [] })
-        : null);
-    reportFindings(lines, reportDerivedFindings);
+    reportFindings(lines, result.findings ?? null);
     if (result.unused_imports)
         reportFindings(lines, { unused_imports: result.unused_imports });
     if (result.unused_exports)

@@ -2,6 +2,9 @@ import type { ResultKind, UnknownRecord } from './types.js';
 
 export const AUX = '.qmd-prover';
 
+/** Stable output schema for every operation result and persisted snapshot. */
+export const SCHEMA_VERSION = 5;
+
 export const CONTROL_MARKERS = ['OPEN', 'REJECTED', 'DISPROVED', 'VERIFIED', 'REVOKED'] as const;
 export type ControlMarker = typeof CONTROL_MARKERS[number];
 export const CONTROL_MARKER_SET: ReadonlySet<string> = new Set(CONTROL_MARKERS);

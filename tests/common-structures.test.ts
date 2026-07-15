@@ -5,20 +5,20 @@ import {
   KIND_BY_PREFIX, pushToMap, SEMANTIC_ID_PATTERN, uniqueSorted
 } from '../skills/qmd-prover/src/lib/shared/core.js';
 import { stableJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
-import { workspaceStatus } from '../skills/qmd-prover/src/lib/workspace/support.js';
+import { factStatus } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
 import type { SemanticResult } from '../skills/qmd-prover/src/lib/shared/types.js';
 
 test('shared semantic constants keep IDs, result kinds, and protected markers aligned', () => {
   assert.deepEqual(CONTROL_MARKERS, ['OPEN', 'REJECTED', 'DISPROVED', 'VERIFIED', 'REVOKED']);
   assert.equal(isControlMarker('DISPROVED'), true);
   assert.equal(isControlMarker('VERIFIED'), true);
-  assert.equal(isControlMarker('workspace-verified'), false);
+  assert.equal(isControlMarker('disproof-candidate'), false);
   assert.equal(SEMANTIC_ID_PATTERN.test('thm-main-uniform-index'), true);
   assert.equal(SEMANTIC_ID_PATTERN.test('theorem-uniform-index'), false);
   assert.deepEqual(KIND_BY_PREFIX, {
     def: 'definition', lem: 'lemma', thm: 'theorem', prp: 'proposition', cor: 'corollary'
   });
-  assert.equal(workspaceStatus({ kind: 'lemma', proof_present: true } as SemanticResult, 'DISPROVED'), 'workspace-disproof-candidate');
+  assert.equal(factStatus({ kind: 'lemma', proof_present: true } as SemanticResult, 'DISPROVED'), 'disproof-candidate');
 });
 
 test('shared collection and error helpers preserve deterministic runtime behavior', () => {

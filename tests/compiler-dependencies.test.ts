@@ -2,10 +2,9 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
+import { readJson, stableJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
 import { analyzeDependencies, inspectFact, inspectPath, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
 import { compileProject, theoremBundle } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
-import { initializeWorkspace } from '../skills/qmd-prover/src/lib/workspace/initialize.js';
 import { document, must, options, project, result, proof } from './support.js';
 
 test('compiler reads metadata imports, linked proofs, and deterministic semantic indexes', async () => {
@@ -17,13 +16,11 @@ test('compiler reads metadata imports, linked proofs, and deterministic semantic
     `Unrestricted prose.\n\n${result('thm-main-goal', 'For every x, x equals x.', { proofText: 'Apply @lem-base.' })}`
   ));
   const first = await compileProject(root, options);
-  const firstManifest = await readFile(path.join(root, '.qmd-prover', 'manifest.json'), 'utf8');
   const second = await compileProject(root, options);
-  const secondManifest = await readFile(path.join(root, '.qmd-prover', 'manifest.json'), 'utf8');
   assert.equal(first.ok, true);
   assert.equal(first.complete, true);
   assert.equal(second.ok, true);
-  assert.equal(firstManifest, secondManifest);
+  assert.equal(stableJson(first.manifest), stableJson(second.manifest));
   assert.deepEqual(must(first.summary.goals).map((goal) => goal.id), ['thm-main-goal']);
   assert.deepEqual(first.graph.edges.map(({ from, to }) => ({ from, to })), [{ from: 'thm-main-goal', to: 'lem-base' }]);
   assert.deepEqual(must(first.manifest.results.find((item) => item.id === 'thm-main-goal')).dependencies, ['lem-base']);
@@ -101,7 +98,7 @@ test('compiler enforces introduction dates and record-backed marker placement', 
   for (const code of ['RESULT_DATE_MISSING', 'RESULT_DATE_INVALID', 'DEFINITION_MARKER_POSITION', 'DEFINITION_DISPROVED_FORBIDDEN', 'PROOF_MARKER_POSITION']) assert.ok(codes.has(code), code);
   assert.equal(codes.has('REJECTED_RECORD_INVALID'), false);
   assert.equal(must(compilation.manifest.results.find((item) => item.id === 'def-marker-position')).status, 'candidate');
-  assert.equal(must(compilation.manifest.results.find((item) => item.id === 'lem-rejected-marker')).status, 'candidate');
+  assert.equal(must(compilation.manifest.results.find((item) => item.id === 'lem-rejected-marker')).status, 'rejected');
 });
 
 test('main statement and name baselines are immutable', async () => {
@@ -120,11 +117,11 @@ test('complete snapshot identities change with exact mathematical content', asyn
   const root = await project();
   const file = path.join(root, 'fact.qmd');
   await writeFile(file, result('lem-snapshot-identity', 'First statement.'));
-  const first = await compileProject(root, options);
+  const first = await inspectProject(root, options);
   await writeFile(file, result('lem-snapshot-identity', 'Second statement.'));
-  const second = await compileProject(root, options);
-  assert.notEqual(first.graph.snapshot_id, second.graph.snapshot_id);
-  assert.equal((await readJson<{ snapshot_id: string }>(path.join(root, '.qmd-prover', 'graphs', 'latest.json'))).snapshot_id, second.graph.snapshot_id);
+  const second = await inspectProject(root, options);
+  assert.notEqual(first.snapshot_id, second.snapshot_id);
+  assert.equal((await readJson<{ snapshot_id: string }>(path.join(root, '.qmd-prover', 'graphs', 'latest.json'))).snapshot_id, second.snapshot_id);
 });
 
 test('definitions declare construction dependencies and unresolved graph edges retain failed checks', async () => {
@@ -147,9 +144,8 @@ test('definitions declare construction dependencies and unresolved graph edges r
 test('inspector supports fact, path, search, and lowest-frontier queries on a named snapshot', async () => {
   const root = await project();
   await writeFile(path.join(root, 'goal.qmd'), result('thm-main-frontier', 'The final claim.'));
-  const created = await initializeWorkspace(root, '@thm-main-frontier', options);
-  const workspace = path.join(root, created.workspace);
-  await mkdir(path.join(workspace, 'foundations'));
+  const workspace = path.join(root, 'workspace');
+  await mkdir(path.join(workspace, 'foundations'), { recursive: true });
   await writeFile(path.join(workspace, 'foundations', 'base.qmd'), result('lem-frontier-base', 'The base obligation.', { title: 'Base frontier fact', exported: true }));
   await writeFile(path.join(workspace, 'route.qmd'), document(
     [{ from: 'foundations/base.qmd', use: ['lem-frontier-base'] }],
@@ -161,7 +157,7 @@ test('inspector supports fact, path, search, and lowest-frontier queries on a na
   assert.equal(projectInspection.snapshot_published, true);
   const factInspection = await inspectFact(root, '@thm-main-frontier', options);
   assert.deepEqual(factInspection.graph.nodes.map((node) => node.id).sort(), ['lem-frontier-base', 'lem-frontier-middle', 'thm-main-frontier']);
-  const pathInspection = await inspectPath(root, path.relative(root, path.join(workspace, 'route.qmd')), options);
+  const pathInspection = await inspectPath(root, 'workspace/route.qmd', options);
   assert.equal(must(pathInspection.graph.nodes.find((node) => node.id === 'lem-frontier-base')).scope, 'external');
   const frontier = await analyzeDependencies(root, 'frontier', ['@thm-main-frontier'], options);
   assert.deepEqual(must(frontier.frontier).map((item) => item.fact.id), ['lem-frontier-base']);
@@ -181,8 +177,8 @@ test('inspector supports fact, path, search, and lowest-frontier queries on a na
 test('dependency findings expose unused declarations, reachability, reuse, and deterministic alternative paths', async () => {
   const root = await project();
   await writeFile(path.join(root, 'main.qmd'), result('thm-main-paths', 'Both routes reach the goal.'));
-  const created = await initializeWorkspace(root, '@thm-main-paths', options);
-  const workspace = path.join(root, created.workspace);
+  const workspace = path.join(root, 'workspace');
+  await mkdir(workspace, { recursive: true });
   await writeFile(path.join(workspace, 'foundations.qmd'), [
     result('def-path-base', 'A base construction.', { exported: true }),
     result('lem-unused-export', 'An unused exported fact.', { exported: true }),

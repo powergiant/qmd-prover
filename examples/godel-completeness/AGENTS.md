@@ -1,13 +1,13 @@
 # Mathematical project instructions
 
-<!-- qmd-prover-contract:start version=16 -->
+<!-- qmd-prover-contract:start version=17 -->
 
 ## Contents
 
 - [Project setup](#project-setup)
 - [External mathematical basis](#external-mathematical-basis)
 - [qmd-prover contract](#qmd-prover-contract)
-- [Proof-development workspace](#proof-development-workspace)
+- [Proof development in the project](#proof-development-in-the-project)
 - [Verification discipline](#verification-discipline)
 - [Agent workflow](#agent-workflow)
 
@@ -21,9 +21,9 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" init
 
 The command reports any existing `AGENTS.md`, QMD sources, Quarto configuration, `.qmd-prover` state, and external-basis mode. If it returns `intent-required`, summarize what exists and ask whether the user wants to adopt those files in place, inspect them first, or leave them unchanged. Run `--adopt-existing` only after the user chooses adoption.
 
-With no existing project content, the command creates a root `AGENTS.md` with the canonical managed block and ensures `.qmd-prover/workspaces/` exists. It is idempotent when the current block is already present. If `AGENTS.md` exists without the block, preserve it and ask before rerunning with `--append-contract`. If it contains an older or different managed block, ask before using `--sync-contract`; synchronization replaces only that block. Put local project rules outside the managed block.
+With no existing project content, the command creates a root `AGENTS.md` with the canonical managed block. It is idempotent when the current block is already present. If `AGENTS.md` exists without the block, preserve it and ask before rerunning with `--append-contract`. If it contains an older or different managed block, ask before using `--sync-contract`; synchronization replaces only that block. Put local project rules outside the managed block.
 
-Setup requires no QMD scaffold or initial theorem. `inspect` never initializes a goal workspace and never overwrites an existing workspace's `progress.qmd`. Create a goal workspace only when the user requests proof work for that goal.
+Setup requires no QMD scaffold or initial theorem, and proving a goal requires no per-goal setup either: a protected goal with no proof yet is simply open.
 
 ## External mathematical basis
 
@@ -32,33 +32,33 @@ Before writing or checking mathematics, read `.qmd-prover/.external.qmd` if it e
 | State | Meaning |
 |---|---|
 | file absent | External results are unrestricted. Identify them precisely and check every hypothesis. |
-| file present but whitespace-only | Use no external mathematical results; develop every needed result in the goal workspace. |
+| file present but whitespace-only | Use no external mathematical results; develop every needed result in the project. |
 | file has content | Use only the external results or classes of results allowed by that content. |
 
 Equivalently: An absent file permits external mathematics subject to precise hypothesis checks; a whitespace-only file permits none; a nonempty file permits only its stated basis.
 
-The agent may revise this file when the user's request or the developing proof context requires a different external basis, but it must make that change explicit. The exact content is verifier context. Any change invalidates affected workspace cache keys and requires the relevant facts to be checked again.
+The agent may revise this file when the user's request or the developing proof context requires a different external basis, but it must make that change explicit. The exact content is verifier context. Any change invalidates affected verification cache keys and requires the relevant facts to be checked again.
 
-The external basis is the only channel for outside mathematical premises. It does not create semantic graph nodes and does not grant permission to cite facts from user notes, another main goal, or another workspace.
+The external basis is the only channel for outside mathematical premises. It does not create semantic graph nodes; every in-project premise is instead an ordinary `@id` dependency subject to import scope.
 
 ## qmd-prover contract
 
-QMD outside `.qmd-prover/` is user-owned notes and exposition. Registered IDs begin `thm-main-`; every registered goal has exactly the classes `.theorem .goal`, a nonempty human-readable `name`, an ISO `date`, and a nonempty statement. Preserve its ID, `name`, classes, hypotheses, quantifiers, and statement body exactly. Other theorem-like blocks, headings, imports, proofs, and informal notation in user notes are not qmd-prover mathematics and must not be reformatted merely to satisfy this contract.
+Every QMD file in the project is semantic mathematics compiled into one dependency graph; `.qmd-prover/` holds only derived tool state. Protected goal IDs begin `thm-main-`; every registered goal has exactly the classes `.theorem .goal`, a nonempty human-readable `name`, an ISO `date`, and a nonempty statement. Preserve its ID, `name`, classes, hypotheses, quantifiers, and statement body exactly. Edit pre-existing user files cautiously and only as the developing mathematics requires; never reformat prose that carries no semantic block.
 
-All agent-created definitions, intermediate results, and proofs belong inside the initialized workspace for a protected main goal. Within that workspace, a semantic declaration is a fenced Div with one stable ID, exactly one kind class, a nonempty `name`, an ISO introduction `date`, and a nonempty body. Its ID prefix must match its kind:
+A semantic declaration is a fenced Div with one stable ID, exactly one kind class, a nonempty `name`, an ISO introduction `date`, and a nonempty body. Its ID prefix must match its kind:
 
 | Block | ID | Discipline |
 |---|---|---|
 | `.definition` | `def-*` | Introduce a term, object, or notation. The body is its construction; `@id` citations there are construction dependencies. Put any existence, uniqueness, or well-definedness argument in a linked proof. |
 | `.lemma` | `lem-*` | State an auxiliary result. A lemma has the same proof standard as every other result. |
 | `.proposition` | `prp-*` | State a useful standalone result that is not presented as a principal theorem. The distinction is expository only. |
-| `.theorem` | `thm-*` | State a principal workspace result and justify it in a separate linked proof. |
+| `.theorem` | `thm-*` | State a principal result and justify it in a separate linked proof. |
 | `.corollary` | `cor-*` | State a consequence, but cite the earlier result explicitly in its linked proof. The label creates no dependency. |
 | `.proof` | none | Justify exactly one declaration. Give it no ID; set `of` to the declaration ID and cite every logical dependency with `@id` at its point of use. |
 
-A definition may have a linked proof when its construction needs justification. Every non-definition candidate needs one nonempty linked proof. A declaration and its linked proof normally remain in the same workspace QMD file. The exception is the protected main goal: its declaration stays in the user's note, while the workspace supplies only a proof overlay such as `main-proof.qmd`.
+A definition may have a linked proof when its construction needs justification. Every non-definition candidate needs one nonempty linked proof. A declaration and its linked proof normally remain in the same QMD file. The exception is a protected main goal: its declaration stays in the user's note, while its linked proof may live in any project file, such as `workspace/main-proof.qmd`.
 
-An `@id` citation records a logical dependency but does not make a declaration from another file available. Same-file citations need no scope metadata. Every cross-file dependency inside one workspace requires both of these steps:
+An `@id` citation records a logical dependency but does not make a declaration from another file available. Same-file citations need no scope metadata. Every cross-file dependency requires both of these steps:
 
 1. In the producer file, export the declaration under its exact semantic ID:
 
@@ -88,9 +88,9 @@ qmd-prover:
 
 In schematic form, the producer uses `export="<same-ID>"`, and the consumer imports that exact ID; `from` is relative to the consumer file.
 
-Every explicit semantic ID is globally unique across protected main goals and all workspaces. A workspace's linked `.proof of="thm-main-ID"` is an overlay for its own protected target and is not a second declaration. Never redeclare that target. A workspace may not cite a fact from another workspace or another protected main goal; adopt the needed claim as a local candidate and prove it, or state the permitted outside premise in `.qmd-prover/.external.qmd`.
+Every explicit semantic ID is globally unique across the project. A linked `.proof of="thm-main-ID"` is an overlay for the protected target and is not a second declaration; never redeclare that target. Any fact may cite any other project fact, including a protected main goal, subject to the import scope rules above; global composition keeps dependents blocked until every cited fact is itself globally verified.
 
-For theorem-like workspace declarations, the first nonempty proof paragraph may be one workflow marker. For a definition, only `OPEN` or `REJECTED` may appear, in the last nonempty declaration paragraph. A definition may not be marked `DISPROVED`; challenge an existence, uniqueness, or well-definedness claim in the linked theorem-like result that states it.
+For theorem-like declarations, the first nonempty proof paragraph may be one workflow marker. For a definition, only `OPEN` or `REJECTED` may appear, in the last nonempty declaration paragraph. A definition may not be marked `DISPROVED`; challenge an existence, uniqueness, or well-definedness claim in the linked theorem-like result that states it.
 
 | Marker | Meaning |
 |---|---|
@@ -98,26 +98,20 @@ For theorem-like workspace declarations, the first nonempty proof paragraph may 
 | `REJECTED` | Inactive failed attempt. |
 | `DISPROVED` | Proposed counterexample or refutation of the exact theorem-like statement. It remains conditional evidence until locally checked and globally composed. |
 | no marker | Candidate awaiting local conditional verification. |
-| `VERIFIED` | Legacy canonical marker; never add it and never treat it as workspace authority. |
-| `REVOKED` | Legacy canonical marker; never add it and never treat it as workspace authority. |
+| `VERIFIED` | Reserved. Never write it; a source file claiming verification is a structural error. |
+| `REVOKED` | Reserved. Never write it; verification is never revoked through QMD source. |
 
 The body following `DISPROVED` must give the actual counterexample or refutation, check the hypotheses, and explain why the stated conclusion fails. The verifier checks it conditionally on the exact direct dependency statements. A locally accepted refutation is conditional evidence; it becomes globally disproved only when machine analysis also establishes that its complete dependency closure is globally verified. A failed refutation is locally rejected. The verifier may also discover and report a counterexample while checking an ordinary candidate, without changing its QMD source.
 
-Do not edit or delete an existing legacy marker merely to migrate a project. qmd-prover reports legacy records and markers as read-only compatibility state. Current state lives in the exact workspace cache and snapshot as separate mechanical, local conditional, and global fields, not in a source marker.
+Verification state lives in the project's exact verification cache and published snapshot as separate mechanical, local conditional, and global fields, never in a source marker.
 
-## Proof-development workspace
+## Proof development in the project
 
-When the user asks to prove an existing `thm-main-*` goal, explicitly create or resume its workspace:
+Any file in any folder of the project is part of the same unified mathematics; folders are organizational structure for humans and agents, never a semantic boundary. By convention, put new agent-created definitions, intermediate results, proof attempts, calculations, examples, counterexamples, and planning notes under a `workspace/` folder in the project root, and organize files inside it however best serves the argument — by theme, by goal, or flat. Local project policy may suggest folder principles; imports and citations work identically across any layout.
 
-```bash
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" workspace init @thm-main-ID
-```
-
-Use the returned directory, normally `.qmd-prover/workspaces/<thm-main-ID>/`. Keep the protected target snapshot unchanged. Put every agent-created definition, intermediate result, proof attempt, calculation, example, counterexample, and planning note for the goal inside this workspace; do not scatter working mathematics through user notes.
-
-- Maintain `progress.qmd` with the active route, proved frontier, open dependencies, and abandoned approaches. qmd-prover may create it during explicit initialization but inspection never overwrites it.
+- Maintain a progress note with the active route, proved frontier, open dependencies, and abandoned approaches when the development is large enough to need one.
 - Put semantic definitions and intermediate results with their linked proofs in coherent subject QMD files.
-- Put only the linked proof of the protected main goal in `main-proof.qmd`; do not repeat or rewrite the theorem.
+- Put only the linked proof of a protected main goal in its proof overlay file, such as `workspace/main-proof.qmd`; do not repeat or rewrite the theorem.
 - Follow every unproved dependency until it has its own proof. A plan, example, computation, or prose sketch is not a completed proof.
 - Keep a failed route when it is useful for future work, but mark it `REJECTED` so it cannot silently become an active premise.
 - When a precise counterexample or refutation shows that a theorem-like statement is false, keep the statement unchanged, mark its linked proof `DISPROVED`, and submit the refutation to inspection.
@@ -127,12 +121,12 @@ After each coherent batch of semantic-QMD changes, run the narrowest useful insp
 ```bash
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" inspect fact @ID
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" inspect path PATH
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" inspect workspace @thm-main-ID
+node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" inspect project
 ```
 
-`workspace inspect @thm-main-ID` remains a compatibility alias for `inspect workspace`. Fact and workspace-path inspection select the facts needed for the requested global result: the selected facts and their transitive local dependency closure. Every selected fact receives an independent local check when its exact target, proof, and direct dependency statements can be materialized. Reverse dependencies and unrelated facts are not checked. A full workspace inspection checks every local fact.
+Fact and path inspection select the facts needed for the requested global result: the selected facts and their transitive local dependency closure. Every selected fact receives an independent local check when its exact target, proof, and direct dependency statements can be materialized. Reverse dependencies and unrelated facts are not checked. A full project inspection checks every fact.
 
-Local verifier decisions, globally composed results, and refutation evidence remain in the workspace as persistent project state for later inspection and future paper-building. Never copy a proof, refutation, or status marker into the user's note.
+Local verifier decisions, globally composed results, and refutation evidence remain under `.qmd-prover/` as persistent project state for later inspection and future paper-building. Never copy a proof, refutation, or status marker into a protected statement.
 
 ## Verification discipline
 
@@ -140,10 +134,10 @@ Passing one layer does not imply passing another:
 
 | Layer | Enforced by | Covers |
 |---|---|---|
-| Mechanical | Compiler, project index, and inspector | Main-goal shape and locks, workspace block shape, dates, IDs, imports, references, proof association, global uniqueness, scope isolation, dependency cycles, and snapshot freshness. This layer never reads an AI verdict. |
+| Mechanical | Compiler, project index, and inspector | Main-goal shape and locks, declaration shape, dates, IDs, imports, references, proof association, global uniqueness, dependency cycles, and snapshot freshness. This layer never reads an AI verdict. |
 | Local conditional | Independent external verifier | Assuming the exact direct dependency statements are true, whether the submitted proof establishes the exact target, or whether the submitted refutation defeats it. The verifier does not inspect dependency proofs or states. |
 | Global composition | Inspector over the dependency graph | A result is globally verified only when its mechanical layer passes, its local proof is accepted, and every direct dependency is globally verified. Cycles and invalid edges prevent global verification. |
-| Agent conduct | This contract | Project ownership, protected goals, workspace-only development, accurate reporting, and response to verification findings. |
+| Agent conduct | This contract | Project ownership, protected goals, the `workspace/` layout convention, accurate reporting, and response to verification findings. |
 
 Machine dependency analysis and local AI verification have separate state. Machine analysis always builds the available graph and reports existence, scope, import/export, cycle, and source diagnostics without consulting AI. Local verification assumes only the supplied direct dependency conclusions and checks the proof that is actually stored; an unverified or rejected upstream proof does not suppress this local check. A local proof is accepted only with `verdict: "correct"` and no critical errors or gaps. A local refutation is accepted only with `verdict: "disproved"`, a nonempty independently checkable refutation, and no critical errors or gaps.
 
@@ -157,18 +151,18 @@ Apply these rules:
 
 1. State agent-created mathematics precisely: introduce notation, scope variables, include every nontrivial hypothesis, and justify reductions, existence, finiteness, well-definedness, and limit passages.
 2. Identify external theorems precisely enough to check applicability. Keep examples, computations, and intuition distinct from a general proof.
-3. If a main goal appears false, preserve it, place a precise `DISPROVED` refutation in its workspace proof overlay, and run inspection. Report the refutation as globally established only when `global_verification.status` is `disproved`; a local disproof with blocked dependencies remains conditional. Change the protected statement only with explicit user approval.
+3. If a main goal appears false, preserve it, place a precise `DISPROVED` refutation in its proof overlay, and run inspection. Report the refutation as globally established only when `global_verification.status` is `disproved`; a local disproof with blocked dependencies remains conditional. Change the protected statement only with explicit user approval.
 4. Keep prose mathematical and readable. Apart from a permitted first-paragraph workflow marker, keep verifier metadata, search notes, and confidence claims out of declarations and proofs.
-5. Before relying on a workspace fact, inspect its global state. Use it as an established premise only when `global_verification.status` is `verified`. A local conditional pass is not enough, and a globally disproved fact is evidence about the false statement, not a usable dependency.
+5. Before relying on a fact, inspect its global state. Use it as an established premise only when `global_verification.status` is `verified`. A local conditional pass is not enough, and a globally disproved fact is evidence about the false statement, not a usable dependency.
 6. Repair every mechanical diagnostic and every local verifier critical error or gap. An unconfigured verifier is a supported machine-only mode and leaves local/global verification incomplete. If the user requests AI verification and the verifier is missing, failing, or malformed, repair `verification.command` or `QMD_PROVER_VERIFIER`; do not loop and do not declare the result verified yourself.
 
-`inspect project` lists user notes and protected goals, checks every initialized workspace independently, and returns each complete workspace result together with schema-v4 aggregate facts, graph, findings, staleness, local-verification totals, and global-verification totals. One malformed workspace does not suppress healthy workspace results. Operational success does not imply that every goal is globally verified; inspect each goal's global field and blockers.
+`inspect project` compiles every project QMD file into one graph, runs machine analysis and optional local conditional verification for every fact, and returns the schema-v5 facts, graph, findings, staleness, local-verification totals, and global-verification totals. One malformed file does not suppress results elsewhere. Operational success does not imply that every goal is globally verified; inspect each goal's global field and blockers.
 
-`inspect fact @ID` automatically locates a protected main goal or any explicit workspace declaration. For a protected goal, it uses that goal's workspace proof overlay and can produce only workspace status; user notes stay byte-for-byte unchanged. `inspect path` applies the full semantic contract inside a workspace. Outside `.qmd-prover/`, it recognizes only protected main goals; an ordinary note path returns no facts and no semantic-format diagnostics.
+`inspect fact @ID` locates any explicit declaration, including a protected main goal; for a goal it uses the goal's linked proof overlay and user notes stay byte-for-byte unchanged. `inspect path` applies the full semantic contract to the facts declared under any project file or folder.
 
-Dependency commands use the aggregate graph of every workspace. Cross-workspace edges are forbidden and omitted. If an explicit semantic ID is declared in more than one project scope, every inspect and dependency command stops before verifier invocation and leaves the last aggregate snapshot unchanged until all conflicting declarations are renamed. A duplicate confined to one workspace blocks that workspace's compilation. These conditions are command diagnostics, not source markers, and are never written into QMD.
+Dependency commands use the published project graph. If an explicit semantic ID is declared more than once, dependency analysis stops until the conflicting declarations are renamed. These conditions are command diagnostics, not source markers, and are never written into QMD.
 
-`check staleness` is read-only. It audits protected main-goal snapshots, workspace sources, the external basis, checker contract, exact caches, and legacy records; it never edits user QMD or markers. `submit proof` and `verification revoke` are retired compatibility commands. They return structured `retired` results and never read or write a proposed destination. Old canonical verification records and markers remain legacy read-only state and are not automatically deleted or migrated.
+`check staleness` is read-only. It audits the exact verification caches against current sources, the external basis, and the checker contract; it never edits user QMD or markers.
 
 ## Agent workflow
 
@@ -178,13 +172,13 @@ Before proof work, compare this managed block with the skill's canonical contrac
 
 Use project inspection for deliberate whole-project audits, fact or path inspection for iteration, dependency queries for graph analysis, and rendering for generated status/navigation views. Translate dispatcher JSON into ordinary language; do not require the user to learn the commands.
 
-The safety gates remain mandatory: never edit a protected user statement, never use another workspace or main goal as an implicit premise, never use a merely local, stale, blocked, or unverified claim as established, never describe AI review as formal truth, and never bypass exact-cache freshness, local verification integrity, deterministic global composition, rejection safety, or atomic snapshot publication.
+The safety gates remain mandatory: never edit a protected user statement, never use a merely local, stale, blocked, or unverified claim as established, never describe AI review as formal truth, and never bypass exact-cache freshness, local verification integrity, deterministic global composition, rejection safety, or atomic snapshot publication.
 
 <!-- qmd-prover-contract:end -->
 
 ## Project-specific additions
 
-- For the current goal, work under `.qmd-prover/workspaces/thm-main-godel-completeness/` and leave `completeness.qmd` unchanged.
+- For the current goal, put new proof QMD under `workspace/` and leave `completeness.qmd` unchanged.
 - Develop Gödel's completeness theorem from explicit foundations of first-order logic: signatures, terms, formulas, substitution, proof calculus, structures, assignments, satisfaction, and semantic consequence.
 - State useful intermediate definitions and results as semantic QMD blocks and cite every logical dependency at its point of use.
 - Do not assume completeness, compactness, model existence, the Henkin theorem, or any equivalent result as an unproved black box.

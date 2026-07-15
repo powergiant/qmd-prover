@@ -28,7 +28,8 @@ export interface Diagnostic {
 }
 
 export type ResultKind = 'definition' | 'lemma' | 'theorem' | 'proposition' | 'corollary' | 'unknown';
-export type ResultOrigin = 'user' | 'agent' | 'workspace';
+export type ResultOrigin = 'user' | 'agent';
+export type GraphNodeOrigin = 'main-goal' | 'fact' | 'unresolved';
 export type ControlMarker = 'OPEN' | 'REJECTED' | 'DISPROVED' | 'VERIFIED' | 'REVOKED';
 export type CheckStatus = 'pass' | 'fail' | 'pending' | 'not-run' | 'not-applicable';
 export type VerificationMode = 'definition-construction' | 'proof' | 'refutation';
@@ -116,18 +117,14 @@ export interface SemanticResult {
   local_verification?: AiCheck;
   global_verification?: GlobalVerification;
   origin: ResultOrigin;
-  workspace?: string;
 }
 
 export interface Manifest {
   schema_version: number;
   snapshot_id?: string;
-  target?: string;
   files: SourceFileRecord[];
   results: SemanticResult[];
   proofs: ProofRecord[];
-  stale?: boolean;
-  protected_goal_results?: GraphNode[];
 }
 
 export interface GraphNode {
@@ -137,10 +134,9 @@ export interface GraphNode {
   title?: string;
   file?: string;
   line?: number;
-  origin?: string;
+  origin?: GraphNodeOrigin;
   ownership?: string;
   scope?: 'selected' | 'external';
-  workspace?: string;
   identity?: { statement_hash: string; proof_hash: string };
   local_verification?: AiCheck;
   global_verification?: GlobalVerification;
@@ -212,9 +208,7 @@ export interface CompilerOptions {
   write?: boolean;
   files?: string[];
   excludeFiles?: string[];
-  externalTargets?: string[];
   protectStatements?: boolean;
-  semanticMode?: 'workspace' | 'project-goals';
 }
 
 export interface RuntimeOptions extends CompilerOptions {
@@ -239,8 +233,6 @@ export interface RuntimeOptions extends CompilerOptions {
   reverse?: boolean;
   cycleParticipant?: boolean;
   allowErrors?: boolean;
-  /** Internal: the caller already performed the project-wide duplicate preflight. */
-  skipProjectPreflight?: boolean;
 }
 
 export interface CompilationSummary {
@@ -351,6 +343,8 @@ export interface InspectionVerificationSummary {
   eligible: number;
   verifier_calls: number;
   cache_hits: number;
+  cache_misses: number;
+  invalid_cache_entries: number;
   local_verified: number;
   local_disproved: number;
   local_rejected: number;
@@ -362,12 +356,22 @@ export interface InspectionVerificationSummary {
   global_unverified: number;
   global_rejected: number;
   global_invalid: number;
+  stopped_after?: string | null;
 }
 
 export interface FactInspectionCheck {
   id: string;
   status: string;
-  mechanical: { status: 'pass' | 'fail'; references: ReferenceCheck[]; reason?: string };
+  kind?: ResultKind;
+  file?: string;
+  line?: number;
+  mechanical: {
+    status: 'pass' | 'fail';
+    verification_mode?: VerificationMode;
+    references: ReferenceCheck[];
+    diagnostics?: string[];
+    reason?: string;
+  };
   local_verification: AiCheck;
   global_verification: GlobalVerification;
   diagnostics: Diagnostic[];
@@ -436,14 +440,6 @@ export interface DependencyAnalysisResult extends OperationResult {
   findings?: GraphFindings;
 }
 
-export interface SubmissionResult extends OperationResult {
-  submission_id?: string;
-  proposal_id?: string;
-  target: string;
-  status: string;
-  report?: VerifierReport;
-}
-
 export interface RenderResult extends OperationResult {
   status: string;
   output?: string;
@@ -451,13 +447,6 @@ export interface RenderResult extends OperationResult {
   report?: string;
   render_command?: string;
   summary: CompilationSummary;
-  diagnostics?: Diagnostic[];
-}
-
-export interface InitializeWorkspaceResult extends OperationResult {
-  status: string;
-  workspace: string;
-  metadata?: unknown;
   diagnostics?: Diagnostic[];
 }
 
@@ -475,50 +464,4 @@ export interface InitializeProjectResult extends OperationResult {
   contract_version: number;
   path: string;
   existing?: ExistingProjectInventory;
-  workspace_root?: string;
-}
-
-export interface WorkspaceInspectResult extends OperationResult {
-  stale: boolean;
-  staleness: StalenessReport;
-  manifest: Manifest;
-  graph: DependencyGraph;
-  diagnostics: Diagnostic[];
-  verification: {
-    available: boolean;
-    eligible: number;
-    verifier_calls: number;
-    cache_hits: number;
-    cache_misses: number;
-    invalid_cache_entries: number;
-    local_verified: number;
-    local_disproved: number;
-    local_rejected: number;
-    local_errors: number;
-    local_not_run: number;
-    global_verified: number;
-    global_disproved: number;
-    global_blocked: number;
-    global_unverified: number;
-    global_rejected: number;
-    global_invalid: number;
-    stopped_after?: string | null;
-    facts?: Array<{ id: string; local_verification: AiCheck; global_verification: GlobalVerification }>;
-  };
-  facts: Array<{
-    id: string;
-    kind: ResultKind;
-    status: string;
-    file: string;
-    line?: number;
-    mechanical?: {
-      status: 'pass' | 'fail';
-      verification_mode: VerificationMode;
-      references: ReferenceCheck[];
-      diagnostics: string[];
-      reason?: string;
-    };
-    local_verification: AiCheck;
-    global_verification: GlobalVerification;
-  }>;
 }

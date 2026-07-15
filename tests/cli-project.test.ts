@@ -6,7 +6,7 @@ import test from 'node:test';
 import { HELP_COMMANDS } from '../skills/qmd-prover/src/lib/application/help.js';
 import { initializeProject } from '../skills/qmd-prover/src/lib/application/project.js';
 import { readExternalPolicy } from '../skills/qmd-prover/src/lib/infrastructure/external.js';
-import { bareProject, fakePandoc, here, must, options, proof, result, verifier } from './support.js';
+import { bareProject, fakePandoc, here, must, proof, result, verifier } from './support.js';
 
 interface CliError extends Error { code?: string | number | null }
 interface CliProcessResult { error: CliError | null; stdout: string; stderr: string }
@@ -19,14 +19,14 @@ interface CliJsonResult {
 
 test('project initialization inventories external policy, adopts, preserves, appends, and synchronizes safely', async () => {
   const canonicalSource = await readFile(path.join(here, '..', 'skills', 'qmd-prover', 'references', 'AGENTS.md'), 'utf8');
-  const canonicalBlock = must(canonicalSource.match(/<!-- qmd-prover-contract:start version=16 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0];
+  const canonicalBlock = must(canonicalSource.match(/<!-- qmd-prover-contract:start version=17 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0];
 
   const fresh = await bareProject();
   const created = await initializeProject(fresh);
-  assert.deepEqual({ ok: created.ok, status: created.status, version: created.contract_version }, { ok: true, status: 'created', version: 16 });
+  assert.deepEqual({ ok: created.ok, status: created.status, version: created.contract_version }, { ok: true, status: 'created', version: 17 });
   assert.equal(must(created.existing).external_policy.mode, 'unrestricted');
-  assert.equal(created.workspace_root, '.qmd-prover/workspaces');
-  assert.equal((await stat(path.join(fresh, '.qmd-prover', 'workspaces'))).isDirectory(), true);
+  assert.equal(created.workspace_root, undefined);
+  await assert.rejects(stat(path.join(fresh, '.qmd-prover', 'workspaces')), { code: 'ENOENT' });
   assert.match(await readFile(path.join(fresh, 'AGENTS.md'), 'utf8'), /## Project-specific additions/);
   assert.equal((await initializeProject(fresh)).status, 'already-initialized');
 
@@ -77,7 +77,7 @@ test('project initialization inventories external policy, adopts, preserves, app
   assert.ok(appended.includes(canonicalBlock));
 
   const stale = await bareProject();
-  const oldBlock = canonicalBlock.replace('version=16', 'version=1');
+  const oldBlock = canonicalBlock.replace('version=17', 'version=1');
   await writeFile(path.join(stale, 'AGENTS.md'), `# Local before\n\n${oldBlock}\n\n## Local after\n`);
   const syncRequired = await initializeProject(stale);
   assert.deepEqual({ ok: syncRequired.ok, status: syncRequired.status, current: syncRequired.current_contract_version }, { ok: false, status: 'sync-required', current: 1 });
@@ -89,7 +89,7 @@ test('project initialization inventories external policy, adopts, preserves, app
   assert.doesNotMatch(synchronized, /version=1 -->/);
 
   const malformed = await bareProject();
-  const malformedSource = 'Local policy\n\n<!-- qmd-prover-contract:start version=16 -->\nUnclosed contract\n';
+  const malformedSource = 'Local policy\n\n<!-- qmd-prover-contract:start version=17 -->\nUnclosed contract\n';
   await writeFile(path.join(malformed, 'AGENTS.md'), malformedSource);
   const malformedResult = await initializeProject(malformed);
   assert.equal(malformedResult.status, 'malformed-contract');
@@ -101,15 +101,15 @@ test('project initialization inventories external policy, adopts, preserves, app
   );
 });
 
-test('dispatcher preserves JSON commands and adds workspace operations', async () => {
+test('dispatcher preserves JSON commands over the unified project', async () => {
   const root = await bareProject();
   const cli = path.join(here, '..', 'skills', 'qmd-prover', 'scripts', 'qmd-prover.js');
-  const initialized = await new Promise<{ status: string; contract_version: number; workspace_root: string }>((resolve, reject) => execFile(process.execPath, [cli, 'init'], {
+  const initialized = await new Promise<{ status: string; contract_version: number; workspace_root?: string }>((resolve, reject) => execFile(process.execPath, [cli, 'init'], {
     cwd: root
   }, (error, stdout, stderr) => error ? reject(error) : resolve(JSON.parse(stdout))));
   assert.equal(initialized.status, 'created');
-  assert.equal(initialized.contract_version, 16);
-  assert.equal(initialized.workspace_root, '.qmd-prover/workspaces');
+  assert.equal(initialized.contract_version, 17);
+  assert.equal(initialized.workspace_root, undefined);
   const policyRoot = await bareProject();
   await writeFile(path.join(policyRoot, 'AGENTS.md'), '# Existing policy\n');
   const guarded = await new Promise<{ error: CliError | null; output: { ok: boolean; status: string } }>((resolve) => execFile(process.execPath, [cli, 'init'], {
@@ -119,11 +119,8 @@ test('dispatcher preserves JSON commands and adds workspace operations', async (
   assert.deepEqual({ ok: guarded.output.ok, status: guarded.output.status }, { ok: false, status: 'append-required' });
   await chmod(fakePandoc, 0o755);
   await writeFile(path.join(root, 'goal.qmd'), result('thm-main-cli', 'CLI statement.'));
-  const workspace = await new Promise<{ status: string; workspace: string }>((resolve, reject) => execFile(process.execPath, [cli, 'workspace', 'init', '@thm-main-cli'], {
-    cwd: root, env: { ...process.env, QMD_PROVER_PANDOC: fakePandoc, QMD_PROVER_VERIFIER: verifier }
-  }, (error, stdout) => error ? reject(error) : resolve(JSON.parse(stdout))));
-  assert.equal(workspace.status, 'created');
-  await writeFile(path.join(root, workspace.workspace, 'main-proof.qmd'), proof('thm-main-cli', 'The statement follows directly.'));
+  await mkdir(path.join(root, 'workspace'), { recursive: true });
+  await writeFile(path.join(root, 'workspace', 'main-proof.qmd'), proof('thm-main-cli', 'The statement follows directly.'));
   const run = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => execFile(process.execPath, [cli, 'inspect', 'project'], {
     cwd: root, env: { ...process.env, QMD_PROVER_PANDOC: fakePandoc, QMD_PROVER_VERIFIER: verifier }
   }, (error, stdout, stderr) => error ? reject(error) : resolve({ stdout, stderr })));
@@ -134,8 +131,8 @@ test('dispatcher preserves JSON commands and adds workspace operations', async (
     cwd: root, env: cliEnv
   }, (error, stdout) => error ? reject(error) : resolve(JSON.parse(stdout))));
   assert.equal((await runJson(['inspect', 'fact', '@thm-main-cli'])).fact.id, 'thm-main-cli');
-  assert.equal((await runJson(['inspect', 'workspace', '@thm-main-cli'])).operation, 'inspect-workspace');
   assert.deepEqual((await runJson(['inspect', 'path', 'goal.qmd'])).scope, { type: 'file', path: 'goal.qmd' });
+  assert.deepEqual((await runJson(['inspect', 'path', 'workspace'])).scope, { type: 'folder', path: 'workspace' });
   assert.equal((await runJson(['dependency', 'reverse', 'dependencies', '@thm-main-cli'])).operation, 'dependency-reverse-dependencies');
   assert.equal((await runJson(['dependency', 'alternative', 'paths', '@thm-main-cli', '@thm-main-cli'])).operation, 'dependency-alternative-paths');
   assert.equal((await runJson(['dependency', 'unused', 'imports'])).operation, 'dependency-unused-imports');
@@ -148,23 +145,30 @@ test('dispatcher preserves JSON commands and adds workspace operations', async (
   assert.equal(must(unknown.error).code, 2);
   assert.equal(unknown.output.ok, false);
   assert.equal(unknown.output.diagnostics[0]?.code, 'FACT_UNKNOWN');
-  const retired = await new Promise<{ error: CliError | null; output: { status: string } }>((resolve) => execFile(process.execPath, [cli, 'submit', 'proof', 'missing.qmd'], {
+  const runFailure = (args: string[]) => new Promise<CliProcessResult>((resolve) => execFile(process.execPath, [cli, ...args], {
     cwd: root, env: cliEnv
-  }, (error, stdout) => resolve({ error, output: JSON.parse(stdout) })));
-  assert.equal(must(retired.error).code, 2);
-  assert.equal(retired.output.status, 'retired');
+  }, (error, stdout, stderr) => resolve({ error, stdout, stderr })));
+  const removedWorkspaceInspect = await runFailure(['inspect', 'workspace', '@thm-main-cli']);
+  assert.equal(must(removedWorkspaceInspect.error).code, 1);
+  assert.match(removedWorkspaceInspect.stderr, /inspect requires project, fact, or path/);
+  const removedWorkspace = await runFailure(['workspace', 'init', '@thm-main-cli']);
+  assert.equal(must(removedWorkspace.error).code, 1);
+  assert.match(removedWorkspace.stderr, /Unknown command: workspace/);
+  const removedSubmit = await runFailure(['submit', 'proof', 'missing.qmd']);
+  assert.equal(must(removedSubmit.error).code, 1);
+  assert.match(removedSubmit.stderr, /Unknown command: submit/);
   const printed = await new Promise<string>((resolve, reject) => execFile(process.execPath, [cli, 'inspect', 'project', '--print'], {
     cwd: root, env: { ...process.env, QMD_PROVER_PANDOC: fakePandoc, QMD_PROVER_VERIFIER: verifier }
   }, (error, stdout) => error ? reject(error) : resolve(stdout)));
   assert.match(printed, new RegExp(`snapshot: ${jsonInspection.snapshot_id}`));
   await writeFile(
-    path.join(root, workspace.workspace, 'main-proof.qmd'),
+    path.join(root, 'workspace', 'main-proof.qmd'),
     proof('thm-main-cli', 'DISPROVED\n\nThis verifier fixture checks the proposed counterexample.')
   );
   const disproved = await runJson(['inspect', 'fact', '@thm-main-cli']);
-  assert.equal(disproved.fact.status, 'workspace-disproved');
+  assert.equal(disproved.fact.status, 'disproved');
   assert.match(disproved.fact.disproof?.refutation ?? '', /proposed counterexample/);
-  assert.equal(disproved.graph?.nodes.find((node) => node.id === 'thm-main-cli')?.status, 'workspace-disproved');
+  assert.equal(disproved.graph?.nodes.find((node) => node.id === 'thm-main-cli')?.status, 'disproved');
   await writeFile(path.join(root, 'duplicate.qmd'), result('thm-main-cli', 'Duplicate.'));
   const failed = await new Promise<{ error: CliError | null; stdout: string }>((resolve) => execFile(process.execPath, [cli, 'inspect', 'project'], {
     cwd: root, env: { ...process.env, QMD_PROVER_PANDOC: fakePandoc, QMD_PROVER_VERIFIER: verifier }
@@ -179,16 +183,14 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const commands = [
     'doctor',
     'init',
-    'inspect', 'inspect project', 'inspect fact', 'inspect path', 'inspect workspace',
+    'inspect', 'inspect project', 'inspect fact', 'inspect path',
     'dependency', 'dependency dependencies', 'dependency reverse', 'dependency reverse dependencies',
     'dependency impact', 'dependency frontier', 'dependency path', 'dependency alternative', 'dependency alternative paths',
     'dependency cycles', 'dependency findings', 'dependency unused', 'dependency unused imports', 'dependency unused exports',
     'dependency isolated', 'dependency unreachable', 'dependency ready', 'dependency ready for', 'dependency ready for ai',
     'dependency reused', 'dependency search',
     'check', 'check staleness',
-    'workspace', 'workspace init', 'workspace inspect',
-    'submit', 'submit proof',
-    'verification', 'verification list', 'verification show', 'verification revoke',
+    'verification', 'verification list', 'verification show',
     'render'
   ];
   const rootHelp = await run(['help']);
@@ -205,7 +207,8 @@ test('dispatcher provides help for every command group and leaf', async () => {
     assert.match(result.stdout, new RegExp(`qmd-prover ${command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
   }
   const inspectHelp = await run(['inspect', 'help']);
-  assert.match(inspectHelp.stdout, /Commands:[\s\S]*  project[\s\S]*  fact[\s\S]*  path[\s\S]*  workspace/);
+  assert.match(inspectHelp.stdout, /Commands:[\s\S]*  project[\s\S]*  fact[\s\S]*  path/);
+  assert.doesNotMatch(inspectHelp.stdout, /workspace/);
   const initHelp = await run(['init', '--help']);
   assert.match(initHelp.stdout, /Description:\n  Initialize the qmd-prover project contract/);
   assert.match(initHelp.stdout, /Arguments:\n  This command accepts no positional arguments\./);
@@ -223,12 +226,18 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const removedInit = await run(['init', 'project', '--help']);
   assert.equal(must(removedInit.error).code, 1);
   assert.match(removedInit.stderr, /Unknown command: init project/);
+  const removedWorkspaceHelp = await run(['workspace', 'help']);
+  assert.equal(must(removedWorkspaceHelp.error).code, 1);
+  assert.match(removedWorkspaceHelp.stderr, /Unknown command: workspace/);
+  const removedSubmitHelp = await run(['submit', 'proof', '--help']);
+  assert.equal(must(removedSubmitHelp.error).code, 1);
+  assert.match(removedSubmitHelp.stderr, /Unknown command: submit proof/);
   const removedTheoremHelp = await run(['inspect', 'theorem', '--help']);
   assert.equal(must(removedTheoremHelp.error).code, 1);
   assert.match(removedTheoremHelp.stderr, /Unknown command: inspect theorem/);
   const removedTheorem = await run(['inspect', 'theorem', '@thm-main-id']);
   assert.equal(must(removedTheorem.error).code, 1);
-  assert.match(removedTheorem.stderr, /inspect requires project, fact, path, or workspace/);
+  assert.match(removedTheorem.stderr, /inspect requires project, fact, or path/);
 
   const skillRoot = path.join(here, '..', 'skills', 'qmd-prover');
   await assert.rejects(stat(path.join(skillRoot, 'src', 'qmd-prover.mts')), { code: 'ENOENT' });
@@ -245,7 +254,7 @@ test('skill requires a once-per-context versioned project contract preflight', a
   ]);
   assert.match(skill, /same unchanged agent\/project context/);
   assert.match(skill, /Stop and ask before creating, appending, or synchronizing project policy/);
-  assert.match(skill, /workspace init @thm-main-ID/);
+  assert.match(skill, /workspace\/` folder/);
   assert.match(skill, /Complete leaf-command map/);
   assert.match(skill, /doctor \[--print\]/);
   assert.match(skill, /dependency alternative paths @FROM @TO/);
@@ -253,8 +262,8 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(skill, /render \[--allow-errors\]/);
   assert.match(skill, /An `@id` citation is a dependency but does not grant cross-file scope/);
   assert.match(skill, /global status is `verified`/);
-  assert.match(skill, /submit proof.*retired/);
-  assert.match(contract, /<!-- qmd-prover-contract:start version=16 -->/);
+  assert.doesNotMatch(skill, /workspace init|inspect workspace|submit proof/);
+  assert.match(contract, /<!-- qmd-prover-contract:start version=17 -->/);
   assert.match(contract, /\.qmd-prover\/\.external\.qmd/);
   assert.match(contract, /An absent file permits external mathematics/);
   assert.match(contract, /a whitespace-only file permits none/);
@@ -277,21 +286,20 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(contract, /narrow fact or path inspection verifies only the selected facts/);
   assert.match(contract, /globally verified exactly when every direct dependency is globally verified/);
   assert.match(contract, /qmd-prover\.js" init/);
-  assert.match(contract, /\.qmd-prover\/workspaces\/<thm-main-ID>\//);
-  assert.match(contract, /QMD outside `\.qmd-prover\/` is user-owned notes/);
-  assert.match(contract, /declared in more than one project scope/);
+  assert.match(contract, /workspace\/` folder/);
+  assert.match(contract, /never a semantic boundary/);
+  assert.match(contract, /globally unique across the project/);
   assert.match(contract, /command diagnostics, not source markers/);
   assert.doesNotMatch(contract, /`(?:GLOBAL_DUPLICATE_ID|DUPLICATE_ID|WORKSPACE_UNINITIALIZED|WORKSPACE_MISSING|PARSE_ERROR|FACT_UNKNOWN)`/);
+  assert.doesNotMatch(contract, /\.qmd-prover\/workspaces/);
   assert.match(contract, /check staleness` is read-only/);
-  assert.match(contract, /submit proof` and `verification revoke` are retired/);
   assert.match(contract, /Project-specific additions/);
-  const managed = must(contract.match(/<!-- qmd-prover-contract:start version=16 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0];
-  assert.equal(must(examplePolicy.match(/<!-- qmd-prover-contract:start version=16 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0], managed);
+  const managed = must(contract.match(/<!-- qmd-prover-contract:start version=17 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0];
+  assert.equal(must(examplePolicy.match(/<!-- qmd-prover-contract:start version=17 -->[\s\S]*?<!-- qmd-prover-contract:end -->/))[0], managed);
   assert.match(cliReference, /### Diagnostic codes/);
   assert.match(cliReference, /not a QMD class, attribute, status marker/);
-  assert.match(cliReference, /`GLOBAL_DUPLICATE_ID`/);
-  assert.match(cliReference, /`WORKSPACE_UNINITIALIZED`/);
-  assert.match(cliReference, /workspace-disproved/);
+  assert.match(cliReference, /`DUPLICATE_ID`/);
+  assert.doesNotMatch(cliReference, /WORKSPACE_/);
   assert.match(cliReference, /`disproved`/);
 });
 
@@ -328,9 +336,9 @@ test('maintainer and agent documentation preserves the full design structure', a
   ]);
   requireHeadings(files.design, [
     '## Purpose', '## Components', '## System boundary', '## Mathematical project model',
-    '### Example: one theorem after prolonged work', '### Workspace dependency model',
+    '### Example: one theorem after prolonged work', '### Project dependency model',
     '### Retention instead of canonical promotion', '## Semantic QMD and inspection',
-    '### Complete workspace QMD example', '### Inspection scopes', '### Three inspection layers', '### Dependency analysis and search',
+    '### Complete semantic QMD example', '### Inspection scopes', '### Three inspection layers', '### Dependency analysis and search',
     '### Staleness and transitive invalidation', '## How agents use the infrastructure',
     '## Installation and requirements', '## Starting a mathematical project',
     '## Using qmd-prover through Codex or Claude Code', '## Using the Node utilities directly',
@@ -351,8 +359,8 @@ test('maintainer and agent documentation preserves the full design structure', a
     '### Build the mechanical graph', '### Check one conditional step with AI',
     '### Compose global state and record evidence', '### Construct the related dependency graph',
     '## 2. Inspect a file or folder', '### Source discovery', '### Aggregate checks',
-    '### Aggregate dependency graph', '## 3. Inspect the project or one workspace',
-    '### Workspace discovery', '### Workspace checks', '### Workspace and project dependency graphs',
+    '### Aggregate dependency graph', '## 3. Inspect the project',
+    '### Project discovery', '### Project checks', '### Project dependency graph',
     '## 4. Analyze and search the dependency graph', '### Dependency queries',
     '### Find the proof frontier', '### Additional graph findings', '### Search',
     '## 5. Check staleness', '### Cache accepted identities',
@@ -360,7 +368,7 @@ test('maintainer and agent documentation preserves the full design structure', a
     '### Atomicity and failure behavior', '### Agent contract requirement'
   ]);
   requireHeadings(files.proving, [
-    '## Role', '## Flexible proof development', '## Mathematical agent workspace',
+    '## Role', '## Flexible proof development', '## Organizing proof development',
     '## Preparing a candidate', '### Example candidate', '## Candidate preflight',
     '### Example preflight failure', '## Local conditional verification', '### Example verifier packet',
     '## Rejection and repair', '### Example rejection and repair', '## Safe acceptance',
@@ -370,17 +378,17 @@ test('maintainer and agent documentation preserves the full design structure', a
   requireHeadings(files.rendering, [
     '## Role', '### Example Quarto project', '## User-note rendering input',
     '### Example user page', '## Observability', '### Example generated status page',
-    '## Agent-workspace observability', '## Dependency navigation',
+    '## Proof-development observability', '## Dependency navigation',
     '### Example graph inclusion', '## Separation of concerns', '## Generated material',
     '## Formats and graceful degradation', '### Example render commands'
   ]);
   requireHeadings(files.skill, [
-    '## Project setup', '## Project contract preflight', '## Proof-development boundary',
+    '## Project setup', '## Project contract preflight', '## Proof-development layout',
     '## Using the infrastructure', '## Status and rendering'
   ]);
   requireHeadings(files.contract, [
     '## Contents', '## Project setup', '## External mathematical basis',
-    '## qmd-prover contract', '## Proof-development workspace',
+    '## qmd-prover contract', '## Proof development in the project',
     '## Verification discipline', '## Agent workflow', '## Project-specific additions'
   ]);
   requireHeadings(files.cli, [
@@ -390,14 +398,14 @@ test('maintainer and agent documentation preserves the full design structure', a
 
   const minimumLines: Record<keyof typeof files, number> = {
     architecture: 80,
-    design: 450,
-    discipline: 320,
-    inspector: 330,
-    proving: 300,
-    rendering: 200,
-    skill: 65,
-    contract: 160,
-    cli: 100
+    design: 420,
+    discipline: 300,
+    inspector: 300,
+    proving: 280,
+    rendering: 190,
+    skill: 60,
+    contract: 150,
+    cli: 95
   };
   for (const [name, source] of Object.entries(files) as [keyof typeof files, string][]) {
     assert.ok(source.split('\n').length >= minimumLines[name], `${name} documentation was unexpectedly compressed`);

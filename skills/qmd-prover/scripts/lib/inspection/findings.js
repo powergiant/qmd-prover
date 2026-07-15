@@ -40,8 +40,12 @@ export function deriveGraphFindings(snapshot, options = {}) {
     const incoming = adjacency(graph, true);
     const usedImports = new Set();
     for (const result of manifest.results ?? []) {
-        for (const dependency of result.dependencies ?? [])
+        for (const dependency of result.dependencies ?? []) {
             usedImports.add(`${result.file}\0${dependency}`);
+            // A main-goal proof overlay consumes imports in the proof's own file.
+            if (result.proof_file && result.proof_file !== result.file)
+                usedImports.add(`${result.proof_file}\0${dependency}`);
+        }
     }
     const resultAtFile = new Set((manifest.results ?? []).map((result) => `${result.file}\0${result.id}`));
     const unusedImports = [];
@@ -67,12 +71,10 @@ export function deriveGraphFindings(snapshot, options = {}) {
     const unusedExports = (manifest.results ?? []).filter((result) => result.export && !importedExports.has(result.id) && selection.result(result))
         .sort((left, right) => left.id.localeCompare(right.id))
         .map((result) => ({ id: result.id, export: result.export, file: result.file, line: result.line }));
-    const mathematicalNodes = graph.nodes.filter((node) => node.origin !== undefined && ['main-goal', 'workspace'].includes(node.origin));
+    const mathematicalNodes = graph.nodes.filter((node) => node.origin === 'main-goal' || node.origin === 'fact');
     const isolatedFacts = mathematicalNodes.filter((node) => selection.node(node) && (outgoing.get(node.id)?.length ?? 0) === 0 && (incoming.get(node.id)?.length ?? 0) === 0)
         .sort((left, right) => left.id.localeCompare(right.id));
     const goalRoots = new Set();
-    if (manifest.target && nodes.has(manifest.target))
-        goalRoots.add(manifest.target);
     for (const result of manifest.results ?? []) {
         if (result.origin === 'user' || result.classes?.includes('goal') || result.id.startsWith('thm-main-'))
             goalRoots.add(result.id);
@@ -87,7 +89,7 @@ export function deriveGraphFindings(snapshot, options = {}) {
     const unreachableFacts = goalRoots.size === 0 ? [] : mathematicalNodes.filter((node) => selection.node(node) && !reachable.has(node.id))
         .sort((left, right) => left.id.localeCompare(right.id));
     const localNonblockingCodes = new Set([
-        'DEPENDENCY_UNAVAILABLE', 'WORKSPACE_DEPENDENCY_UNAVAILABLE', 'DEPENDENCY_CYCLE', 'IMPORT_CYCLE'
+        'DEPENDENCY_UNAVAILABLE', 'DEPENDENCY_CYCLE', 'IMPORT_CYCLE'
     ]);
     const localBlockingErrorIds = new Set(diagnostics.filter((item) => (item.severity === 'error' && item.id && !localNonblockingCodes.has(item.code))).map((item) => item.id));
     const localBlockingErrorFiles = new Set(diagnostics.filter((item) => (item.severity === 'error' && !item.id && item.file && !localNonblockingCodes.has(item.code))).map((item) => item.file));
@@ -119,8 +121,8 @@ export function deriveGraphFindings(snapshot, options = {}) {
         || left.fact.id.localeCompare(right.fact.id));
     return {
         definitions: {
-            isolated: 'A protected main goal or workspace fact with no incoming or outgoing semantic dependency edge.',
-            unreachable: 'A protected main goal or workspace fact outside the dependency closure of every protected main goal (or the selected workspace target).',
+            isolated: 'A fact with no incoming or outgoing semantic dependency edge.',
+            unreachable: 'A fact outside the dependency closure of every protected main goal.',
             candidate_ready_for_ai: 'A proof or refutation candidate whose direct dependency statements can be materialized for a local conditional AI check. Upstream verification state, scope, and cycles do not gate the local check.',
             heavily_reused: 'A fact ranked by the number of distinct transitive reverse dependencies, then direct reverse dependencies.'
         },

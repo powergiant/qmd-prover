@@ -3,28 +3,29 @@
 ## Role
 
 The proving utilities help Codex or Claude Code turn mathematical reasoning
-into explicit workspace definitions, intermediate results, and proof
-candidates, then submit each materializable candidate to an optional local AI
-verifier. Globally composed mathematics remains in its goal workspace as
-`workspace-verified` state; independently confirmed counterexamples and
-refutations remain there as `workspace-disproved` evidence.
+into explicit definitions, intermediate results, and proof candidates in
+ordinary project QMD, then submit each materializable candidate to an optional
+local AI verifier. Globally composed mathematics is recorded in tool state as
+`verified`; independently confirmed counterexamples and refutations are
+recorded as `disproved` evidence. Both live in `.qmd-prover/` records and
+snapshots, never in the QMD source itself.
 
 They do not form a proving agent. The host decides how to reason, which lemmas
 to introduce, when to explore examples, and how to repair a proof. The runtime
 provides protected goal context, machine-only semantic compilation, bounded
 direct-dependency verifier packets, exact local decision caches, deterministic
-global composition, feedback, and atomic workspace/project snapshots.
+global composition, feedback, and atomic project snapshots.
 
 Earlier releases treated acceptance as promotion into user QMD. That path is
 retired. User QMD now remains notes and protected main-goal storage; verifier
-acceptance changes only workspace cache and snapshot state.
+acceptance changes only cache and snapshot state.
 
 ## Flexible proof development
 
 The utilities do not prescribe a proof-development loop. The host may start
-from one main goal, a related family of goals, an existing workspace, or an
-informal idea that needs precise formulation. It may inspect, search, verify,
-render, or reorganize the workspace whenever those operations help.
+from one main goal, a related family of goals, an existing body of proof QMD,
+or an informal idea that needs precise formulation. It may inspect, search,
+verify, render, or reorganize proof files whenever those operations help.
 
 Only the safety gates are ordered:
 
@@ -39,25 +40,22 @@ Only the safety gates are ordered:
 
 These gates do not choose the next mathematical idea.
 
-## Mathematical agent workspace
+## Organizing proof development
 
-Tentative and verified proof development takes place in persistent goal
-workspaces, not in user Quarto sources. Proving `@thm-main-ID` requires
-`.qmd-prover/workspaces/thm-main-ID/`.
+Tentative and verified proof development takes place in ordinary QMD files.
+The compiler gives every project QMD file the same complete semantics in one
+pass, and folders never form a semantic boundary, so proof QMD may in
+principle live anywhere in the project. By soft convention — contract text
+that agents follow, with zero tooling recognition — agents put new proof QMD
+under a plain `workspace/` folder in the project root and organize freely
+inside it: by theme, by goal, flat, or however the mathematics groups best.
+Local policy may suggest organizational principles; the tool enforces none,
+and there are no scaffold or metadata files to create.
 
-For example, prolonged work on `@thm-main-uniform-index` may contain:
+For example, prolonged work on `@thm-main-uniform-index` may grow into:
 
 ```text
-.qmd-prover/workspaces/thm-main-uniform-index/
-├── workspace.json
-├── target.qmd
-├── manifest.json
-├── graph.json
-├── latest.json
-├── snapshots/
-├── verification/
-│   ├── checks/
-│   └── failures/
+workspace/
 ├── progress.qmd
 ├── reductions/
 │   ├── reduce-to-strata.qmd
@@ -70,32 +68,33 @@ For example, prolonged work on `@thm-main-uniform-index` may contain:
 └── main-proof.qmd
 ```
 
-The layout is illustrative, not mandatory. `workspace.json` records the
-protected target identity. `target.qmd` preserves the initialization snapshot
-but is excluded from active workspace semantic discovery. `progress.qmd` is
-user/agent-maintained context; inspection never overwrites it. Subject QMD
-contains complete semantic declarations and linked proofs.
+The layout is illustrative, not mandatory. Every file shown is plain semantic
+QMD; nothing in the folder is machine state, and inspection never rewrites any
+of it. `progress.qmd` is user/agent-maintained context like any other note.
+Subject QMD contains complete semantic declarations and linked proofs.
 
-`main-proof.qmd` contains only a linked proof overlay for the protected main
-goal. It must not repeat the theorem. The overlay becomes a workspace graph
-node with the protected statement from user QMD and the proof identity from the
-workspace.
+`workspace/main-proof.qmd` conventionally contains the linked
+`.proof of="thm-main-ID"` overlay for the protected main goal, although the
+overlay may live in any project file. It must not repeat the theorem. The
+overlay becomes a graph node with the protected statement read from the user's
+note and the proof identity taken from the proof file. Dependencies
+contributed by the proof resolve in the proof file's own import scope.
 
 The visible QMD may contain definitions, lemmas, propositions, theorems,
 corollaries, calculations, examples, partial proofs, rejected attempts, and
 alternative routes. The agent groups coherent mathematics rather than creating
 one file for every transient thought.
 
-The workspace graph is isolated. A local result may depend on another
-declaration in the same workspace, subject to same-file or explicit cross-file
-scope. It may not cite a different goal workspace or another protected main
-goal. Outside mathematics is supplied through the exact external basis, not as
-an implicit graph fact.
+There is no isolated subgraph. A result may cite any declaration in the
+project, subject to same-file scope or explicit cross-file export and import.
+Citing a protected main goal is a legal edge that composes as globally blocked
+until that goal verifies. Outside mathematics is supplied through the exact
+external basis, not as an implicit graph fact.
 
 ## Preparing a candidate
 
 A candidate is an ordinary semantic declaration and linked proof in active
-workspace QMD. There is no proposal file type and no required proposal
+project QMD. There is no proposal file type and no required proposal
 directory.
 
 An intermediate theorem-like result contains one dated declaration and one
@@ -109,17 +108,17 @@ with `DISPROVED`; it is still a candidate until independently checked. An
 unmarked complete proof is a proof candidate. Definitions cannot use
 `DISPROVED`.
 
-Current workspace verification does not write `VERIFIED` or `REVOKED` markers.
-Those strings are recognized only as legacy state and are forbidden in new
-workspace mathematics.
+Current verification does not write `VERIFIED` or `REVOKED` markers. Those
+strings are structural errors wherever they appear in source
+(`PROTECTED_MARKER_FORBIDDEN`); there is no legacy-marker compatibility.
 
 Useful preparation assistance includes:
 
-- inspecting the selected fact and its exact local dependency closure;
+- inspecting the selected fact and its exact dependency closure;
 - showing missing exports or imports;
 - searching existing declarations by ID, title, text, kind, or status;
 - calculating the proof frontier;
-- comparing the current protected goal with `workspace.json`;
+- comparing the current protected goal with its statement lock;
 - reading exact prior rejections and repair hints; and
 - checking whether the external basis permits a claimed outside theorem.
 
@@ -138,27 +137,27 @@ that \(n=2k\). Hence \(n^2=(2k)^2=4k^2\), so \(4\mid n^2\).
 
 The protected statement comes from user QMD. The reference to
 `@def-even-integer` is the proof's dependency declaration and must resolve to
-a current local workspace definition.
+a current definition in the proof file's import scope.
 
 ## Candidate preflight
 
 Before independent verification, the inspector confirms that:
 
-- the selected ID resolves globally to one protected goal or workspace
-  declaration;
-- the owning workspace is initialized, current, and not orphaned;
-- no global duplicate ID makes ownership ambiguous;
-- the workspace result block has the correct ID prefix, class, name, date, and
+- the selected ID resolves in the single project namespace to one protected
+  goal or explicit declaration;
+- no duplicate ID makes ownership ambiguous;
+- a protected goal's statement and title match its lock in
+  `.qmd-prover/statement-locks.json`;
+- the result block has the correct ID prefix, class, name, date, and
   nonempty body;
 - an intermediate result has exactly one appropriate linked proof;
 - the protected target is supplied only through a proof overlay and was not
   redeclared;
 - the proof is either an unmarked proof candidate or a theorem-like
-  `DISPROVED` refutation candidate, and is not `OPEN`, `REJECTED`, `VERIFIED`,
-  or `REVOKED`;
-- every local dependency exists, is unique, and is in scope;
+  `DISPROVED` refutation candidate, and is not `OPEN` or `REJECTED`;
+- no `VERIFIED` or `REVOKED` marker appears anywhere in the sources;
+- every dependency exists, is unique, and is in scope;
 - every cross-file dependency has an exact producer export and consumer import;
-- no dependency crosses a workspace or main-goal boundary;
 - cycle membership is recorded as a machine finding; and
 - every direct dependency statement needed for a local AI packet can be
   materialized exactly.
@@ -181,9 +180,10 @@ Let \(n=2k\). Then \(n^2=4k^2\).
 the inspector does not guess the nearby ID. It reports that the proof target is
 unknown or invalid. The host repairs `of` to name the exact protected target.
 
-Similarly, a proof that cites `@lem-square-of-double` from another workspace is
-not repaired by adding an import. The claim must be established locally or
-represented as a permitted external premise without a cross-workspace ID edge.
+Similarly, a proof that cites `@lem-square-of-double` from a file that never
+exports it is not repaired by inventing an import. The producing file must
+export the ID and the citing file must import it explicitly, or the claim must
+be represented as a permitted external premise instead.
 
 ## Local conditional verification
 
@@ -194,18 +194,21 @@ An informal verifier packet contains:
 
 - exact target ID, kind, title, statement or construction, proof or proposed
   refutation, and verification mode;
-- the IDs and exact statements of cited direct local dependencies;
-- normalized workspace imports and source association;
-- protected-goal context for an overlay;
+- the IDs and exact statements of cited direct dependencies, each carried
+  with its `statement_hash` identity;
+- the declaring `source_file` and the `semantic_context` definitions the
+  statement relies on;
 - exact external-basis mode and content;
-- checker contract and verifier protocol; and
+- checker contract and verifier protocol version 5; and
 - an instruction to report errors and gaps independently.
 
 It does not contain dependency proofs, dependency verification states, the
 transitive proof closure, the author's confidence, hidden chain of thought,
-persuasive commentary, or unrelated project narrative. The verifier assumes
-the supplied direct statements and checks the exact submitted proof. It does
-not decide whether those direct premises have themselves been established.
+persuasive commentary, unrelated project narrative, or any scope fields beyond
+`type`, `source_file`, `direct_dependency_ids`, and `semantic_context`. The
+verifier assumes the supplied direct statements and checks the exact submitted
+proof. It does not decide whether those direct premises have themselves been
+established.
 
 The verifier returns a verdict, summary, critical errors, gaps, nonblocking
 comments, repair hints, and a refutation field. An ordinary proof is verified
@@ -221,14 +224,16 @@ An abbreviated packet can look like:
 
 ```json
 {
+  "type": "local-conditional-check",
+  "protocol": 5,
+  "source_file": "workspace/main-proof.qmd",
   "target": {
     "id": "thm-main-even-square",
     "statement": "For every even integer n, 4 divides n^2.",
     "proof": "Let n be even. By @def-even-integer ...",
-    "verification_mode": "proof",
-    "cited_dependencies": ["def-even-integer"],
-    "workspace": "thm-main-even-square"
+    "verification_mode": "proof"
   },
+  "direct_dependency_ids": ["def-even-integer"],
   "dependencies": [
     {
       "id": "def-even-integer",
@@ -236,6 +241,9 @@ An abbreviated packet can look like:
       "identity": { "statement_hash": "sha256:..." }
     }
   ],
+  "semantic_context": {
+    "definitions": []
+  },
   "external_basis": {
     "mode": "none",
     "content": ""
@@ -262,12 +270,12 @@ The number \(2\) is prime, because its only positive divisors are \(1\) and
 ```
 
 The marker selects `refutation` mode; it is not a verifier decision. A
-successful independent check records `workspace-disproved` and structured
-evidence containing the summary, exact refutation, source, and verification
-identity. A failed proposed refutation records
-`workspace-disproof-rejected` and repair information. The verifier may instead
-discover a counterexample while checking an unmarked proof and return the same
-conclusive disproved outcome.
+successful independent check records the local outcome `disproved` and
+structured evidence containing the summary, exact refutation, source, and
+verification identity. A failed proposed refutation records an
+`AI_DISPROOF_REJECTED` diagnostic and repair information. The verifier may
+instead discover a counterexample while checking an unmarked proof and return
+the same conclusive disproved outcome.
 Neither route edits the source marker.
 
 A globally disproved fact is terminal evidence about a false statement, not a
@@ -281,10 +289,12 @@ dependencies are globally verified.
 On mathematical rejection:
 
 - user QMD is unchanged;
-- the exact rejection is cached in the goal workspace;
-- the fact is reported as `workspace-rejected` for that snapshot;
+- the exact rejection is cached content-addressed under
+  `.qmd-prover/verification/checks/`;
+- the fact is reported as `rejected` for that snapshot, with an
+  `AI_CHECK_REJECTED` diagnostic;
 - the full critical-error, gap, and repair information remains available;
-- the host repairs ordinary workspace QMD; and
+- the host repairs ordinary proof QMD; and
 - a changed candidate receives a new exact verification key.
 
 The runtime does not erase an earlier rejection because a later candidate
@@ -311,39 +321,44 @@ only “This is obvious.” The verifier may return:
 ```
 
 The host supplies the missing argument or local lemma and reinspects the
-affected closure. Unrelated workspace facts remain outside that verifier
+affected closure. Unrelated project facts remain outside that verifier
 schedule.
 
 ## Safe acceptance
 
-“Acceptance” now means acceptance into current workspace evidence, not
+“Acceptance” means acceptance into current verification evidence, not
 promotion into user QMD.
 
 Before invoking the verifier, inspection records:
 
-- active workspace source fingerprint;
-- protected main-goal identity;
+- the active project source fingerprint;
+- protected main-goal lock identity;
 - target statement or construction and proof identity;
 - exact direct dependency statement identities;
 - semantic source context and import declarations;
 - external-basis hash and content; and
 - checker contract.
 
-After a conclusive local verifier result, inspection recomputes workspace sources,
-protected goal context, and external basis. If anything changed, it reports
-stale workspace source context and does not cache the result as accepted.
+After a conclusive local verifier result, inspection recompiles the whole
+project and refingerprints sources, protected-goal locks, and the external
+basis. If anything changed, the run stops with fatal `SOURCE_STALE` and the
+result is not cached as accepted.
 
 For current context, inspection:
 
-1. writes the exact decision record atomically;
+1. writes the exact decision record atomically to
+   `.qmd-prover/verification/checks/<sha256>.json` — a failed write is fatal
+   `CACHE_WRITE_FAILED` and the result is never reported as verified;
 2. records the result under `local_verification` without changing any machine
    edge or upstream state;
-3. computes `global_verification` deterministically over the workspace graph;
-4. constructs a complete schema-v4 workspace manifest and graph;
-5. merges current local outcomes for unchanged facts outside a narrow
-   selection;
-6. atomically publishes the workspace snapshot; and
-7. refreshes the aggregate project snapshot when publication is safe.
+3. computes `global_verification` deterministically over the project graph;
+4. constructs a complete schema-v5 project manifest and graph;
+5. lets facts outside a narrow selection inherit their prior snapshot results
+   when the `source_signature` and fact identities are unchanged;
+6. atomically publishes the content-addressed snapshot under
+   `.qmd-prover/graphs/`; and
+7. refreshes `graphs/latest.json`, `manifest.json`, `graph.json`, and
+   `diagnostics.json` when publication is safe.
 
 The host cannot bypass this path merely because it authored the proof. No step
 writes proof text or a status marker into the user's note.
@@ -352,7 +367,7 @@ writes proof text or a status marker into the user's note.
 
 Assume the verifier accepted a proof using the exact statement of `@lem-bound`
 under verification key `sha256:A`. Before the cache write, that statement
-changes, producing key `sha256:B`. Inspection reports stale source context and
+changes, producing key `sha256:B`. Inspection reports fatal `SOURCE_STALE` and
 does not cache the local result because the assumed direct conclusion changed.
 
 If only the proof of `@lem-bound` changes while its statement remains byte-for-
@@ -361,22 +376,26 @@ The lemma's own local decision is rechecked and the dependent's global status
 is recomputed. This separation prevents upstream review mechanics from leaking
 into the meaning of a local implication check.
 
-An unrelated edit to user-note prose outside a protected main goal does not
-change workspace mathematical identity. A change to the external basis or
-checker contract does.
+An edit to note prose outside any declaration or linked proof does not change
+a fact's exact verification identity, although any source drift during a
+verifier call is still fatal `SOURCE_STALE` for that call. A change to the
+external basis or checker contract changes every identity.
 
 ## Records
 
 qmd-prover may retain under `.qmd-prover/`:
 
-- protected workspace metadata and target snapshots;
-- persistent mathematical workspace QMD;
-- exact verified, disproved, and rejected verifier records;
-- verifier infrastructure failure reports;
-- workspace manifests, graphs, and immutable snapshots;
-- the aggregate project manifest, graph, diagnostics, and snapshots;
-- statement locks for protected main goals; and
-- old project verification records as legacy read-only state.
+- statement locks for protected main goals (`statement-locks.json`);
+- exact verified, disproved, and rejected verifier records under
+  `verification/checks/`;
+- verifier infrastructure failure reports under `verification/failures/`;
+- content-addressed schema-v5 graph snapshots under `graphs/`, with
+  `graphs/latest.json` naming the current one; and
+- the project `manifest.json`, `graph.json`, and `diagnostics.json`.
+
+Everything under `.qmd-prover/` is derived tool state. It is excluded from
+source discovery and never contains user mathematics; proof QMD itself lives
+in ordinary project folders such as the conventional `workspace/` folder.
 
 This is mathematical working state and proof provenance, not an agent runtime.
 qmd-prover has no worker registry, scheduler, or inter-agent message store.
@@ -399,19 +418,23 @@ node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" \
   inspect fact @thm-main-uniform-index
 ```
 
-Inspect the complete goal workspace:
+Inspect the complete project:
 
 ```bash
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" \
-  inspect workspace @thm-main-uniform-index
+  inspect project
 ```
 
-The old submission command remains parseable for compatibility:
+Inspect one proof file and its closure:
 
 ```bash
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" \
-  submit proof .qmd-prover/workspaces/thm-main-uniform-index/main-proof.qmd
+  inspect path workspace/main-proof.qmd
 ```
 
-It returns `status: "retired"` and changes no file. Current proof verification
-is performed by `inspect fact`, `inspect path`, or `inspect workspace`.
+The former per-goal initialization, submission, and revocation commands are
+removed entirely, with no compatibility alias. The remaining surface is
+`doctor`, `init`, `inspect project`, `inspect fact`, `inspect path`,
+`dependency *`, `check staleness`, `verification list`, `verification show`,
+and `render`. Current proof verification is performed by `inspect fact`,
+`inspect path`, or `inspect project`.

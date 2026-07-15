@@ -1,6 +1,6 @@
 # qmd-prover
 
-qmd-prover is a Codex skill and dependency-free Node runtime for disciplined mathematical proof workflows in Quarto Markdown. User QMD remains notes and protected main-goal storage; persistent workspace mathematics, independently verified proofs and refutations, dependency graphs, and generated Quarto observability inputs stay under `.qmd-prover/`.
+qmd-prover is a Codex skill and dependency-free Node runtime for disciplined mathematical proof workflows in Quarto Markdown. Project QMD is the semantic mathematics itself, compiled in one pass into a single dependency graph; `.qmd-prover/` holds only derived tool state such as verification records, dependency graphs, and generated Quarto observability inputs.
 
 ## Repository layout
 

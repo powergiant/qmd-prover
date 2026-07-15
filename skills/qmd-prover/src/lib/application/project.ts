@@ -1,7 +1,7 @@
-import { mkdir, readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { readExternalPolicy } from '../infrastructure/external.js';
-import { atomicWrite, AUX, exists, relativePosix, withWriteLock } from '../infrastructure/files.js';
+import { atomicWrite, exists, relativePosix, withWriteLock } from '../infrastructure/files.js';
 import type { ExistingProjectInventory, InitializeProjectResult, JsonObject } from '../shared/types.js';
 
 const START = '<!-- qmd-prover-contract:start version=';
@@ -30,12 +30,6 @@ function result(root: string, version: number, status: string, extra: JsonObject
 
 function projectPolicy(block: string): string {
   return `# Mathematical project instructions\n\n${block}\n\n## Project-specific additions\n\n`;
-}
-
-async function successfulResult(root: string, version: number, status: string, extra: JsonObject = {}): Promise<InitializeProjectResult> {
-  const workspaceRoot = path.join(root, AUX, 'workspaces');
-  await mkdir(workspaceRoot, { recursive: true });
-  return result(root, version, status, { workspace_root: relativePosix(root, workspaceRoot), ...extra });
 }
 
 async function findQmdFiles(root: string, directory = root): Promise<string[]> {
@@ -107,10 +101,10 @@ export async function initializeProject(
       await atomicWrite(policyFile, projectPolicy(canonical.block));
 
       if (projectMaterialExists) {
-        return successfulResult(root, canonical.version, 'adopted', { existing });
+        return result(root, canonical.version, 'adopted', { existing });
       }
 
-      return successfulResult(root, canonical.version, 'created', { existing });
+      return result(root, canonical.version, 'created', { existing });
     }
 
     const source = await readFile(policyFile, 'utf8');
@@ -118,10 +112,10 @@ export async function initializeProject(
       await atomicWrite(policyFile, projectPolicy(canonical.block));
 
       if (projectMaterialExists) {
-        return successfulResult(root, canonical.version, 'adopted', { existing });
+        return result(root, canonical.version, 'adopted', { existing });
       }
 
-      return successfulResult(root, canonical.version, 'created', { existing });
+      return result(root, canonical.version, 'created', { existing });
     }
 
     const matches = [...source.matchAll(BLOCK)];
@@ -139,7 +133,7 @@ export async function initializeProject(
       if (appendContract) {
         const separator = source.endsWith('\n') ? '\n' : '\n\n';
         await atomicWrite(policyFile, `${source}${separator}${canonical.block}\n`);
-        return successfulResult(root, canonical.version, 'appended', { existing });
+        return result(root, canonical.version, 'appended', { existing });
       }
 
       return result(root, canonical.version, 'append-required', {
@@ -152,12 +146,12 @@ export async function initializeProject(
     const current = matches[0][0];
     const currentVersion = Number(matches[0][1]);
     if (current === canonical.block) {
-      return successfulResult(root, canonical.version, 'already-initialized', { existing });
+      return result(root, canonical.version, 'already-initialized', { existing });
     }
 
     if (syncContract) {
       await atomicWrite(policyFile, source.replace(current, () => canonical.block));
-      return successfulResult(root, canonical.version, 'synchronized', { existing, previous_contract_version: currentVersion });
+      return result(root, canonical.version, 'synchronized', { existing, previous_contract_version: currentVersion });
     }
 
     return result(root, canonical.version, 'sync-required', {

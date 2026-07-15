@@ -1,53 +1,9 @@
 {
-  "diagnostics": [
-    {
-      "code": "WORKSPACE_UNINITIALIZED",
-      "file": ".qmd-prover/workspaces/thm-main-godel-completeness",
-      "id": "thm-main-godel-completeness",
-      "message": "Goal-like directory @thm-main-godel-completeness contains active QMD files but has no workspace.json; run workspace init explicitly or move the files into an initialized workspace",
-      "severity": "error"
-    },
-    {
-      "code": "PARSE_ERROR",
-      "file": ".qmd-prover/workspaces/thm-main-godel-completeness/calculus.qmd",
-      "message": "Pandoc is required to parse QMD. Install Pandoc or set QMD_PROVER_PANDOC (tried: pandoc).",
-      "severity": "error"
-    },
-    {
-      "code": "PARSE_ERROR",
-      "file": ".qmd-prover/workspaces/thm-main-godel-completeness/foundations.qmd",
-      "message": "Pandoc is required to parse QMD. Install Pandoc or set QMD_PROVER_PANDOC (tried: pandoc).",
-      "severity": "error"
-    },
-    {
-      "code": "PARSE_ERROR",
-      "file": ".qmd-prover/workspaces/thm-main-godel-completeness/henkin.qmd",
-      "message": "Pandoc is required to parse QMD. Install Pandoc or set QMD_PROVER_PANDOC (tried: pandoc).",
-      "severity": "error"
-    },
-    {
-      "code": "PARSE_ERROR",
-      "file": ".qmd-prover/workspaces/thm-main-godel-completeness/main-proof.qmd",
-      "message": "Pandoc is required to parse QMD. Install Pandoc or set QMD_PROVER_PANDOC (tried: pandoc).",
-      "severity": "error"
-    },
-    {
-      "code": "PARSE_ERROR",
-      "file": ".qmd-prover/workspaces/thm-main-godel-completeness/semantics.qmd",
-      "message": "Pandoc is required to parse QMD. Install Pandoc or set QMD_PROVER_PANDOC (tried: pandoc).",
-      "severity": "error"
-    },
-    {
-      "code": "PARSE_ERROR",
-      "file": "completeness.qmd",
-      "message": "Pandoc is required to parse QMD. Install Pandoc or set QMD_PROVER_PANDOC (tried: pandoc).",
-      "severity": "error"
-    }
-  ],
+  "diagnostics": [],
   "summary": {
-    "errors": 7,
-    "files": 0,
-    "results": 0,
+    "errors": 0,
+    "files": 7,
+    "results": 32,
     "warnings": 0
   }
 }

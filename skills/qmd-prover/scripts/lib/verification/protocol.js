@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { sha256, stableJson } from '../infrastructure/files.js';
 import { asErrorLike, asRecord, isRecord } from '../shared/core.js';
-export const VERIFIER_PROTOCOL_VERSION = 4;
+export const VERIFIER_PROTOCOL_VERSION = 5;
 const PROTOCOL_NAME = 'qmd-prover-independent-verifier';
 function verificationConfig(config = {}) {
     if (isRecord(config) && isRecord(config.verification))
