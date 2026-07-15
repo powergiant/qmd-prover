@@ -238,6 +238,7 @@ export interface RuntimeOptions extends CompilerOptions {
   direct?: boolean;
   reverse?: boolean;
   cycleParticipant?: boolean;
+  allowErrors?: boolean;
   /** Internal: the caller already performed the project-wide duplicate preflight. */
   skipProjectPreflight?: boolean;
 }
@@ -366,7 +367,7 @@ export interface InspectionVerificationSummary {
 export interface FactInspectionCheck {
   id: string;
   status: string;
-  mechanical: { status: 'pass' | 'fail'; references: ReferenceCheck[] };
+  mechanical: { status: 'pass' | 'fail'; references: ReferenceCheck[]; reason?: string };
   local_verification: AiCheck;
   global_verification: GlobalVerification;
   diagnostics: Diagnostic[];
@@ -445,17 +446,19 @@ export interface SubmissionResult extends OperationResult {
 
 export interface RenderResult extends OperationResult {
   status: string;
-  output: string;
-  graph: string;
-  report: string;
-  render_command: string;
+  output?: string;
+  graph?: string;
+  report?: string;
+  render_command?: string;
   summary: CompilationSummary;
+  diagnostics?: Diagnostic[];
 }
 
 export interface InitializeWorkspaceResult extends OperationResult {
   status: string;
   workspace: string;
-  metadata: unknown;
+  metadata?: unknown;
+  diagnostics?: Diagnostic[];
 }
 
 export interface ExistingProjectInventory {

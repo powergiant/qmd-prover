@@ -98,35 +98,35 @@ qmd-prover help render
 
 ## 3. 实际发现的全部叶子命令及结果
 
-| # | 完整叶子命令 | 实测结果摘要 |
-|---:|---|---|
-| 1 | `qmd-prover init` | 退出 0，`already-initialized`；报告 contract v16、workspace root、1 个 QMD、无 Quarto 配置、external policy 为 unrestricted。未写入。 |
-| 2 | `qmd-prover inspect project [--print]` | 退出 2，7 个错误：workspace 未初始化、6 个 Pandoc 解析错误。默认 JSON 6,523 字节/181 行；`--print` 1,697 字节/28 行。 |
-| 3 | `qmd-prover inspect fact @ID [--print]` | 退出 2；目标显示 `missing/unknown`，但 `mechanical.status` 却是 `pass`；附带 6 条 Pandoc 错误。实际也接受不带 `@` 的 ID。 |
-| 4 | `qmd-prover inspect path FILE_OR_FOLDER [--print]` | 对 `completeness.qmd` 退出 2、1 条 Pandoc 错误；对 workspace 目录退出 2、6 条错误；不存在路径得到结构化 `PATH_NOT_FOUND`。 |
-| 5 | `qmd-prover inspect workspace @thm-main-ID [--print]` | 退出 2；workspace `uninitialized`、target `missing`、files/facts 均为 0，6 条错误。非法非 `thm-main-*` ID 却抛原始堆栈。 |
-| 6 | `qmd-prover dependency dependencies @ID [--print]` | 退出 2；聚合图为空，返回简短 `FACT_UNKNOWN`。 |
-| 7 | `qmd-prover dependency reverse dependencies @ID [--print]` | 退出 2；同样返回 `FACT_UNKNOWN`。 |
-| 8 | `qmd-prover dependency impact @ID [--print]` | 退出 2；返回 `FACT_UNKNOWN`。 |
-| 9 | `qmd-prover dependency frontier @ID [--print]` | 退出 2；返回 `FACT_UNKNOWN`。 |
-| 10 | `qmd-prover dependency path @FROM @TO [--print]` | 退出 2；FROM、TO 相同时重复返回两条相同 `FACT_UNKNOWN`。 |
-| 11 | `qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]` | 退出 2；有效 limit/depth 可接受，但事实未知。非法 `--limit nope` 被事实未知错误抢先掩盖。 |
-| 12 | `qmd-prover dependency cycles [--print]` | 退出 2；返回空 graph/cycles，另附全部 7 条项目错误。 |
-| 13 | `qmd-prover dependency findings [--print]` | 退出 2；所有 findings 为空，同时附全部项目错误。默认 3,242 字节/77 行。 |
-| 14 | `qmd-prover dependency unused imports [--print]` | 退出 2；空结果，但带完整空 graph 和 7 条错误。 |
-| 15 | `qmd-prover dependency unused exports [--print]` | 退出 2；空结果，但带完整空 graph 和 7 条错误。 |
-| 16 | `qmd-prover dependency isolated [--print]` | 退出 2；空结果，带定义文本、空 graph 和 7 条错误。 |
-| 17 | `qmd-prover dependency unreachable [--print]` | 退出 2；`applicable:false`，同时带空 graph 和 7 条错误。 |
-| 18 | `qmd-prover dependency ready for ai [--print]` | 退出 2；候选为空，带定义文本和 7 条错误。 |
-| 19 | `qmd-prover dependency reused [--limit N] [--print]` | 退出 2；默认 limit 20、结果为空。`--limit -1` 能正确报范围 1–1000，但使用原始堆栈。 |
-| 20 | `qmd-prover dependency search QUERY [...] [--print]` | 退出 2；无法搜索空图。`--kind nonsense` 未被拒绝，直接作为过滤值进入输出。 |
-| 21 | `qmd-prover check staleness [--print]` | 退出 2；目标因 `main-goal-snapshot-changed`、`workspace-parse-incomplete`、`workspace-uninitialized` stale，并被 invalidated。只读。 |
-| 22 | `qmd-prover workspace init @thm-main-ID` | 有效 ID 退出 1，只给出 `Project has structural errors` 和堆栈，没有列出具体阻塞项；未创建 `workspace.json`。不带 `@` 也进入相同逻辑。 |
-| 23 | `qmd-prover workspace inspect @thm-main-ID [--print]` | 退出 2；与 `inspect workspace` 基本相同，但 operation 名分别为 `workspace-inspect` 和 `inspect-workspace`。 |
-| 24 | `qmd-prover submit proof PROPOSAL_FILE [--to QMD]` | 退出 2，稳定结构化 `retired`；真实文件和不存在文件结果完全相同，未读写参数目标。 |
-| 25 | `qmd-prover verification show SUBMISSION_ID` | 无 CLI 可发现的 submission ID；使用未知 ID 时退出 1，直接抛 ENOENT 和内部源码堆栈，不是稳定 JSON。 |
-| 26 | `qmd-prover verification revoke @thm-ID --reason "..."` | 退出 2，稳定结构化 `retired`。缺少必填 `--reason` 时也返回相同 retired 结果，没有参数校验。 |
-| 27 | `qmd-prover render` | 退出 0，但状态是 `prepared-with-errors`，summary 有 7 个 errors；仍写入 3 个生成文件，并建议当前环境中不存在的 `quarto render`。 |
+| # | 完整叶子命令 | 实测结果摘要 | 是否符合预期；合理预期是什么 |
+|---:|---|---|---|
+| 1 | `qmd-prover init` | 退出 0，`already-initialized`；报告 contract v16、workspace root、1 个 QMD、无 Quarto 配置、external policy 为 unrestricted。未写入。 | **符合。** 对已初始化且契约当前的项目，应幂等退出 0、清楚报告现状，并且不写入。 |
+| 2 | `qmd-prover inspect project [--print]` | 退出 2，7 个错误：workspace 未初始化、6 个 Pandoc 解析错误。默认 JSON 6,523 字节/181 行；`--print` 1,697 字节/28 行。 | **部分符合。** 缺 Pandoc 且 workspace 未初始化时应非零退出并列出根因；但合理输出应去重、减少空结构，并让 `--print` 保留受影响文件路径。 |
+| 3 | `qmd-prover inspect fact @ID [--print]` | 退出 2；目标显示 `missing/unknown`，但 `mechanical.status` 却是 `pass`；附带 6 条 Pandoc 错误。实际也接受不带 `@` 的 ID。 | **不符合。** 无法解析或定位事实时，mechanical 应是 `blocked`/`not-run`，而不是 `pass`；ID 语法也应与 help 一致。 |
+| 4 | `qmd-prover inspect path FILE_OR_FOLDER [--print]` | 对 `completeness.qmd` 退出 2、1 条 Pandoc 错误；对 workspace 目录退出 2、6 条错误；不存在路径得到结构化 `PATH_NOT_FOUND`。 | **大体符合。** 不存在路径应得到结构化错误，解析依赖缺失应非零退出；偏差是 `--print` 不应丢失诊断文件路径。 |
+| 5 | `qmd-prover inspect workspace @thm-main-ID [--print]` | 退出 2；workspace `uninitialized`、target `missing`、files/facts 均为 0，6 条错误。非法非 `thm-main-*` ID 却抛原始堆栈。 | **部分符合。** 无法检查未初始化 workspace 时应失败；但非法 ID 应得到稳定的结构化参数错误，不能泄露堆栈。 |
+| 6 | `qmd-prover dependency dependencies @ID [--print]` | 退出 2；聚合图为空，返回简短 `FACT_UNKNOWN`。 | **符合当前失败前提。** 空图中查询未知事实应返回 `FACT_UNKNOWN`；更理想的是同时指出图为空的上游原因。 |
+| 7 | `qmd-prover dependency reverse dependencies @ID [--print]` | 退出 2；同样返回 `FACT_UNKNOWN`。 | **符合当前失败前提。** 未知事实无法计算反向依赖，应非零并返回明确的 `FACT_UNKNOWN`。 |
+| 8 | `qmd-prover dependency impact @ID [--print]` | 退出 2；返回 `FACT_UNKNOWN`。 | **符合当前失败前提。** 未知事实没有可计算的影响范围；应避免把结果误报为空影响。 |
+| 9 | `qmd-prover dependency frontier @ID [--print]` | 退出 2；返回 `FACT_UNKNOWN`。 | **符合当前失败前提。** 未知事实无法形成 frontier，非零退出合理。 |
+| 10 | `qmd-prover dependency path @FROM @TO [--print]` | 退出 2；FROM、TO 相同时重复返回两条相同 `FACT_UNKNOWN`。 | **不符合。** 两端相同且未知时应只返回一条去重后的未知事实诊断；若事实存在，FROM=TO 的路径语义也应被明确说明。 |
+| 11 | `qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]` | 退出 2；有效 limit/depth 可接受，但事实未知。非法 `--limit nope` 被事实未知错误抢先掩盖。 | **不符合。** CLI 应先校验参数类型和范围，再访问图；非法 limit 应稳定报告参数错误，不应被 `FACT_UNKNOWN` 掩盖。 |
+| 12 | `qmd-prover dependency cycles [--print]` | 退出 2；返回空 graph/cycles，另附全部 7 条项目错误。 | **部分符合。** 聚合图无法可靠构建时应失败；但合理结果应突出“图不可用”，不应同时返回看似有效的空 cycles 和大量重复上下文。 |
+| 13 | `qmd-prover dependency findings [--print]` | 退出 2；所有 findings 为空，同时附全部项目错误。默认 3,242 字节/77 行。 | **部分符合。** 分析失败时非零退出合理；findings 应标记 `not-computed`，而不是与“已计算但没有发现”相同的空数组。 |
+| 14 | `qmd-prover dependency unused imports [--print]` | 退出 2；空结果，但带完整空 graph 和 7 条错误。 | **部分符合。** 图不可用时应失败；结果应是 `not-computed`，不应暗示确实不存在 unused imports。 |
+| 15 | `qmd-prover dependency unused exports [--print]` | 退出 2；空结果，但带完整空 graph 和 7 条错误。 | **部分符合。** 图不可用时应失败；结果应区分“没有 unused exports”和“无法计算”。 |
+| 16 | `qmd-prover dependency isolated [--print]` | 退出 2；空结果，带定义文本、空 graph 和 7 条错误。 | **部分符合。** 非零退出合理；空 facts 不应在失败态被理解为“没有 isolated facts”，且无需重复返回完整空 graph。 |
+| 17 | `qmd-prover dependency unreachable [--print]` | 退出 2；`applicable:false`，同时带空 graph 和 7 条错误。 | **大体符合。** 没有可用 goal root 时 `applicable:false` 合理；应进一步区分“项目本来没有 root”和“解析失败导致 root 不可见”。 |
+| 18 | `qmd-prover dependency ready for ai [--print]` | 退出 2；候选为空，带定义文本和 7 条错误。 | **部分符合。** 图/声明不可用时不能产生 AI 候选；应报告 `not-computed` 或 blocker，而不是普通空候选列表。 |
+| 19 | `qmd-prover dependency reused [--limit N] [--print]` | 退出 2；默认 limit 20、结果为空。`--limit -1` 能正确报范围 1–1000，但使用原始堆栈。 | **部分符合。** limit 范围校验正确；但参数错误应结构化且无堆栈，图失败时空结果也应标记为不可计算。 |
+| 20 | `qmd-prover dependency search QUERY [...] [--print]` | 退出 2；无法搜索空图。`--kind nonsense` 未被拒绝，直接作为过滤值进入输出。 | **不符合。** 未知枚举必须在扫描前拒绝并列出合法值；图不可用时应明确说明搜索未执行。 |
+| 21 | `qmd-prover check staleness [--print]` | 退出 2；目标因 `main-goal-snapshot-changed`、`workspace-parse-incomplete`、`workspace-uninitialized` stale，并被 invalidated。只读。 | **符合。** 只读审计应准确列出 stale 原因和受影响事实；将检测到的不可用状态映射为非零退出也合理。 |
+| 22 | `qmd-prover workspace init @thm-main-ID` | 有效 ID 退出 1，只给出 `Project has structural errors` 和堆栈，没有列出具体阻塞项；未创建 `workspace.json`。不带 `@` 也进入相同逻辑。 | **不符合。** 安全门阻止写入是合理的，但命令应返回具体 blocker 和下一步；尤其 inspect 已建议运行该命令，不能再以泛化错误形成恢复断链。 |
+| 23 | `qmd-prover workspace inspect @thm-main-ID [--print]` | 退出 2；与 `inspect workspace` 基本相同，但 operation 名分别为 `workspace-inspect` 和 `inspect-workspace`。 | **部分符合。** 兼容别名应产生等价结果；稳定 JSON 中应使用同一个 canonical operation，可另设 `invoked_as` 标记入口。 |
+| 24 | `qmd-prover submit proof PROPOSAL_FILE [--to QMD]` | 退出 2，稳定结构化 `retired`；真实文件和不存在文件结果完全相同，未读写参数目标。 | **符合。** 退役兼容命令应拒绝操作、写入为零，并提供迁移路径；不读取旧参数目标也符合 rejection safety。 |
+| 25 | `qmd-prover verification show SUBMISSION_ID` | 无 CLI 可发现的 submission ID；使用未知 ID 时退出 1，直接抛 ENOENT 和内部源码堆栈，不是稳定 JSON。 | **不符合。** 未知 submission 应返回结构化 `SUBMISSION_NOT_FOUND`；还应有 `verification list` 或其他自然发现 ID 的入口。 |
+| 26 | `qmd-prover verification revoke @thm-ID --reason "..."` | 退出 2，稳定结构化 `retired`。缺少必填 `--reason` 时也返回相同 retired 结果，没有参数校验。 | **部分符合。** 退役命令不写入且给 remediation 符合预期；但 help 与实现应一致，要么不再声明 reason 必填，要么仍校验旧语法。 |
+| 27 | `qmd-prover render` | 退出 0，但状态是 `prepared-with-errors`，summary 有 7 个 errors；仍写入 3 个生成文件，并建议当前环境中不存在的 `quarto render`。 | **不符合。** 默认情况下存在 7 个错误应返回非零和 `ok:false`；若设计上允许错误产物，应要求显式 `--allow-errors`，并先检查建议的 Quarto 命令是否可用。 |
 
 另外测试了未知命令、一级组缺参、叶子缺参、额外位置参数、冲突 init 选项、未知 ID/路径、非法 limit、非法枚举和不支持的 `--print`。大部分参数错误退出 1，但直接输出 Node 堆栈。
 

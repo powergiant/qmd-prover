@@ -13,7 +13,8 @@ test('render prepares Quarto-compatible status QMD and an SVG linked to user mai
   await writeFile(path.join(root, 'goal.qmd'), result('thm-main-render', 'If x < y, then x < y.', { title: 'Render < safely' }));
   const rendered = await renderProject(root, options);
   assert.equal(rendered.status, 'prepared');
-  assert.equal(rendered.render_command, 'quarto render');
+  assert.equal(rendered.render_command, undefined);
+  assert.equal((rendered.quarto as { available: boolean }).available, false);
   const statusQmd = await readFile(path.join(root, '.qmd-prover', 'generated', 'proof-status.qmd'), 'utf8');
   const graph = await readFile(path.join(root, '.qmd-prover', 'generated', 'dependencies.svg'), 'utf8');
   assert.match(statusQmd, /\| @thm-main-render \| not-run \| unverified \|/);

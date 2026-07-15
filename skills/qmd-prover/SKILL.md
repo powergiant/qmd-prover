@@ -35,6 +35,44 @@ Run the dispatcher from the project root:
 node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" <subcommand> [arguments]
 ```
 
+Requirements: Node.js 20 or later and Pandoc on `PATH` (or `QMD_PROVER_PANDOC`). The independent verifier is optional unless AI verification is requested; Quarto is optional unless final rendered output is requested. Run `doctor` first when availability is uncertain. JSON is the default output; commands marked below accept `--print` for a concise human report. Semantic IDs accept either `@ID` or bare `ID`, and output normalizes them as `@ID`.
+
+Complete leaf-command map:
+
+```text
+doctor [--print]
+init [--adopt-existing|--append-contract|--sync-contract]
+inspect project [--print]
+inspect fact @ID [--print]
+inspect path FILE_OR_FOLDER [--print]
+inspect workspace @thm-main-ID [--print]
+dependency dependencies @ID [--print]
+dependency reverse dependencies @ID [--print]
+dependency impact @ID [--print]
+dependency frontier @ID [--print]
+dependency path @FROM @TO [--print]
+dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]
+dependency cycles [--print]
+dependency findings [--print]
+dependency unused imports [--print]
+dependency unused exports [--print]
+dependency isolated [--print]
+dependency unreachable [--print]
+dependency ready for ai [--print]
+dependency reused [--limit N] [--print]
+dependency search QUERY [--kind KIND] [--status STATUS] [--origin ORIGIN] [--path PATH] [graph filters] [--print]
+check staleness [--print]
+workspace init @thm-main-ID
+workspace inspect @thm-main-ID [--print]
+submit proof PROPOSAL_FILE [--to QMD]                 # retired, no writes
+verification list
+verification show SUBMISSION_ID
+verification revoke @thm-ID [--reason TEXT]          # retired, no writes
+render [--allow-errors]
+```
+
+Use `help COMMAND...` for exact filters, ranges, side effects, and failure semantics. `workspace inspect` is a compatibility alias whose canonical operation is `inspect-workspace`. `render` writes nothing when project errors exist unless `--allow-errors` is explicit.
+
 Read [references/cli.md](references/cli.md) when configuring Pandoc or the verifier, troubleshooting command behavior, installing the skill, or needing the full command inventory.
 
 ## Proof-development boundary

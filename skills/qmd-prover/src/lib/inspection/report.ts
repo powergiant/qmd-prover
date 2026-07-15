@@ -10,6 +10,7 @@ import { deriveGraphFindings } from './findings.js';
 interface ProgrammaticFactCheck {
   status: 'pass' | 'fail';
   references: NonNullable<SemanticResult['reference_checks']>;
+  reason?: string;
 }
 
 function byId<T extends { id: string }>(items: T[]): Map<string, T> {
@@ -80,6 +81,9 @@ interface ReportResult {
   unused_exports?: GraphFindings['unused_exports'];
   candidates?: GraphNode[];
   total?: number;
+  computed?: boolean;
+  dependencies?: Record<string, { required: boolean; available: boolean; command: string | null; purpose: string; remediation?: string }>;
+  submissions?: Array<{ submission_id: string; target: string | null; outcome: string | null; file: string }>;
 }
 
 function formatCounts(counts: Record<string, number> = {}): string {
@@ -140,9 +144,21 @@ export function printReport(input: OperationResult): string {
   const result = input as unknown as ReportResult;
   const lines = [`qmd-prover ${result.operation}`, `snapshot: ${result.snapshot_id ?? 'none'}`];
   if (typeof result.ok === 'boolean') lines.push(`status: ${result.ok ? 'ok' : 'failed'}`);
+  if (result.computed === false) lines.push('analysis: not computed');
   if (result.scope) lines.push(`scope: ${result.scope.type} ${result.scope.id ? `@${result.scope.id}` : result.scope.path}`);
   if (result.workspace) lines.push(`workspace: ${result.workspace}`);
   if (result.target?.id) lines.push(`target: @${result.target.id} [${result.target.status ?? 'missing'}]`);
+  if (result.dependencies) {
+    lines.push('dependencies:');
+    for (const [name, dependency] of Object.entries(result.dependencies)) {
+      lines.push(`  ${name}: ${dependency.available ? 'available' : dependency.required ? 'missing (required)' : 'not configured (optional)'}${dependency.command ? ` [${dependency.command}]` : ''}`);
+      if (!dependency.available && dependency.remediation) lines.push(`    remediation: ${dependency.remediation}`);
+    }
+  }
+  if (result.submissions) {
+    lines.push(`verification submissions: ${result.submissions.length}`);
+    for (const submission of result.submissions) lines.push(`  ${submission.submission_id}: @${submission.target ?? 'unknown'} [${submission.outcome ?? 'unknown'}] ${submission.file}`);
+  }
   if (result.workspace_staleness) lines.push(`workspace snapshot: ${result.workspace_staleness.stale ? 'stale' : 'current'} (target=${result.workspace_staleness.target_stale ? 'stale' : 'current'}, dependencies=${result.workspace_staleness.dependency_stale ? 'stale' : 'current'})`);
   if (result.summary) {
     lines.push(`files: ${result.summary.files ?? 0}`);
@@ -204,7 +220,7 @@ export function printReport(input: OperationResult): string {
   if (checks.length) {
     lines.push('checks:');
     for (const check of [...checks].sort((left, right) => left.id.localeCompare(right.id))) {
-      lines.push(`  @${check.id}: mechanical=${check.mechanical.status}, local=${check.local_verification.status}${check.local_verification.outcome ? `, outcome=${check.local_verification.outcome}` : ''}${check.local_verification.source ? ` (${check.local_verification.source})` : ''}, global=${check.global_verification.status}`);
+      lines.push(`  @${check.id}: mechanical=${check.mechanical.status}${check.mechanical.reason ? ` (${check.mechanical.reason})` : ''}, local=${check.local_verification.status}${check.local_verification.outcome ? `, outcome=${check.local_verification.outcome}` : ''}${check.local_verification.source ? ` (${check.local_verification.source})` : ''}, global=${check.global_verification.status}`);
       if (check.global_verification.blockers.length) lines.push(`    global blockers: ${check.global_verification.blockers.map((id) => `@${id}`).join(', ')}`);
       for (const reference of check.mechanical.references ?? []) {
         lines.push(`    -> @${reference.dependency}: existence=${reference.existence}, scope=${reference.scope}, cycle=${reference.cycle}`);
@@ -308,7 +324,25 @@ export function printReport(input: OperationResult): string {
   }
   if (result.diagnostics?.length) {
     lines.push('diagnostics:');
-    for (const item of result.diagnostics) lines.push(`  ${item.severity} ${item.code}${item.id ? ` @${item.id}` : ''}: ${item.message}`);
+    const groups = new Map<string, Diagnostic[]>();
+    for (const item of result.diagnostics) {
+      const key = `${item.severity}\0${item.code}\0${item.id ?? ''}\0${item.message}\0${item.remediation ?? ''}`;
+      const group = groups.get(key) ?? [];
+      group.push(item);
+      groups.set(key, group);
+    }
+    for (const group of groups.values()) {
+      const item = group[0];
+      if (!item) continue;
+      const locations = [...new Set(group.filter((entry) => entry.file).map((entry) => `${entry.file}${entry.line ? `:${entry.line}` : ''}`))].sort();
+      if (group.length > 1 && locations.length > 1) {
+        lines.push(`  ${item.severity} ${item.code}${item.id ? ` @${item.id}` : ''} (${locations.length} locations): ${item.message}`);
+        lines.push(`    files: ${locations.join(', ')}`);
+      } else {
+        const location = item.file ? ` ${item.file}${item.line ? `:${item.line}` : ''}` : '';
+        lines.push(`  ${item.severity} ${item.code}${item.id ? ` @${item.id}` : ''}${location}: ${item.message}`);
+      }
+    }
   }
   return `${lines.join('\n')}\n`;
 }

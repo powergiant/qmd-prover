@@ -31,6 +31,7 @@ Run the dispatcher from the mathematical project root:
 
 ```bash
 QMD_PROVER="${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js"
+node "$QMD_PROVER" doctor [--print]
 node "$QMD_PROVER" init [--adopt-existing|--append-contract|--sync-contract]
 node "$QMD_PROVER" inspect project [--print]
 node "$QMD_PROVER" inspect fact @ID [--print]
@@ -55,16 +56,19 @@ node "$QMD_PROVER" dependency reused [--limit N] [--print]
 node "$QMD_PROVER" dependency search QUERY [filters] [--print]
 node "$QMD_PROVER" check staleness [--print]
 node "$QMD_PROVER" submit proof PROPOSAL_FILE [--to QMD]
+node "$QMD_PROVER" verification list
 node "$QMD_PROVER" verification show SUBMISSION_ID
-node "$QMD_PROVER" verification revoke @ID --reason "reason"
-node "$QMD_PROVER" render
+node "$QMD_PROVER" verification revoke @ID [--reason "reason"]
+node "$QMD_PROVER" render [--allow-errors]
 ```
 
 Run `qmd-prover help`, append `help`, `--help`, or `-h` to a command group or leaf command, or use `qmd-prover help COMMAND...` for exact usage. `workspace inspect` is a compatibility alias for `inspect workspace`.
 
+`doctor` is read-only and checks Node, Pandoc, the optional verifier, and optional Quarto without parsing QMD. Use it before inspection when the execution environment is uncertain.
+
 `init` inventories existing policy, QMD, Quarto configuration, `.qmd-prover` state, and the `unrestricted`, `none`, or `declared` external-policy mode. It never creates `.external.qmd`. When existing material makes intent ambiguous, it returns `intent-required` without writing. Use `--adopt-existing`, `--append-contract`, or `--sync-contract` only after approval; synchronization preserves everything outside the managed block. Successful initialization ensures `.qmd-prover/workspaces/` exists but creates no theorem QMD or goal workspace.
 
-`workspace init @thm-main-ID` creates or resumes `.qmd-prover/workspaces/thm-main-ID/`. It records the protected main-goal identity, preserves a target snapshot, and creates initial progress/state only on first initialization. Inspection does not call this command implicitly.
+`workspace init @thm-main-ID` creates, resumes, or safely adopts `.qmd-prover/workspaces/thm-main-ID/`. It records the protected main-goal identity, preserves a target snapshot, creates only missing scaffold files, and never overwrites existing workspace QMD. Structural blockers are returned as diagnostics without writing. Inspection does not call this command implicitly.
 
 `inspect project` discovers user notes, protected main goals, initialized workspaces, goal-like uninitialized directories, and orphan workspaces. It checks every initialized workspace independently and returns their complete subresults together with aggregate facts, schema-v4 graph, findings, local-verification totals, global-verification totals, and staleness. One malformed workspace does not hide healthy results. `ok` reports operational success, not mathematical truth; inspect each main goal's `global_verification.status`.
 
@@ -84,9 +88,9 @@ Dependency commands always operate on the aggregate all-workspace machine graph.
 
 `check staleness` is read-only. It audits protected goal identities, workspace sources, external basis, checker contract, current workspace snapshots, exact cache records, and legacy canonical state. It reports changes and invalidations but never edits QMD, markers, or `progress.qmd`.
 
-`submit proof` and `verification revoke` are retired command surfaces. They return schema-v4 `status: "retired"`, use exit code 2 through the normal structured-result path, and never read or modify the proposal, destination, user QMD, or legacy marker. `verification show` remains a read-only way to inspect an old submission record.
+`submit proof` and `verification revoke` are retired command surfaces. They return schema-v4 `status: "retired"`, use exit code 2 through the normal structured-result path, and never read or modify the proposal, destination, user QMD, or legacy marker. `verification list` discovers retained submission IDs. `verification show` reads one record and returns `SUBMISSION_NOT_FOUND` rather than exposing an internal filesystem error when no record matches.
 
-`render` refreshes generated proof-status QMD, report data, and the dependency SVG from protected goals and retained workspace mathematics. It does not build a parallel website. Run ordinary `quarto render` through the project's configured pipeline for final output.
+`render` refreshes generated proof-status QMD, report data, and the dependency SVG from protected goals and retained workspace mathematics. Project errors block it without writing artifacts unless `--allow-errors` is explicit. It suggests ordinary `quarto render` only when Quarto is available.
 
 ### Diagnostic codes
 

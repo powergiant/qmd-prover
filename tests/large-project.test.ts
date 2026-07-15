@@ -138,7 +138,7 @@ test('large workspace fixture completes through the public CLI, persists its gra
     assert.equal((await verifierCalls(countFile)).length, 64);
 
     const cli = await runWorkspaceCli(root);
-    assert.equal(cli.operation, 'workspace-inspect');
+    assert.equal(cli.operation, 'inspect-workspace');
     assert.equal(cli.ok, true);
     assert.equal(cli.summary.facts, 32);
     assert.equal(cli.graph.edges.length, 84);

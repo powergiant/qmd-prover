@@ -6,6 +6,16 @@ const SECTION_ORDER = [
     ['notes', 'Notes']
 ];
 function command(path, usage, { acceptsPositionals = false, summary = '', sections = {} } = {}) {
+    const normalizedSections = {
+        description: [],
+        arguments: [],
+        options: [],
+        examples: [],
+        notes: [],
+        ...sections
+    };
+    if (summary && normalizedSections.description.length === 0)
+        normalizedSections.description = [summary];
     return {
         path,
         usage,
@@ -13,18 +23,24 @@ function command(path, usage, { acceptsPositionals = false, summary = '', sectio
         summary,
         // Populate these arrays as detailed command documentation is added.
         // Empty sections intentionally do not appear in --help output.
-        sections: {
-            description: [],
-            arguments: [],
-            options: [],
-            examples: [],
-            notes: [],
-            ...sections
-        }
+        sections: normalizedSections
     };
 }
 export const HELP_COMMANDS = [
-    command('', ['qmd-prover <command> [arguments]', 'qmd-prover help [COMMAND...]']),
+    command('', ['qmd-prover <command> [arguments]', 'qmd-prover help [COMMAND...]'], {
+        sections: {
+            notes: [
+                'Requirements: Node.js 20+ and Pandoc (or QMD_PROVER_PANDOC). A verifier and Quarto are optional.',
+                'Run `qmd-prover doctor` to check dependencies before inspecting QMD.',
+                'JSON is the default stable output. `--print` selects a concise human report where documented.',
+                'Semantic IDs may be written as `@ID` or `ID`; output uses the canonical `@ID` form.',
+                'Exit 1 means CLI usage/runtime failure; exit 2 means a structured domain result with ok:false.'
+            ]
+        }
+    }),
+    command('doctor', ['qmd-prover doctor [--print]'], {
+        summary: 'Check Node, Pandoc, verifier, and Quarto availability without changing the project.'
+    }),
     command('init', ['qmd-prover init [--adopt-existing|--append-contract|--sync-contract]'], {
         summary: 'Initialize or safely adopt a qmd-prover project.',
         sections: {
@@ -70,44 +86,73 @@ export const HELP_COMMANDS = [
         summary: 'Analyze one initialized workspace without creating it; an absent verifier leaves local/global states incomplete rather than failing machine analysis.'
     }),
     command('dependency', ['qmd-prover dependency <command> [arguments]']),
-    command('dependency dependencies', ['qmd-prover dependency dependencies @ID [--print]'], { acceptsPositionals: true }),
+    command('dependency dependencies', ['qmd-prover dependency dependencies @ID [--print]'], { acceptsPositionals: true, summary: 'Show direct and transitive dependencies of one fact.' }),
     command('dependency reverse', ['qmd-prover dependency reverse <command> [arguments]']),
-    command('dependency reverse dependencies', ['qmd-prover dependency reverse dependencies @ID [--print]'], { acceptsPositionals: true }),
-    command('dependency impact', ['qmd-prover dependency impact @ID [--print]'], { acceptsPositionals: true }),
+    command('dependency reverse dependencies', ['qmd-prover dependency reverse dependencies @ID [--print]'], { acceptsPositionals: true, summary: 'Show facts that directly or transitively depend on one fact.' }),
+    command('dependency impact', ['qmd-prover dependency impact @ID [--print]'], { acceptsPositionals: true, summary: 'Show downstream facts affected by a fact change.' }),
     command('dependency frontier', ['qmd-prover dependency frontier @ID [--print]'], {
         acceptsPositionals: true,
         summary: 'Show the lowest open, rejected, disproved, stale, or otherwise unusable dependencies.'
     }),
-    command('dependency path', ['qmd-prover dependency path @FROM @TO [--print]'], { acceptsPositionals: true }),
+    command('dependency path', ['qmd-prover dependency path @FROM @TO [--print]'], { acceptsPositionals: true, summary: 'Show the shortest dependency path; FROM=TO returns the one-node path.' }),
     command('dependency alternative', ['qmd-prover dependency alternative <command> [arguments]']),
-    command('dependency alternative paths', ['qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]'], { acceptsPositionals: true }),
-    command('dependency cycles', ['qmd-prover dependency cycles [--print]']),
-    command('dependency findings', ['qmd-prover dependency findings [--print]']),
+    command('dependency alternative paths', ['qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]'], {
+        acceptsPositionals: true,
+        summary: 'Enumerate bounded simple paths between two facts.',
+        sections: { options: ['--limit N       Number of paths, 1-25 (default 5).', '--max-depth N   Maximum edge depth, 1-100.'] }
+    }),
+    command('dependency cycles', ['qmd-prover dependency cycles [--print]'], { summary: 'List dependency cycles in the aggregate graph.' }),
+    command('dependency findings', ['qmd-prover dependency findings [--print]'], { summary: 'Return all graph hygiene, readiness, staleness-impact, and reuse findings.' }),
     command('dependency unused', ['qmd-prover dependency unused <command> [arguments]']),
-    command('dependency unused imports', ['qmd-prover dependency unused imports [--print]']),
-    command('dependency unused exports', ['qmd-prover dependency unused exports [--print]']),
-    command('dependency isolated', ['qmd-prover dependency isolated [--print]']),
-    command('dependency unreachable', ['qmd-prover dependency unreachable [--print]']),
+    command('dependency unused imports', ['qmd-prover dependency unused imports [--print]'], { summary: 'List imported fact IDs not referenced by their consumer file.' }),
+    command('dependency unused exports', ['qmd-prover dependency unused exports [--print]'], { summary: 'List exported facts not imported elsewhere.' }),
+    command('dependency isolated', ['qmd-prover dependency isolated [--print]'], { summary: 'List facts with no incoming or outgoing dependency edge.' }),
+    command('dependency unreachable', ['qmd-prover dependency unreachable [--print]'], { summary: 'List facts outside every protected main-goal dependency closure.' }),
     command('dependency ready', ['qmd-prover dependency ready <command> [arguments]']),
     command('dependency ready for', ['qmd-prover dependency ready for <command> [arguments]']),
-    command('dependency ready for ai', ['qmd-prover dependency ready for ai [--print]']),
-    command('dependency reused', ['qmd-prover dependency reused [--limit N] [--print]']),
+    command('dependency ready for ai', ['qmd-prover dependency ready for ai [--print]'], { summary: 'List candidates whose machine checks and direct dependency edges pass.' }),
+    command('dependency reused', ['qmd-prover dependency reused [--limit N] [--print]'], {
+        summary: 'Rank facts by transitive and direct reverse-dependency counts.',
+        sections: { options: ['--limit N   Number of facts, 1-1000 (default 20).'] }
+    }),
     command('dependency search', [
         'qmd-prover dependency search QUERY [--kind KIND] [--status STATUS] [--origin ORIGIN] [--path PATH]',
         '    [--used-by @ID|--depends-on @ID|--affected-by @ID|--stale-affected-by @ID]',
-        '    [--frontier-of @ID] [--cycle-participant] [--direct] [--print]'
-    ], { acceptsPositionals: true }),
+        '    [--related-to @ID] [--reverse] [--frontier-of @ID] [--cycle-participant] [--direct] [--print]'
+    ], {
+        acceptsPositionals: true,
+        summary: 'Search fact IDs, titles, paths, statements, and proofs with graph-aware filters.',
+        sections: {
+            options: [
+                '--kind definition|lemma|theorem|proposition|corollary|unknown',
+                '--origin workspace|main-goal|unresolved',
+                '--status STATUS   Use one of the statuses listed by inspect output.',
+                '--path PATH       Match one file or directory prefix.',
+                '--used-by/--depends-on/--affected-by/--stale-affected-by/--frontier-of @ID',
+                '--related-to @ID [--reverse]   Search dependencies or reverse dependencies.',
+                '--direct          Restrict graph relationship filters to one edge.',
+                '--cycle-participant   Restrict matches to nodes in cycles.'
+            ]
+        }
+    }),
     command('check', ['qmd-prover check <command> [arguments]']),
     command('check staleness', ['qmd-prover check staleness [--print]'], { summary: 'Audit workspace and cache freshness without modifying QMD.' }),
     command('workspace', ['qmd-prover workspace <command> [arguments]']),
-    command('workspace init', ['qmd-prover workspace init @thm-main-ID'], { acceptsPositionals: true }),
+    command('workspace init', ['qmd-prover workspace init @thm-main-ID'], { acceptsPositionals: true, summary: 'Create, resume, or safely adopt a goal workspace without overwriting existing QMD.' }),
     command('workspace inspect', ['qmd-prover workspace inspect @thm-main-ID [--print]'], { acceptsPositionals: true, summary: 'Compatibility alias for inspect workspace.' }),
     command('submit', ['qmd-prover submit <command> [arguments]']),
     command('submit proof', ['qmd-prover submit proof PROPOSAL_FILE [--to QMD]'], { acceptsPositionals: true, summary: 'Retired compatibility command; returns structured status and writes nothing.' }),
     command('verification', ['qmd-prover verification <command> [arguments]']),
-    command('verification show', ['qmd-prover verification show SUBMISSION_ID'], { acceptsPositionals: true }),
-    command('verification revoke', ['qmd-prover verification revoke @thm-ID --reason "..."'], { acceptsPositionals: true, summary: 'Retired compatibility command; legacy markers remain untouched.' }),
-    command('render', ['qmd-prover render'])
+    command('verification list', ['qmd-prover verification list'], { summary: 'List retained verification records and discover submission IDs.' }),
+    command('verification show', ['qmd-prover verification show SUBMISSION_ID'], { acceptsPositionals: true, summary: 'Read one retained verification record by submission ID.' }),
+    command('verification revoke', ['qmd-prover verification revoke @thm-ID [--reason "..."]'], { acceptsPositionals: true, summary: 'Retired compatibility command; accepts legacy syntax and writes nothing.' }),
+    command('render', ['qmd-prover render [--allow-errors]'], {
+        summary: 'Prepare generated status QMD, graph SVG, and JSON report.',
+        sections: {
+            options: ['--allow-errors   Explicitly generate diagnostic artifacts when project errors exist.'],
+            notes: ['Without --allow-errors, project errors block rendering and no render artifacts are written.', 'The final `quarto render` command is suggested only when Quarto is available.']
+        }
+    })
 ];
 const byPath = new Map(HELP_COMMANDS.map((item) => [item.path, item]));
 function childCommands(parent) {

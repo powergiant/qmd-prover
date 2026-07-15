@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { atomicJson, atomicWrite, AUX } from '../infrastructure/files.js';
+import { executableAvailable } from '../infrastructure/executables.js';
 import { buildAggregateSnapshot, publishAggregateSnapshot } from '../inspection/aggregate.js';
 import { buildProjectInspectionIndex } from '../inspection/index.js';
 function escapeXml(value = '') {
@@ -47,7 +48,6 @@ export async function renderProject(root = process.cwd(), options = {}) {
     root = path.resolve(root);
     const index = await buildProjectInspectionIndex(root, options);
     const snapshot = buildAggregateSnapshot(index);
-    await publishAggregateSnapshot(index, snapshot, options);
     const compilation = {
         root,
         config: index.goalsCompilation.config,
@@ -63,6 +63,18 @@ export async function renderProject(root = process.cwd(), options = {}) {
         complete: index.goalsCompilation.complete && index.workspaces.every((workspace) => workspace.compilation?.complete !== false),
         ok: !index.fatal && snapshot.diagnostics.every((item) => item.severity !== 'error')
     };
+    if (!compilation.ok && options.allowErrors !== true)
+        return {
+            schema_version: 4,
+            operation: 'render',
+            ok: false,
+            status: 'blocked',
+            summary: compilation.summary,
+            diagnostics: compilation.diagnostics,
+            artifacts_written: false,
+            remediation: 'Repair the diagnostics and rerun render, or explicitly use --allow-errors to generate diagnostic artifacts.'
+        };
+    await publishAggregateSnapshot(index, snapshot, options);
     const output = path.join(root, AUX, 'generated');
     const reportDir = path.join(root, AUX, 'reports');
     await Promise.all([mkdir(output, { recursive: true }), mkdir(reportDir, { recursive: true })]);
@@ -71,14 +83,24 @@ export async function renderProject(root = process.cwd(), options = {}) {
         atomicWrite(path.join(output, 'dependencies.svg'), graphSvg(compilation.graph)),
         atomicJson(path.join(reportDir, 'status.json'), { summary: compilation.summary, diagnostics: compilation.diagnostics })
     ]);
+    const quartoAvailable = await executableAvailable('quarto');
     return {
         schema_version: 4,
+        operation: 'render',
+        ok: true,
         status: compilation.ok ? 'prepared' : 'prepared-with-errors',
         output: path.relative(root, path.join(output, 'proof-status.qmd')),
         graph: path.relative(root, path.join(output, 'dependencies.svg')),
         report: path.relative(root, path.join(reportDir, 'status.json')),
-        render_command: 'quarto render',
-        summary: compilation.summary
+        ...(quartoAvailable ? { render_command: 'quarto render' } : {}),
+        quarto: {
+            available: quartoAvailable,
+            ...(quartoAvailable ? {} : { remediation: 'Install Quarto before building final HTML, PDF, or other output.' })
+        },
+        artifacts_written: true,
+        artifacts_trustworthy: compilation.ok,
+        summary: compilation.summary,
+        diagnostics: compilation.diagnostics
     };
 }
 export { escapeXml, graphSvg, statusQmd };

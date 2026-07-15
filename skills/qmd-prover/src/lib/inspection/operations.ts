@@ -25,7 +25,7 @@ function byId<T extends { id: string }>(items: T[]): Map<string, T> {
 interface FactCheck {
   id: string;
   status: string;
-  mechanical: { status: 'pass' | 'fail'; references: NonNullable<SemanticResult['reference_checks']> };
+  mechanical: { status: 'pass' | 'fail'; references: NonNullable<SemanticResult['reference_checks']>; reason?: string };
   local_verification: AiCheck;
   global_verification: GlobalVerification;
   diagnostics: Diagnostic[];
@@ -44,12 +44,20 @@ function factCheck(result: SemanticResult, diagnostics: Diagnostic[], inspected:
   const referenceFailure = (result.reference_checks ?? []).some((check) => (
     check.existence === 'fail' || check.scope === 'fail' || check.cycle === 'fail'
   ));
-  const mechanical = referenceFailure || relevant.some((item) => item.severity === 'error') ? 'fail' : 'pass';
+  const parseBlocked = diagnostics.some((item) => item.code === 'PARSE_ERROR');
+  const unavailable = result.status === 'missing' || result.status === 'workspace-unavailable';
+  const mechanical = referenceFailure || unavailable || parseBlocked || relevant.some((item) => item.severity === 'error') ? 'fail' : 'pass';
   const local = localCheck(result, inspected);
   return {
     id: result.id,
     status: result.status,
-    mechanical: { status: mechanical, references: result.reference_checks ?? [] },
+    mechanical: {
+      status: mechanical,
+      references: result.reference_checks ?? [],
+      ...(parseBlocked ? { reason: 'blocked-by-parse-error' }
+        : unavailable ? { reason: 'fact-unavailable' }
+          : referenceFailure ? { reason: 'reference-check-failed' } : {})
+    },
     local_verification: local,
     global_verification: result.global_verification ?? {
       status: mechanical === 'pass' ? 'unverified' : 'invalid', blockers: [], reason: 'workspace-not-inspected'
@@ -421,23 +429,45 @@ async function latestSnapshot(root: string, options: RuntimeOptions = {}): Promi
 
 
 export async function analyzeDependencies(root: string, operation: string, args: string[] = [], options: RuntimeOptions = {}): Promise<DependencyAnalysisResult> {
+  // Validate bounded options before any project scan so syntax errors are never hidden by graph failures.
+  if (operation === 'alternative-paths') {
+    boundedInteger(options.maxPaths, 5, { name: 'max paths', min: 1, max: 25 });
+    boundedInteger(options.maxDepth, 64, { name: 'max depth', min: 1, max: 100 });
+  }
+  if (operation === 'reused') boundedInteger(options.limit, 20, { name: 'limit', min: 1, max: 1000 });
   let snapshot: ProjectSnapshot;
   try { snapshot = await latestSnapshot(root, options); }
   catch (error) {
     const failure = error as { code?: string; message?: string; diagnostics?: Diagnostic[] };
     return {
       schema_version: 4, operation: `dependency-${operation}`, ok: false,
+      computed: false,
+      status: 'blocked',
       diagnostics: failure.diagnostics ?? [{ severity: 'error', code: failure.code ?? 'DEPENDENCY_SNAPSHOT_FAILED', message: failure.message ?? String(error) }]
     };
   }
   const { graph } = snapshot;
+  const blockingDiagnostics = (snapshot.diagnostics ?? []).filter((item) => (
+    item.code === 'PARSE_ERROR' || item.code === 'GLOBAL_DUPLICATE_ID' || item.code === 'WORKSPACE_DISCOVERY_FAILED'
+  ));
+  if (blockingDiagnostics.length) return {
+    schema_version: 4,
+    operation: `dependency-${operation}`,
+    ok: false,
+    computed: false,
+    status: 'blocked',
+    snapshot_id: snapshot.snapshot_id,
+    summary: { nodes_available: graph.nodes.length, blocking_errors: blockingDiagnostics.length },
+    diagnostics: blockingDiagnostics,
+    remediation: 'Repair the blocking parse or discovery diagnostics, then rerun the dependency command.'
+  };
   const requested = args[0];
   const requiredIds = [
     ...(['dependencies', 'reverse-dependencies', 'impact', 'frontier'].includes(operation) ? [requested] : []),
     ...(['path', 'alternative-paths'].includes(operation) ? [requested, args[1]] : []),
     ...(operation === 'search' ? [options.relatedTo, options.usedBy, options.dependsOn, options.affectedBy, options.staleAffectedBy, options.frontierOf] : [])
   ].filter((value): value is string => typeof value === 'string' && value.length > 0);
-  const missing = requiredIds.map(cleanId).filter((id) => !graph.nodes.some((node) => node.id === id));
+  const missing = [...new Set(requiredIds.map(cleanId).filter((id) => !graph.nodes.some((node) => node.id === id)))];
   if (missing.length) return {
     schema_version: 4, operation: `dependency-${operation}`, ok: false, snapshot_id: snapshot.snapshot_id,
     diagnostics: missing.map((id) => ({ severity: 'error', code: 'FACT_UNKNOWN', id, message: `Unknown fact in aggregate workspace graph: @${id}` }))
@@ -563,6 +593,7 @@ export async function analyzeDependencies(root: string, operation: string, args:
     schema_version: 4,
     operation: `dependency-${operation}`,
     ok: diagnostics.every((item) => item.severity !== 'error'),
+    computed: true,
     snapshot_id: snapshot.snapshot_id,
     graph,
     diagnostics,

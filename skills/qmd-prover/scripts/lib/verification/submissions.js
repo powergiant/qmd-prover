@@ -15,30 +15,69 @@ export async function submitProof(root, proposalFile, options = {}) {
         remediation: 'Keep definitions, results, and linked proofs in the protected goal workspace, then run inspect fact, inspect path, or inspect workspace. User QMD is never a promotion destination.'
     };
 }
-export async function showVerification(root, submissionId) {
+async function verificationRecords(root) {
     const directory = path.join(path.resolve(root), AUX, 'verification');
-    try {
-        return await readJson(path.join(directory, `${submissionId}.json`));
-    }
-    catch (error) {
-        if (!hasErrorCode(error, 'ENOENT'))
-            throw error;
-        const checks = path.join(directory, 'checks');
+    const records = [];
+    for (const selected of [directory, path.join(directory, 'checks')]) {
         let entries = [];
         try {
-            entries = await readdir(checks);
+            entries = await readdir(selected);
         }
-        catch (checksError) {
-            if (!hasErrorCode(checksError, 'ENOENT'))
-                throw checksError;
+        catch (error) {
+            if (!hasErrorCode(error, 'ENOENT'))
+                throw error;
         }
-        for (const name of entries.filter((entry) => entry.endsWith('.json')).sort()) {
-            const record = await readJson(path.join(checks, name));
-            if (record.submission_id === submissionId)
-                return record;
+        for (const name of entries.filter((entry) => entry.endsWith('.json') && entry !== 'index.json').sort()) {
+            const file = path.join(selected, name);
+            const record = await readJson(file);
+            if (typeof record.submission_id === 'string' || typeof record.target === 'string') {
+                records.push({ file: path.relative(path.resolve(root), file).split(path.sep).join('/'), record });
+            }
         }
-        throw error;
     }
+    return records;
+}
+export async function listVerifications(root) {
+    const diagnostics = [];
+    let records = [];
+    try {
+        records = await verificationRecords(root);
+    }
+    catch (error) {
+        diagnostics.push({ severity: 'error', code: 'VERIFICATION_RECORD_INVALID', message: String(error.message ?? error) });
+    }
+    const submissions = records.map(({ file, record }) => ({
+        submission_id: String(record.submission_id ?? path.basename(file, '.json')),
+        target: typeof record.target === 'string' ? record.target : null,
+        outcome: typeof record.outcome === 'string' ? record.outcome : typeof record.verdict === 'string' ? record.verdict : null,
+        verified_at: typeof record.verified_at === 'string' ? record.verified_at : null,
+        file
+    })).sort((left, right) => left.submission_id.localeCompare(right.submission_id));
+    return { schema_version: 4, operation: 'verification-list', ok: diagnostics.length === 0, submissions, diagnostics };
+}
+export async function showVerification(root, submissionId) {
+    const records = await verificationRecords(root);
+    const found = records.find(({ file, record }) => record.submission_id === submissionId || path.basename(file, '.json') === submissionId);
+    if (found)
+        return {
+            schema_version: 4,
+            operation: 'verification-show',
+            ok: true,
+            submission_id: submissionId,
+            file: found.file,
+            record: found.record
+        };
+    return {
+        schema_version: 4,
+        operation: 'verification-show',
+        ok: false,
+        submission_id: submissionId,
+        diagnostics: [{
+                severity: 'error', code: 'SUBMISSION_NOT_FOUND',
+                message: `No retained verification record has submission ID ${submissionId}.`,
+                remediation: 'Run qmd-prover verification list to discover available submission IDs.'
+            }]
+    };
 }
 export async function revokeVerification(root, requested, reason, options = {}) {
     void root;

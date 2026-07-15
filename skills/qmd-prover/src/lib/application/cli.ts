@@ -3,11 +3,13 @@ import path from 'node:path';
 import { findHelpCommand, hasExactHelpCommand, isHelpGroup, renderHelp, rootUsage } from './help.js';
 import { AUX, cleanId, readJson } from '../infrastructure/files.js';
 import { analyzeDependencies, inspectFact, inspectPath, inspectProject } from '../inspection/operations.js';
+import { boundedInteger } from '../inspection/graph.js';
 import { printReport } from '../inspection/report.js';
 import { renderProject } from './render.js';
+import { doctorProject } from './doctor.js';
 import { initializeProject } from './project.js';
 import { checkStaleness } from '../verification/staleness.js';
-import { revokeVerification, showVerification, submitProof } from '../verification/submissions.js';
+import { listVerifications, revokeVerification, showVerification, submitProof } from '../verification/submissions.js';
 import { initializeWorkspace } from '../workspace/initialize.js';
 import { inspectWorkspace } from '../workspace/inspect.js';
 import { asRecord, hasErrorCode } from '../shared/core.js';
@@ -30,7 +32,7 @@ function emitHelp(args: string[]): boolean {
   const extra = pathArgs.slice(selectedLength);
   const hasUnexpectedPositional = extra.some((item) => !item.startsWith('--')) && !selected.acceptsPositionals;
   if (pathArgs.length && ((direct && !hasExactHelpCommand(requested)) || (isHelpGroup(selected) && requested !== selected.path) || hasUnexpectedPositional)) {
-    throw new Error(`Unknown command: ${pathArgs.join(' ')}\n${usage}`);
+    throw new Error(`Unknown command: ${pathArgs.join(' ')}. Run qmd-prover help.`);
   }
   process.stdout.write(`${renderHelp(selected)}\n`);
   return true;
@@ -53,6 +55,7 @@ function dependencyOperation(args: string[]): { operation?: string; tail: string
 function output(value: unknown): void { process.stdout.write(`${JSON.stringify(value, null, 2)}\n`); }
 
 function presentation(args: string[]): { print: boolean; args: string[] } {
+  if (args.filter((item) => item === '--print').length > 1) throw new Error('Duplicate option --print');
   return { print: args.includes('--print'), args: args.filter((item) => item !== '--print') };
 }
 
@@ -64,6 +67,11 @@ function emit(value: OperationResult, print: boolean): void {
 
 type OptionMap = Record<string, string | boolean>;
 const optionString = (value: string | boolean | undefined): string | undefined => typeof value === 'string' ? value : undefined;
+
+function enumOption(name: string, value: string | undefined, allowed: readonly string[]): string | undefined {
+  if (value !== undefined && !allowed.includes(value)) throw new Error(`--${name} must be one of: ${allowed.join(', ')}`);
+  return value;
+}
 
 function optionValues(args: string[], names: Set<string>, flags = new Set<string>()): { options: OptionMap; positionals: string[] } {
   const options: OptionMap = {};
@@ -112,11 +120,20 @@ export async function main(
   const options: RuntimeOptions = pandoc ? { pandoc } : {};
   if (!command) { process.stdout.write(`${usage}\n`); return; }
   if (emitHelp(args)) return;
+  if (command === 'doctor') {
+    const parsed = presentation(rest);
+    if (parsed.args.length) throw new Error('doctor accepts only --print');
+    emit(await doctorProject(root), parsed.print);
+    return;
+  }
   if (command === 'init') {
     const allowed = new Set(['--adopt-existing', '--append-contract', '--sync-contract']);
-    if (rest.some((item) => !allowed.has(item)) || new Set(rest).size !== rest.length || rest.length > 1) {
-      throw new Error('init accepts only one of --adopt-existing, --append-contract, or --sync-contract');
-    }
+    const positional = rest.find((item) => !item.startsWith('--'));
+    if (positional) throw new Error(`init accepts no positional arguments; received: ${positional}`);
+    const unknown = rest.find((item) => !allowed.has(item));
+    if (unknown) throw new Error(`Unknown init option: ${unknown}`);
+    if (new Set(rest).size !== rest.length) throw new Error(`Duplicate init option: ${rest.find((item, index) => rest.indexOf(item) !== index)}`);
+    if (rest.length > 1) throw new Error('The init mutation options --adopt-existing, --append-contract, and --sync-contract are mutually exclusive');
     emit(await initializeProject(root, {
       adoptExisting: rest.includes('--adopt-existing'),
       appendContract: rest.includes('--append-contract'),
@@ -168,9 +185,14 @@ export async function main(
       if (extracted.positionals.length !== 1) throw new Error('dependency search requires one query');
       const queryOptions: RuntimeOptions = {
         ...options,
-        kind: optionString(extracted.options.kind),
-        status: optionString(extracted.options.status),
-        origin: optionString(extracted.options.origin),
+        kind: enumOption('kind', optionString(extracted.options.kind), ['definition', 'lemma', 'theorem', 'proposition', 'corollary', 'unknown']),
+        status: enumOption('status', optionString(extracted.options.status), [
+          'candidate', 'open', 'rejected', 'missing', 'stale',
+          'workspace-candidate', 'workspace-disproof-candidate', 'workspace-open', 'workspace-rejected',
+          'workspace-revoked', 'workspace-unverified', 'workspace-verified', 'workspace-disproved',
+          'workspace-blocked', 'workspace-invalid', 'workspace-unavailable'
+        ]),
+        origin: enumOption('origin', optionString(extracted.options.origin), ['workspace', 'main-goal', 'unresolved']),
         path: optionString(extracted.options.path),
         relatedTo: optionString(extracted.options.relatedto),
         frontierOf: optionString(extracted.options.frontierof),
@@ -188,17 +210,23 @@ export async function main(
     if (subcommand === 'alternative-paths') {
       const extracted = optionValues(tail, new Set(['limit', 'max-depth']));
       if (extracted.positionals.length !== 2) throw new Error('dependency alternative paths requires two semantic IDs');
+      const maxPaths = extracted.options.limit === undefined ? undefined
+        : boundedInteger(extracted.options.limit, 5, { name: '--limit', min: 1, max: 25 });
+      const maxDepth = extracted.options.maxdepth === undefined ? undefined
+        : boundedInteger(extracted.options.maxdepth, 64, { name: '--max-depth', min: 1, max: 100 });
       emit(await analyzeDependencies(root, subcommand, extracted.positionals, {
         ...options,
-        maxPaths: optionString(extracted.options.limit),
-        maxDepth: optionString(extracted.options.maxdepth)
+        maxPaths,
+        maxDepth
       }), parsed.print);
       return;
     }
     if (subcommand === 'reused') {
       const extracted = optionValues(tail, new Set(['limit']));
       if (extracted.positionals.length) throw new Error('dependency reused accepts only --limit N and --print');
-      emit(await analyzeDependencies(root, subcommand, [], { ...options, limit: typeof extracted.options.limit === 'string' ? extracted.options.limit : undefined }), parsed.print);
+      const limit = extracted.options.limit === undefined ? undefined
+        : boundedInteger(extracted.options.limit, 20, { name: '--limit', min: 1, max: 1000 });
+      emit(await analyzeDependencies(root, subcommand, [], { ...options, limit }), parsed.print);
       return;
     }
     const noArgument = new Set(['cycles', 'findings', 'unused-imports', 'unused-exports', 'isolated', 'unreachable', 'ready-for-ai']);
@@ -228,10 +256,11 @@ export async function main(
     const parsed = presentation(rest);
     const [subcommand, value, ...tail] = parsed.args;
     if (!value || tail.length) throw new Error('workspace requires init or inspect and one thm-main-* ID');
-    if (subcommand === 'init') { output(await initializeWorkspace(root, value, options)); return; }
+    if (subcommand === 'init') { emit(await initializeWorkspace(root, value, options), false); return; }
     if (subcommand === 'inspect') {
       const result: OperationResult = await inspectWorkspace(root, value, options);
-      result.operation = 'workspace-inspect';
+      result.operation = 'inspect-workspace';
+      result.invoked_as = 'workspace inspect';
       emit(result, parsed.print);
       return;
     }
@@ -239,8 +268,12 @@ export async function main(
   }
   if (command === 'verification') {
     const [subcommand, value, ...tail] = rest;
-    if (subcommand === 'show' && value && tail.length === 0) { output(await showVerification(root, value)); return; }
+    if (subcommand === 'list' && value === undefined) { emit(await listVerifications(root), false); return; }
+    if (subcommand === 'show' && value && tail.length === 0) { emit(await showVerification(root, value), false); return; }
     if (subcommand === 'revoke' && value) {
+      if (!(tail.length === 0 || (tail.length === 2 && tail[0] === '--reason' && tail[1]))) {
+        throw new Error('verification revoke accepts an ID and optional --reason TEXT; the command is retired and writes nothing');
+      }
       const index = tail.indexOf('--reason');
       const reason = index >= 0 ? tail[index + 1] : '';
       emit(await revokeVerification(root, cleanId(value), reason, options), false);
@@ -249,9 +282,11 @@ export async function main(
     throw new Error('Invalid verification command');
   }
   if (command === 'render') {
-    if (rest.length) throw new Error('render accepts no arguments');
-    output(await renderProject(root, options));
+    if (rest.some((item) => item !== '--allow-errors') || rest.filter((item) => item === '--allow-errors').length > 1) {
+      throw new Error('render accepts only optional --allow-errors');
+    }
+    emit(await renderProject(root, { ...options, allowErrors: rest.includes('--allow-errors') }), false);
     return;
   }
-  throw new Error(`Unknown command: ${command}\n${usage}`);
+  throw new Error(`Unknown command: ${command}. Run qmd-prover help.`);
 }

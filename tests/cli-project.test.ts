@@ -177,6 +177,7 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const cli = path.join(here, '..', 'skills', 'qmd-prover', 'scripts', 'qmd-prover.js');
   const run = (args: string[]) => new Promise<CliProcessResult>((resolve) => execFile(process.execPath, [cli, ...args], (error, stdout, stderr) => resolve({ error, stdout, stderr })));
   const commands = [
+    'doctor',
     'init',
     'inspect', 'inspect project', 'inspect fact', 'inspect path', 'inspect workspace',
     'dependency', 'dependency dependencies', 'dependency reverse', 'dependency reverse dependencies',
@@ -187,14 +188,16 @@ test('dispatcher provides help for every command group and leaf', async () => {
     'check', 'check staleness',
     'workspace', 'workspace init', 'workspace inspect',
     'submit', 'submit proof',
-    'verification', 'verification show', 'verification revoke',
+    'verification', 'verification list', 'verification show', 'verification revoke',
     'render'
   ];
   const rootHelp = await run(['help']);
   assert.equal(rootHelp.error, null);
   assert.match(rootHelp.stdout, /^Usage:\n/);
-  assert.match(rootHelp.stdout, /Commands:\n  init\n    Initialize or safely adopt a qmd-prover project\.\n  inspect\n  dependency/);
+  assert.match(rootHelp.stdout, /Commands:\n  doctor[\s\S]*  init\n    Initialize or safely adopt a qmd-prover project\.\n  inspect\n  dependency/);
   assert.ok(HELP_COMMANDS.every((item) => (['description', 'arguments', 'options', 'examples', 'notes'] as const).every((section) => Array.isArray(item.sections[section]))));
+  const leaves = HELP_COMMANDS.filter((item) => !HELP_COMMANDS.some((candidate) => candidate.path.startsWith(`${item.path} `)));
+  assert.ok(leaves.every((item) => item.path === '' || item.sections.description.length > 0), 'every leaf command needs a purpose in help');
   for (const command of commands) {
     const result = await run([...command.split(' '), 'help']);
     assert.equal(result.error, null, `${command} help failed: ${result.stderr}`);
@@ -243,6 +246,11 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(skill, /same unchanged agent\/project context/);
   assert.match(skill, /Stop and ask before creating, appending, or synchronizing project policy/);
   assert.match(skill, /workspace init @thm-main-ID/);
+  assert.match(skill, /Complete leaf-command map/);
+  assert.match(skill, /doctor \[--print\]/);
+  assert.match(skill, /dependency alternative paths @FROM @TO/);
+  assert.match(skill, /verification list/);
+  assert.match(skill, /render \[--allow-errors\]/);
   assert.match(skill, /An `@id` citation is a dependency but does not grant cross-file scope/);
   assert.match(skill, /global status is `verified`/);
   assert.match(skill, /submit proof.*retired/);
