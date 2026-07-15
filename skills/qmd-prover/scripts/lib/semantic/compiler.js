@@ -1,7 +1,7 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { AUX, atomicJson, atomicWrite, cleanId, exists, readJson, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
-import { loadConfig } from '../infrastructure/config.js';
+import { loadConfig, pandocCommand } from '../infrastructure/config.js';
 import { inlineText, normalizedAst, readAst, references, walk } from './pandoc.js';
 import { locateDiv, locateProof } from './source.js';
 import { KIND_BY_PREFIX, RESULT_KINDS, SCHEMA_VERSION, SEMANTIC_ID_PATTERN, SEMANTIC_PREFIX_PATTERN, isControlMarker } from '../shared/core.js';
@@ -146,13 +146,47 @@ async function initializeAux(root) {
     await Promise.all(directories.map((directory) => mkdir(path.join(root, AUX, directory), { recursive: true })));
     const configFile = path.join(root, AUX, 'config.yml');
     if (!await exists(configFile))
-        await atomicWrite(configFile, `project:\n  name: ${path.basename(root)}\n  root: ..\n  discover-qmd-recursively: true\n  exclude: [.qmd-prover]\n\ngoals:\n  id-prefix: thm-main-\n  protect-statements: true\n\nsemantic:\n  wildcard-imports: false\n\nverification:\n  backend: none\n  model: configurable\n  effort: high\n  fresh-context: true\n  require-zero-gaps: true\n\nrender:\n  graph-engine: builtin\n  output-dir: .qmd-prover/generated\n`);
+        await atomicWrite(configFile, [
+            `project:`,
+            `  name: ${path.basename(root)}`,
+            `  root: ..`,
+            `  discover-qmd-recursively: true`,
+            `  exclude: [.qmd-prover]`,
+            ``,
+            `goals:`,
+            `  id-prefix: thm-main-`,
+            `  protect-statements: true`,
+            ``,
+            `semantic:`,
+            `  wildcard-imports: false`,
+            ``,
+            `tools:`,
+            `  # Optional explicit paths, used when the tool is not on PATH.`,
+            `  pandoc: ""`,
+            `  quarto: ""`,
+            ``,
+            `verification:`,
+            `  # backend selects the independent verifier: none | claude | codex | command`,
+            `  backend: none`,
+            `  # For claude/codex: path to the CLI executable (defaults to the backend name on PATH).`,
+            `  executable: ""`,
+            `  model: configurable`,
+            `  effort: high`,
+            `  fresh-context: true`,
+            `  require-zero-gaps: true`,
+            ``,
+            `render:`,
+            `  graph-engine: builtin`,
+            `  output-dir: .qmd-prover/generated`,
+            ``
+        ].join('\n'));
 }
 export async function compileProject(root = process.cwd(), options = {}) {
     root = path.resolve(root);
     if (options.write !== false)
         await initializeAux(root);
     const config = await loadConfig(root);
+    const pandoc = pandocCommand(config, options.pandoc);
     const exclusions = await discoveryExclusions(root, config);
     let discovered = options.files
         ? options.files.map((absolute) => ({ absolute: path.resolve(absolute), relative: relativePosix(root, path.resolve(absolute)) }))
@@ -166,7 +200,7 @@ export async function compileProject(root = process.cwd(), options = {}) {
     const allProofs = [];
     for (const file of discovered) {
         try {
-            const [ast, source] = await Promise.all([readAst(file.absolute, options), readFile(file.absolute, 'utf8')]);
+            const [ast, source] = await Promise.all([readAst(file.absolute, { pandoc }), readFile(file.absolute, 'utf8')]);
             const entries = semanticDivs(ast);
             const imports = importsFromMeta(ast, file.relative, diagnostics);
             const results = [];

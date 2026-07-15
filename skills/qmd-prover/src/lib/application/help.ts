@@ -48,7 +48,7 @@ export const HELP_COMMANDS = [
   command('', ['qmd-prover <command> [arguments]', 'qmd-prover help [COMMAND...]'], {
     sections: {
       notes: [
-        'Requirements: Node.js 20+ and Pandoc (or QMD_PROVER_PANDOC). A verifier and Quarto are optional.',
+        'Requirements: Node.js 20+ and Pandoc (via PATH, tools.pandoc, or QMD_PROVER_PANDOC). A verifier (verification.backend claude|codex) and Quarto are optional.',
         'Run `qmd-prover doctor` to check dependencies before inspecting QMD.',
         'JSON is the default stable output. `--print` selects a concise human report where documented.',
         'Semantic IDs may be written as `@ID` or `ID`; output uses the canonical `@ID` form.',

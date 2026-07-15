@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { sha256, stableJson } from '../infrastructure/files.js';
 import { asErrorLike, asRecord, isRecord } from '../shared/core.js';
 export const VERIFIER_PROTOCOL_VERSION = 5;
@@ -27,22 +28,61 @@ export function checkerContract(config = {}) {
         protocol: { name: PROTOCOL_NAME, version: VERIFIER_PROTOCOL_VERSION }
     };
 }
+export const VERIFIER_BACKENDS = ['none', 'claude', 'codex', 'command'];
+/** Absolute path to a shipped verifier adapter (scripts/verifiers/<backend>.mjs). */
+function builtinAdapter(backend) {
+    return fileURLToPath(new URL(`../../verifiers/${backend}.mjs`, import.meta.url));
+}
+/** The concrete model id to pass to a CLI, or '' when the backend should pick its own default. */
+function modelFlag(verification) {
+    const model = typeof verification.model === 'string' ? verification.model.trim() : '';
+    return model && model !== 'configurable' ? model : '';
+}
+function backendExecutable(verification, backend) {
+    const configured = typeof verification.executable === 'string' ? verification.executable.trim() : '';
+    return configured || backend;
+}
+function customCommand(command) {
+    if (Array.isArray(command) && command.length > 0 && String(command[0]).trim()) {
+        return { command: String(command[0]), args: command.slice(1).map(String) };
+    }
+    if (typeof command === 'string' && command.trim())
+        return { command: command.trim(), args: [] };
+    return null;
+}
+/**
+ * The process to spawn for one verification. `claude`/`codex` backends run a shipped
+ * adapter under Node that bridges the packet to that CLI, so no custom command is needed.
+ * Precedence: QMD_PROVER_VERIFIER env > verification.backend claude|codex > verification.command.
+ */
 export function verifierCommand(config = {}) {
     const override = process.env.QMD_PROVER_VERIFIER?.trim();
     if (override)
         return { command: override, args: [], source: 'environment' };
-    const command = verificationConfig(config).command;
-    if (Array.isArray(command) && command.length > 0 && String(command[0]).trim()) {
-        return {
-            command: String(command[0]),
-            args: command.slice(1).map(String),
-            source: 'config'
-        };
+    const verification = verificationConfig(config);
+    const backend = String(verification.backend ?? 'none').trim();
+    if (backend === 'claude' || backend === 'codex') {
+        const model = modelFlag(verification);
+        const args = [builtinAdapter(backend), '--executable', backendExecutable(verification, backend), ...(model ? ['--model', model] : [])];
+        return { command: process.execPath, args, source: `backend:${backend}` };
     }
-    if (typeof command === 'string' && command.trim()) {
-        return { command: command.trim(), args: [], source: 'config' };
-    }
-    return null;
+    const custom = customCommand(verification.command);
+    return custom ? { ...custom, source: 'config' } : null;
+}
+/**
+ * The underlying tool whose availability doctor should probe and display. For claude/codex
+ * this is the CLI itself (not the Node adapter that wraps it).
+ */
+export function verifierProbe(config = {}) {
+    const override = process.env.QMD_PROVER_VERIFIER?.trim();
+    if (override)
+        return { command: override, backend: 'command' };
+    const verification = verificationConfig(config);
+    const backend = String(verification.backend ?? 'none').trim();
+    if (backend === 'claude' || backend === 'codex')
+        return { command: backendExecutable(verification, backend), backend };
+    const custom = customCommand(verification.command);
+    return custom ? { command: custom.command, backend: 'command' } : null;
 }
 export function configured(config = {}) {
     return verifierCommand(config) !== null;

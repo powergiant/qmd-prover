@@ -5,9 +5,15 @@ qmd-prover is a self-contained Codex skill with a dependency-free Node dispatche
 ## Requirements
 
 - Node.js 20 or later.
-- Pandoc on `PATH`, or `QMD_PROVER_PANDOC` set to a compatible executable.
-- An optional independent verifier executable configured with `QMD_PROVER_VERIFIER` or `verification.command`. Without one, machine inspection remains available and verification states remain incomplete.
-- Quarto only when rendered HTML, PDF, or another final format is wanted.
+- Pandoc on `PATH`, or `tools.pandoc` in `.qmd-prover/config.yml`, or `QMD_PROVER_PANDOC` set to a compatible executable.
+- An optional independent verifier. Set `verification.backend` to `claude` or `codex` to use a bundled adapter (with `verification.executable` pointing at that CLI when it is not on `PATH`), or `backend: command` with a custom `verification.command` argv, or `QMD_PROVER_VERIFIER`. Without a verifier, machine inspection remains available and verification states remain incomplete.
+- Quarto only when rendered HTML, PDF, or another final format is wanted; configure it with `tools.quarto` or `QMD_PROVER_QUARTO` when it is not on `PATH`.
+
+Tool-path precedence is: explicit override (env var) > `.qmd-prover/config.yml` (`tools.pandoc`, `tools.quarto`, `verification.executable`) > the bare command on `PATH`. `doctor` reports the resolved command and availability for each.
+
+## Bundled verifier backends
+
+`verification.backend: claude` and `verification.backend: codex` run adapters shipped at `scripts/verifiers/claude.mjs` and `scripts/verifiers/codex.mjs`. Each reads the packet on standard input, drives the corresponding CLI (`claude -p … --output-format json`, i.e. the Claude Agent SDK entry point; `codex exec …`, i.e. the Codex SDK entry point), extracts the verdict JSON, and prints it — so no custom script is needed and no qmd-prover code changes to switch model or executable, only configuration. The CLI must be installed and authenticated. `verification.model` is forwarded as `--model` when it is a concrete id (not `configurable`). The `command` backend and `QMD_PROVER_VERIFIER` remain available for a fully custom verifier that speaks the protocol below.
 
 The verifier receives one JSON packet on standard input for one local conditional check. It includes the exact target statement or construction, the submitted proof or refutation, the exact statements of only its direct dependencies, the definitions among that direct context, checker contract, and `external_basis` mode and exact content. It deliberately excludes dependency proof text, dependency verification state, and the transitive proof closure. The verifier must assume the supplied direct dependency statements and judge the proof actually submitted, rather than replacing it with another proof. It must return:
 

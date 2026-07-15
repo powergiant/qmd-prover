@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { atomicJson, atomicWrite, AUX } from '../infrastructure/files.js';
+import { quartoCommand } from '../infrastructure/config.js';
 import { executableAvailable } from '../infrastructure/executables.js';
 import { resolveProjectSnapshot } from '../inspection/snapshot.js';
 import { buildProjectInspectionIndex } from '../inspection/index.js';
@@ -83,7 +84,8 @@ export async function renderProject(root = process.cwd(), options = {}) {
         atomicWrite(path.join(output, 'dependencies.svg'), graphSvg(compilation.graph)),
         atomicJson(path.join(reportDir, 'status.json'), { summary: compilation.summary, diagnostics: compilation.diagnostics })
     ]);
-    const quartoAvailable = await executableAvailable('quarto');
+    const quartoCmd = quartoCommand(index.compilation.config);
+    const quartoAvailable = await executableAvailable(quartoCmd);
     return {
         schema_version: SCHEMA_VERSION,
         operation: 'render',
@@ -92,10 +94,10 @@ export async function renderProject(root = process.cwd(), options = {}) {
         output: path.relative(root, path.join(output, 'proof-status.qmd')),
         graph_svg: path.relative(root, path.join(output, 'dependencies.svg')),
         report: path.relative(root, path.join(reportDir, 'status.json')),
-        ...(quartoAvailable ? { render_command: 'quarto render' } : {}),
+        ...(quartoAvailable ? { render_command: `${quartoCmd} render` } : {}),
         quarto: {
             available: quartoAvailable,
-            ...(quartoAvailable ? {} : { remediation: 'Install Quarto before building final HTML, PDF, or other output.' })
+            ...(quartoAvailable ? {} : { remediation: 'Install Quarto, set tools.quarto in config, or set QMD_PROVER_QUARTO, before building final HTML, PDF, or other output.' })
         },
         artifacts_written: true,
         artifacts_trustworthy: compilation.ok,

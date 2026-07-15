@@ -1,16 +1,17 @@
 import path from 'node:path';
-import { loadConfig } from '../infrastructure/config.js';
+import { loadConfig, pandocCommand, quartoCommand } from '../infrastructure/config.js';
 import { executableAvailable } from '../infrastructure/executables.js';
-import { verifierCommand } from '../verification/protocol.js';
+import { verifierProbe } from '../verification/protocol.js';
 import { SCHEMA_VERSION } from '../shared/core.js';
 export async function doctorProject(root = process.cwd()) {
     root = path.resolve(root);
     const config = await loadConfig(root);
-    const pandocCommand = process.env.QMD_PROVER_PANDOC?.trim() || 'pandoc';
-    const verifier = verifierCommand(config);
+    const pandocCmd = pandocCommand(config);
+    const quartoCmd = quartoCommand(config);
+    const verifier = verifierProbe(config);
     const [pandoc, quarto, verifierAvailable] = await Promise.all([
-        executableAvailable(pandocCommand),
-        executableAvailable('quarto'),
+        executableAvailable(pandocCmd),
+        executableAvailable(quartoCmd),
         verifier ? executableAvailable(verifier.command) : Promise.resolve(false)
     ]);
     const major = Number(process.versions.node.split('.')[0]);
@@ -21,20 +22,20 @@ export async function doctorProject(root = process.cwd()) {
             ...(major >= 20 ? {} : { remediation: 'Install Node.js 20 or later.' })
         },
         pandoc: {
-            required: true, available: pandoc, command: pandocCommand,
+            required: true, available: pandoc, command: pandocCmd,
             purpose: 'Parse QMD into Pandoc JSON.',
-            ...(pandoc ? {} : { remediation: 'Install Pandoc or set QMD_PROVER_PANDOC to an executable.' })
+            ...(pandoc ? {} : { remediation: 'Install Pandoc, set tools.pandoc in .qmd-prover/config.yml, or set QMD_PROVER_PANDOC.' })
         },
         verifier: {
             required: false, available: verifierAvailable, command: verifier?.command ?? null,
             purpose: 'Independently check proof and refutation candidates.',
-            ...(!verifier ? { remediation: 'Optional: set QMD_PROVER_VERIFIER or verification.command.' }
-                : verifierAvailable ? {} : { remediation: `Configured verifier is not executable: ${verifier.command}` })
+            ...(!verifier ? { remediation: 'Optional: set verification.backend to claude or codex (with that CLI installed), or QMD_PROVER_VERIFIER.' }
+                : verifierAvailable ? {} : { remediation: `Configured verifier tool is not executable: ${verifier.command}. Install it or set verification.executable to its path.` })
         },
         quarto: {
-            required: false, available: quarto, command: 'quarto',
+            required: false, available: quarto, command: quartoCmd,
             purpose: 'Build final HTML, PDF, or other rendered output.',
-            ...(quarto ? {} : { remediation: 'Optional: install Quarto before running the suggested final render command.' })
+            ...(quarto ? {} : { remediation: 'Optional: install Quarto, set tools.quarto in config, or set QMD_PROVER_QUARTO, before the final render command.' })
         }
     };
     return {

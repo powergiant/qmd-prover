@@ -178,13 +178,23 @@ export interface GoalsConfig {
 
 export interface SemanticConfig { 'wildcard-imports': boolean }
 
+/** Optional explicit paths to external tools, used when they are not on PATH. */
+export interface ToolsConfig {
+  pandoc: string;
+  quarto: string;
+}
+
 export interface VerificationConfig {
+  /** none | claude | codex | command */
   backend: string;
   model: string;
   effort: string;
   'fresh-context': boolean;
   'require-zero-gaps': boolean;
-  command?: string;
+  /** Path to the claude/codex CLI when backend is claude|codex (defaults to the backend name on PATH). */
+  executable?: string;
+  /** Fully custom verifier argv when backend is `command` (advanced escape hatch). */
+  command?: string | string[];
   args?: string[];
   timeout?: number;
   [key: string]: unknown;
@@ -199,6 +209,7 @@ export interface QmdProverConfig {
   project: ProjectConfig;
   goals: GoalsConfig;
   semantic: SemanticConfig;
+  tools: ToolsConfig;
   verification: VerificationConfig;
   render: RenderConfig;
 }

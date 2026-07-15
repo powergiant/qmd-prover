@@ -5,7 +5,8 @@ const defaults = {
     project: { name: '', root: '..', 'discover-qmd-recursively': true, exclude: ['.qmd-prover'] },
     goals: { 'id-prefix': 'thm-main-', 'protect-statements': true },
     semantic: { 'wildcard-imports': false },
-    verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, 'require-zero-gaps': true },
+    tools: { pandoc: '', quarto: '' },
+    verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, 'require-zero-gaps': true, executable: '' },
     render: { 'graph-engine': 'builtin', 'output-dir': '.qmd-prover/generated' }
 };
 function scalar(text) {
@@ -63,6 +64,7 @@ function normalizedConfig(value) {
     const project = asRecord(value.project);
     const goals = asRecord(value.goals);
     const semantic = asRecord(value.semantic);
+    const tools = asRecord(value.tools);
     const verification = asRecord(value.verification);
     const render = asRecord(value.render);
     return {
@@ -79,11 +81,16 @@ function normalizedConfig(value) {
         semantic: {
             'wildcard-imports': booleanSetting(semantic['wildcard-imports'], defaults.semantic['wildcard-imports'])
         },
+        tools: {
+            pandoc: typeof tools.pandoc === 'string' ? tools.pandoc : defaults.tools.pandoc,
+            quarto: typeof tools.quarto === 'string' ? tools.quarto : defaults.tools.quarto
+        },
         verification: {
             ...verification,
             backend: typeof verification.backend === 'string' ? verification.backend : defaults.verification.backend,
             model: typeof verification.model === 'string' ? verification.model : defaults.verification.model,
             effort: typeof verification.effort === 'string' ? verification.effort : defaults.verification.effort,
+            executable: typeof verification.executable === 'string' ? verification.executable : defaults.verification.executable,
             'fresh-context': booleanSetting(verification['fresh-context'], defaults.verification['fresh-context']),
             'require-zero-gaps': booleanSetting(verification['require-zero-gaps'], defaults.verification['require-zero-gaps'])
         },
@@ -103,5 +110,19 @@ export async function loadConfig(root) {
             return structuredClone(defaults);
         throw error;
     }
+}
+/**
+ * Resolve the pandoc command. Precedence: explicit override (programmatic/CLI) >
+ * QMD_PROVER_PANDOC env > config `tools.pandoc` > `pandoc` on PATH.
+ */
+export function pandocCommand(config, override) {
+    return override?.trim() || process.env.QMD_PROVER_PANDOC?.trim() || config?.tools?.pandoc?.trim() || 'pandoc';
+}
+/**
+ * Resolve the quarto command. Precedence: explicit override > QMD_PROVER_QUARTO env >
+ * config `tools.quarto` > `quarto` on PATH.
+ */
+export function quartoCommand(config, override) {
+    return override?.trim() || process.env.QMD_PROVER_QUARTO?.trim() || config?.tools?.quarto?.trim() || 'quarto';
 }
 export { defaults };
