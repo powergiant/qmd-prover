@@ -26,79 +26,181 @@ proof block must follow the theorem immediately
 把命令的help写清楚
 
 
+你不要过度设计啊，DISPROVED就是个标签，后面依赖啥都都随便写。DISPROVED不一定写反例、反向的证明，或者很明确的直觉都可以。另外这个标签
 
-## Verification and acceptance in detail
 
-Before verification, the proving utilities validate the candidate and record
-the identities of the target and every dependency. The verifier receives only
-the exact statement, candidate proof, relevant definitions, and statements of
-cited verified dependencies. It does not receive the proving agent's
-confidence or unrelated narrative.
 
-A typical informal verifier response contains:
 
-```json
-{
-  "verdict": "correct",
-  "summary": "The proof covers the quantified case.",
-  "critical_errors": [],
-  "gaps": [],
-  "repair_hints": ""
-}
+-------
+
+现在的状态是：AI verification 的基础设施已经比较完整，但仓库没有内置真正的 AI backend。它目前是一个“外部 verifier 进程协议”。
+
+也就是说：
+
+- qmd-prover 会准备完整检查材料、调度检查、校验结果、缓存和安全落盘。
+- 真正调用 OpenAI、Anthropic 或本地模型的程序，需要用户通过 `QMD_PROVER_VERIFIER` 或 `verification.command` 提供。
+- 默认配置是 `backend: none`，所以开箱状态不会实际调用 AI。
+
+## 相关代码
+
+核心入口是 [protocol.ts](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/verification/protocol.ts:24)：
+
+- `checkerContract()`：记录 backend、model、effort、fresh context 等检查器身份。
+- `buildVerifierPacket()`：从第 149 行开始，构造交给 AI 的 JSON，其中包含：
+  - 精确 statement/construction
+  - proof
+  - dependencies
+  - imports/scope
+  - external basis
+  - 独立审查 prompt
+  - 返回 JSON schema
+- `verificationKey()`：把整个检查上下文做成内容寻址缓存键。
+- `accepted()`：第 268 行，只有 `correct + 无 critical_errors + 无 gaps` 才接受。
+- `execute()` / `invokeVerifier()`：第 278、303 行，启动外部进程，通过 stdin 发送 JSON、从 stdout 读取 JSON。
+
+配置入口在 [config.ts](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/infrastructure/config.ts:6)。默认值明确是：
+
+```yaml
+verification:
+  backend: none
+  model: configurable
+  effort: high
+  fresh-context: true
+  require-zero-gaps: true
 ```
 
-Acceptance requires `verdict: correct` together with empty `critical_errors`
-and `gaps`. Any other response is a rejection.
+三条实际调用链分别是：
 
-Verification JSON is the only dedicated auxiliary proof-development file type.
-Workspace records retain checks of provisional mathematics; project records
-identify exact mathematics accepted into canonical QMD. Both act as caches and
-ledgers for statements, proofs, dependencies, verdicts, gaps, repair guidance,
-and submission and review dates. They are fail-closed: a missing, corrupt,
-stale, or nonmatching record never makes a result verified. Only the dispatcher
-may write an accepted record or promote a workspace record to project scope.
+1. Canonical 自动检查  
+   [canonical.ts](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/verification/canonical.ts:292)
 
-After an accepting verdict, the proving utilities inspect the project again.
-If the protected target or any dependency changed while verification was
-running, the candidate is stale and is not applied. Otherwise, only the
-permitted proof content and its matching verification record are written. A
-post-write inspection must confirm the accepted state; failure rolls the
-canonical source back.
+   `inspect project/fact/path` 会先检查机械条件，再调用 verifier，成功后安全写入 `VERIFIED`、verification record 和 cache。批量调度在 [canonical.ts](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/verification/canonical.ts:387)。
 
-This mechanism separates authorship from judgment while keeping the host agent
-responsible for the proof-development loop.
+2. Workspace provisional 检查  
+   [workspace/inspect.ts](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/workspace/inspect.ts:378)
+
+   按依赖拓扑顺序调用 verifier，代码在第 422 行以后。结果只形成 `workspace-verified`，不会直接写 canonical `VERIFIED`。
+
+3. Proof submission 检查  
+   [submissions.ts](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/verification/submissions.ts:153)
+
+   第 171 行实际调用 verifier；接受后从第 226 行开始重新检查 target、dependencies、external basis 是否过期，然后原子合并 canonical proof。
+
+Staleness 和证据失效处理在 [staleness.ts](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/verification/staleness.ts:55)。
+
+## 已经完成的部分
+
+目前已经实现并有测试覆盖：
+
+- verifier protocol v2
+- 独立数学审查 prompt
+- theorem 与 definition 两种检查模式
+- 严格 JSON 输出校验
+- exact-context 缓存
+- rejected verdict 缓存
+- malformed/unavailable verifier 的 fail-closed
+- statement、proof、dependency、scope、external basis、checker contract 变化后的失效
+- canonical 原子写入和失败回滚
+- concurrent edit/stale submission 防护
+- workspace 拓扑验证和失败向上传播
+- 大项目中 32 个事实、84 条依赖边的调用和增量缓存
+
+测试证据主要在 [verification-render.test.ts](/Users/xiaom/Documents/Projects/qmd-prover/tests/verification-render.test.ts:15) 和 [large-project.test.ts](/Users/xiaom/Documents/Projects/qmd-prover/tests/large-project.test.ts:79)。
+
+## 还没有完成的部分
+
+这里有几个明确缺口：
+
+- 没有生产用 OpenAI/Anthropic/本地模型 adapter；当前只有测试用 mock verifier。
+- `backend`、`model`、`effort` 目前主要是 packet/record 元数据，不会由 qmd-prover 自己选择模型。
+- 类型里声明了 `verification.args` 和 `verification.timeout`，见 [types.ts](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/shared/types.ts:167)，但实际执行没有使用这两个配置，尤其没有超时终止机制。
+- `fresh-context: false` 没有真正生效：执行时固定设置 `QMD_PROVER_FRESH_CONTEXT=1`。
+- `require-zero-gaps: false` 与 `accepted()` 不一致；`accepted()` 仍然无条件要求 `gaps.length === 0`。
+- `submit proof` 中 verifier 进程失败没有像 inspection/workspace 那样生成完整的结构化 failure report。
+- 当前每个事实启动一个独立进程并串行执行；安全性清楚，但真实 AI 下的大项目成本和速度会比较明显。
+
+所以准确地说：验证框架已经能接一个真实 AI verifier，并且安全边界做得比较完整；但“仓库自身直接调用某个 AI 服务”这一层尚未实现，部分 verifier 配置项也还只是接口，没有完全接通。
+
+---------
 
 
-## Core invariants
+这不是 `@` 的问题；带不带 `@` 都会经过 `cleanId()`。
 
-Every component preserves the following invariants:
+当前有两个独立原因。
 
-- A `thm-main-*` ID, title, hypotheses, quantifiers, and statement are
-  user-owned and protected.
-- Every logical dependency is explicit and available in the theorem's scope.
-- A proof candidate is not accepted merely because its author considers it
-  correct.
-- Independent verification is based on the exact statement, candidate, and
-  relevant dependencies.
-- Rejection never changes canonical mathematics.
-- Acceptance is rejected as stale if the target or a dependency changed during
-  verification.
-- Canonical proof updates are atomic.
-- QMD remains readable and renderable by Quarto without qmd-prover becoming a
-  second document system.
+1. `def-hilbert-calculus` 不是 canonical fact
 
-## Non-goals
+当前 example 的 canonical 内容只有 [completeness.qmd](/Users/xiaom/Documents/Projects/qmd-prover/examples/godel-completeness/completeness.qmd)，manifest 中也只有：
 
-qmd-prover does not define:
+```text
+thm-main-godel-completeness
+```
 
-- a dedicated autonomous agent;
-- a persistent worker or task model;
-- a scheduling or messaging system for sub-agents;
-- a public CLI product separate from the skill's Node utilities;
-- a custom HTML, PDF, or website renderer; or
-- a replacement for formal proof assistants.
+`def-hilbert-calculus` 实际在测试 fixture 的 [calculus.qmd](/Users/xiaom/Documents/Projects/qmd-prover/tests/fixtures/large-project/workspace/thm-main-godel-completeness/calculus.qmd:14) 中。
 
-An independent LLM verifier establishes only the configured verification
-status. Formal verification and human review remain distinct claims.
+`inspect fact` 只查 canonical project，不查 provisional workspace，所以即使 workspace 组织正确，也不能用它检查这个定义。workspace 应该运行：
 
+```bash
+node ../../skills/qmd-prover/scripts/qmd-prover.js \
+  workspace inspect @thm-main-godel-completeness
+```
 
+然后从 JSON 中查看单个结果，例如：
+
+```bash
+node ../../skills/qmd-prover/scripts/qmd-prover.js \
+  workspace inspect @thm-main-godel-completeness |
+jq '.facts[] | select(.id == "def-hilbert-calculus")'
+```
+
+2. 当前 workspace 文件放错了层级
+
+现在文件是：
+
+```text
+.qmd-prover/workspaces/calculus.qmd
+.qmd-prover/workspaces/foundations.qmd
+...
+```
+
+但约定位置是：
+
+```text
+.qmd-prover/workspaces/thm-main-godel-completeness/
+  calculus.qmd
+  foundations.qmd
+  ...
+```
+
+应该先运行 `workspace init` 创建目标目录，再把这些材料放进去。否则 `workspace inspect` 不会发现它们。
+
+3. 还有一个真实的错误掩盖 bug
+
+我本地复现时发现当前进程找不到 Pandoc：
+
+```text
+PARSE_ERROR: Pandoc is required to parse QMD
+```
+
+但 [inspectFact()](/Users/xiaom/Documents/Projects/qmd-prover/skills/qmd-prover/src/lib/inspection/operations.ts:93) 在第 98 行没有先检查 `compilation.complete`，而是直接因为结果列表为空抛出：
+
+```text
+Unknown fact
+```
+
+所以它把真正的 Pandoc/解析错误掩盖了。这部分确实是代码问题，不是你的命令写错。
+
+先检查：
+
+```bash
+pandoc --version
+node ../../skills/qmd-prover/scripts/qmd-prover.js inspect project
+```
+
+正确行为应该是：
+
+- Pandoc 缺失或解析失败时，`inspect fact` 报解析失败；
+- canonical 中确实没有 ID 时，才报 `Unknown fact`；
+- workspace fact 应通过 `workspace inspect @thm-main-ID` 检查。
+
+目前我只做了诊断，没有修改文件。

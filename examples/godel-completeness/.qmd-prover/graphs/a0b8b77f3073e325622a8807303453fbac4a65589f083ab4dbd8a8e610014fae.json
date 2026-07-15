@@ -1,0 +1,112 @@
+{
+  "context_hash": "sha256:14d8c1128be01e2db5cc7daf7dd95dfdc9a5d3b6dc3f449b29fc32a7028f49fc",
+  "diagnostics": [
+    {
+      "code": "WORKSPACE_UNINITIALIZED",
+      "file": ".qmd-prover/workspaces/thm-main-godel-completeness",
+      "id": "thm-main-godel-completeness",
+      "message": "Goal-like directory @thm-main-godel-completeness contains active QMD files but has no workspace.json; run workspace init explicitly or move the files into an initialized workspace",
+      "severity": "error"
+    }
+  ],
+  "goals": [
+    {
+      "file": "completeness.qmd",
+      "id": "thm-main-godel-completeness",
+      "line": 5,
+      "status": "open"
+    }
+  ],
+  "graph": {
+    "cycles": [],
+    "edges": [],
+    "nodes": [
+      {
+        "file": "completeness.qmd",
+        "id": "thm-main-godel-completeness",
+        "identity": {
+          "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "statement_hash": "sha256:4c0097f5058c40780b562875568aaa578b1412f89d25ff2d20b199f17518f370"
+        },
+        "kind": "theorem",
+        "line": 5,
+        "origin": "main-goal",
+        "ownership": "user",
+        "status": "open",
+        "title": "Gödel completeness theorem"
+      }
+    ],
+    "schema_version": 3,
+    "snapshot_id": "sha256:a0b8b77f3073e325622a8807303453fbac4a65589f083ab4dbd8a8e610014fae"
+  },
+  "manifest": {
+    "files": [
+      {
+        "imports": [],
+        "path": "completeness.qmd",
+        "proofs": [],
+        "results": [
+          "thm-main-godel-completeness"
+        ]
+      }
+    ],
+    "proofs": [],
+    "results": [
+      {
+        "classes": [
+          "goal",
+          "theorem"
+        ],
+        "construction_dependencies": [],
+        "date": "2026-07-12",
+        "dependencies": [],
+        "export": null,
+        "file": "completeness.qmd",
+        "id": "thm-main-godel-completeness",
+        "kind": "theorem",
+        "line": 5,
+        "marker": null,
+        "marker_valid": true,
+        "origin": "user",
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "proof_present": false,
+        "proof_text": "",
+        "reference_checks": [],
+        "statement_hash": "sha256:4c0097f5058c40780b562875568aaa578b1412f89d25ff2d20b199f17518f370",
+        "statement_text": "For every first-order signature (L), every set () of (L)-sentences, and every (L)-sentence (), if every (L)-structure satisfying () also satisfies (), then () in the proof calculus developed in this project.",
+        "status": "open",
+        "title": "Gödel completeness theorem",
+        "title_hash": "sha256:1a56002ec01133e18f83b443690ad033070b6ae1ff7c0e48d32dc7cd25cd54ab",
+        "uses": []
+      }
+    ],
+    "schema_version": 3,
+    "snapshot_id": "sha256:a0b8b77f3073e325622a8807303453fbac4a65589f083ab4dbd8a8e610014fae"
+  },
+  "notes": [
+    {
+      "goals": [
+        "thm-main-godel-completeness"
+      ],
+      "path": "completeness.qmd"
+    }
+  ],
+  "schema_version": 3,
+  "snapshot_id": "sha256:a0b8b77f3073e325622a8807303453fbac4a65589f083ab4dbd8a8e610014fae",
+  "source_signature": "sha256:d83b06104395f678f1724b536243987ab02ebb06845b831f161c84fa55b12894",
+  "summary": {
+    "errors": 1,
+    "facts": 1,
+    "goals": 1,
+    "notes": 1,
+    "workspaces": 1
+  },
+  "workspaces": [
+    {
+      "id": "thm-main-godel-completeness",
+      "path": ".qmd-prover/workspaces/thm-main-godel-completeness",
+      "stale": true,
+      "status": "uninitialized"
+    }
+  ]
+}

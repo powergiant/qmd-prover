@@ -1,0 +1,7 @@
+{
+  "thm-main-godel-completeness": {
+    "file": "completeness.qmd",
+    "statement_hash": "sha256:4c0097f5058c40780b562875568aaa578b1412f89d25ff2d20b199f17518f370",
+    "title_hash": "sha256:1a56002ec01133e18f83b443690ad033070b6ae1ff7c0e48d32dc7cd25cd54ab"
+  }
+}

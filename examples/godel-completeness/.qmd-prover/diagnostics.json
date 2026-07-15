@@ -1,0 +1,8 @@
+[
+  {
+    "code": "PARSE_ERROR",
+    "file": "completeness.qmd",
+    "message": "Pandoc is required to parse QMD. Install Pandoc or set QMD_PROVER_PANDOC (tried: pandoc).",
+    "severity": "error"
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "cycles": [],
+  "edges": [],
+  "nodes": [
+    {
+      "file": "completeness.qmd",
+      "id": "thm-main-godel-completeness",
+      "identity": {
+        "proof_hash": "sha256:37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "statement_hash": "sha256:4c0097f5058c40780b562875568aaa578b1412f89d25ff2d20b199f17518f370"
+      },
+      "kind": "theorem",
+      "line": 5,
+      "origin": "main-goal",
+      "ownership": "user",
+      "status": "open",
+      "title": "Gödel completeness theorem"
+    }
+  ],
+  "schema_version": 3,
+  "snapshot_id": "sha256:a0b8b77f3073e325622a8807303453fbac4a65589f083ab4dbd8a8e610014fae"
+}

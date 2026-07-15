@@ -1,0 +1,23 @@
+project:
+  name: godel-completeness
+  root: ..
+  discover-qmd-recursively: true
+  exclude: [.qmd-prover]
+
+goals:
+  id-prefix: thm-main-
+  protect-statements: true
+
+semantic:
+  wildcard-imports: false
+
+verification:
+  backend: none
+  model: configurable
+  effort: high
+  fresh-context: true
+  require-zero-gaps: true
+
+render:
+  graph-engine: builtin
+  output-dir: .qmd-prover/generated

@@ -1,0 +1,198 @@
+---
+title: "Proof calculus and consistency"
+qmd-prover:
+  imports:
+    - from: foundations.qmd
+      use:
+        - def-fol-formulas
+        - def-fol-substitution
+        - def-language-translation
+        - lem-fresh-variable
+        - lem-substitution-composition
+---
+
+::: {#def-hilbert-calculus .definition name="Classical first-order proof calculus" date="2026-07-12" export="def-hilbert-calculus"}
+For a signature \(L\), an \(L\)-derivation from a set \(\Sigma\) of
+\(L\)-sentences is a finite sequence of \(L\)-formulas.  Each line is:
+
+1. a member of \(\Sigma\);
+2. an instance (under uniform formula substitution) of a classical
+   propositional tautology;
+3. \(\forall x A\to A[t/x]\), where \(t\) is free for \(x\) in \(A\) as in
+   @def-fol-substitution;
+4. \(\forall x(A\to B)\to(A\to\forall xB)\), where \(x\notin\mathrm{FV}(A)\);
+5. \(A[t/x]\to\exists xA\), where \(t\) is free for \(x\) in \(A\), and
+   \(\forall x(A\to B)\to(\exists xA\to B)\), where
+   \(x\notin\mathrm{FV}(B)\);
+6. an equality axiom: \(t=t\), or
+   \(s=t\to(C[s/x]\to C[t/x])\), where the displayed substitutions are
+   free (this schema includes symmetry, transitivity, and substitutivity for
+   functions and relations);
+7. obtained by modus ponens from earlier \(A\) and \(A\to B\); or
+8. obtained by generalization from an earlier \(A\), yielding \(\forall xA\).
+
+Because assumptions are sentences by @def-fol-formulas, generalization has no
+free-variable side condition on assumptions.  Write \(\Sigma\vdash_L A\) if
+such a sequence ends in \(A\), and \(\vdash_L A\) when \(\Sigma=\varnothing\).
+This is the proof calculus meant by the main goal.
+:::
+
+::: {#lem-proof-finitary .lemma name="Finitarity of derivability" date="2026-07-12" export="lem-proof-finitary"}
+If \(\Sigma\vdash_L A\), some finite \(\Sigma_0\subseteq\Sigma\) satisfies
+\(\Sigma_0\vdash_L A\).
+:::
+
+::: {.proof of="lem-proof-finitary"}
+A derivation in @def-hilbert-calculus is finite.  Take \(\Sigma_0\) to be the
+set of its lines justified as assumptions.  The same finite sequence is a
+derivation from \(\Sigma_0\).
+:::
+
+::: {#lem-deduction .lemma name="Deduction theorem" date="2026-07-12"}
+For a set \(\Sigma\) of sentences and sentences \(A,B\),
+\(\Sigma\cup\{A\}\vdash_L B\) iff \(\Sigma\vdash_L A\to B\).
+:::
+
+::: {.proof of="lem-deduction"}
+For the forward implication, induct on the finite derivation specified in
+@def-hilbert-calculus.  If a line \(C\) is \(A\), use the propositional
+tautology \(A\to A\).  If it is an axiom or belongs to \(\Sigma\), derive
+\(A\to C\) from \(C\) and the tautology \(C\to(A\to C)\).  The modus-ponens
+step follows from the tautology
+\((A\to(C\to D))\to((A\to C)\to(A\to D))\).
+If \(C\) was generalized to \(\forall xC\), the induction hypothesis gives
+\(A\to C\); generalize to \(\forall x(A\to C)\), and apply quantifier axiom
+4 of @def-hilbert-calculus to obtain \(A\to\forall xC\), since the sentence
+\(A\) has no free variables by @def-fol-formulas.  The reverse implication is
+one modus-ponens step using the added assumption \(A\).
+:::
+
+::: {#def-consistency .definition name="Syntactic consistency and completeness" date="2026-07-12" export="def-consistency"}
+A set \(\Sigma\) of \(L\)-sentences is *consistent* when there is no sentence
+\(A\) such that both \(\Sigma\vdash_L A\) and
+\(\Sigma\vdash_L\neg A\).  It is *negation-complete* when for every
+\(L\)-sentence \(A\), either \(A\in\Sigma\) or \(\neg A\in\Sigma\).  It is
+*deductively closed* when \(\Sigma\vdash_L A\) implies \(A\in\Sigma\).
+:::
+
+::: {#lem-consistency-characterizations .lemma name="Consistency characterizations" date="2026-07-12" export="lem-consistency-characterizations"}
+For a set \(\Sigma\) of sentences and any sentence \(A\), the following are equivalent:
+(i) \(\Sigma\) is inconsistent in the sense of @def-consistency;
+(ii) \(\Sigma\vdash_L\bot\), where \(\bot\) abbreviates the fixed
+sentential contradiction
+\((\forall z\,z=z)\wedge\neg(\forall z\,z=z)\);
+(iii) \(\Sigma\vdash_L B\) for every sentence \(B\).
+Moreover, if \(\Sigma\nvdash_L A\), then
+\(\Sigma\cup\{\neg A\}\) is consistent.
+:::
+
+::: {.proof of="lem-consistency-characterizations"}
+If \(\Sigma\) derives \(C\) and \(\neg C\), a propositional tautology and two
+modus-ponens steps in @def-hilbert-calculus derive \(\bot\).  From \(\bot\),
+the tautology \(\bot\to B\) derives every \(B\); (iii) plainly implies (i).
+For the last assertion, inconsistency of
+\(\Sigma\cup\{\neg A\}\) would give a derivation of \(\bot\).  By
+@lem-deduction, \(\Sigma\vdash_L\neg A\to\bot\); classical propositional
+logic proves \((\neg A\to\bot)\to A\), contradicting
+\(\Sigma\nvdash_L A\).
+:::
+
+::: {#lem-chain-union-consistent .lemma name="Unions of consistency chains" date="2026-07-12"}
+If \(\mathcal C\) is a nonempty chain under inclusion of consistent sets of
+\(L\)-sentences, then \(\bigcup\mathcal C\) is consistent.
+:::
+
+::: {.proof of="lem-chain-union-consistent"}
+If the union were inconsistent, @lem-consistency-characterizations and
+@lem-proof-finitary would place a finite inconsistent subset in the union.
+Each of its finitely many members belongs to some element of \(\mathcal C\);
+since \(\mathcal C\) is linearly ordered, one element contains them all.  It
+would be inconsistent by monotonicity of derivations in
+@def-hilbert-calculus, a contradiction.
+:::
+
+::: {#lem-maximal-consistent .lemma name="Maximal consistent extension" date="2026-07-12" export="lem-maximal-consistent"}
+Every consistent set \(\Sigma\) of \(L\)-sentences is contained in a
+consistent, deductively closed, negation-complete set \(T\) of
+\(L\)-sentences.
+:::
+
+::: {.proof of="lem-maximal-consistent"}
+Consider the partially ordered set of consistent extensions of \(\Sigma\),
+ordered by inclusion.  It is nonempty, and every chain has an upper bound by
+@lem-chain-union-consistent.  Apply **Zorn's lemma** (the set-theoretic
+principle: if every chain in a nonempty partially ordered set has an upper
+bound, then a maximal element exists) to obtain a maximal consistent
+extension \(T\).  Its hypotheses have just been verified.
+
+If \(T\vdash_L A\) but \(A\notin T\), then \(T\cup\{A\}\) has exactly the
+same consequences as \(T\) (replace each use of the new assumption by the
+given finite derivation), so it is consistent, contradicting maximality.
+Thus \(T\) is deductively closed.  For a sentence \(A\), if \(A\notin T\),
+maximality makes \(T\cup\{A\}\) inconsistent.  By
+@lem-consistency-characterizations and @lem-deduction,
+\(T\vdash_L A\to\bot\), hence \(T\vdash_L\neg A\) by propositional logic;
+deductive closure puts \(\neg A\) in \(T\).  Thus @def-consistency gives all
+three claimed properties.
+:::
+
+::: {#lem-complete-theory-boolean .lemma name="Boolean laws in a complete theory" date="2026-07-12" export="lem-complete-theory-boolean"}
+If \(T\) is consistent, deductively closed, and negation-complete, then for
+sentences \(A,B\):
+\(\neg A\in T\) iff \(A\notin T\), and
+\(A\wedge B\in T\) iff both \(A\in T\) and \(B\in T\).
+:::
+
+::: {.proof of="lem-complete-theory-boolean"}
+Negation-completeness from @def-consistency supplies at least one of
+\(A,\neg A\); consistency forbids both because assumptions are derivable in
+@def-hilbert-calculus.  The conjunction eliminations and introduction are
+classical propositional tautologies, so deductive closure proves the second
+equivalence.
+:::
+
+::: {#lem-constant-elimination .lemma name="Elimination of fresh constants" date="2026-07-12" export="lem-constant-elimination"}
+Let \(L'=L\cup\{c_1,\ldots,c_n\}\), where the displayed constants are new.
+If a set \(\Sigma\) of \(L\)-sentences derives an \(L\)-sentence \(A\) in
+\(L'\), then \(\Sigma\vdash_L A\).
+More generally, if distinct variables \(y_i\) are fresh for a finite
+\(L'\)-derivation, replacing every \(c_i\) by \(y_i\) throughout yields a
+valid derivation of the correspondingly translated conclusion from
+\(\Sigma\).
+:::
+
+::: {.proof of="lem-constant-elimination"}
+Choose distinct variables \(y_i\) absent from the finite derivation using
+@lem-fresh-variable.  Translate every line by replacing \(c_i\) with \(y_i\)
+as in @def-language-translation.  Propositional and equality axiom instances
+remain instances; quantifier instances remain valid by
+@lem-substitution-composition; modus ponens is preserved.  Before translating,
+alpha-rename generalized variables away from the \(y_i\), which is permitted
+by @def-fol-formulas, so generalization is preserved.  The assumptions and
+conclusion, when they are \(L\)-sentences, are fixed.  Thus the translated
+sequence proves the general assertion under @def-hilbert-calculus, and its
+special case is an \(L\)-derivation of \(A\).
+:::
+
+::: {#lem-henkin-witness-consistency .lemma name="Fresh witness preserves consistency" date="2026-07-12" export="lem-henkin-witness-consistency"}
+Let \(\Sigma\) be a consistent set of \(L\)-sentences, let
+\(\exists x A(x)\) be an \(L\)-sentence, and let \(c\) be a new constant.
+Then \(\Sigma\cup\{\exists xA(x)\to A(c)\}\) is consistent in
+\(L\cup\{c\}\).
+:::
+
+::: {.proof of="lem-henkin-witness-consistency"}
+Suppose the extension is inconsistent.  By
+@lem-consistency-characterizations and @lem-deduction it derives, from
+\(\Sigma\), the negation of \(\exists xA(x)\to A(c)\), and propositional
+logic consequently gives both \(\exists xA(x)\) and \(\neg A(c)\).
+The latter derivation uses the fresh constant only.  Replace \(c\) by a
+variable \(y\) fresh for the finite derivation using @lem-fresh-variable.
+Propositional logic gives \(A(y)\to\bot\); generalization gives
+\(\forall y(A(y)\to\bot)\), and quantifier axiom 5 of
+@def-hilbert-calculus gives \(\exists yA(y)\to\bot\), hence
+\(\neg\exists yA(y)\).  Alpha-equivalence identifies this with
+\(\neg\exists xA(x)\), contradicting the simultaneously derived existential
+and consistency of \(\Sigma\).  The replacement step is the one-constant
+argument of @lem-constant-elimination.
+:::
