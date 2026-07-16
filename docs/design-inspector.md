@@ -195,7 +195,7 @@ For current local evidence, qmd-prover:
 - builds each verifier packet from the raw source text;
 - stores the exact packet and report content-addressed at
   `.qmd-prover/verification/checks/<sha256>.json`, keyed by the packet and
-  checker contract under protocol version 5;
+  checker contract under protocol version 6;
 - records a decision keyed by the complete verification identity;
 - reports local and global fields separately in the manifest and graph;
 - atomically publishes a current project snapshot; and
@@ -499,7 +499,7 @@ An exact local decision records:
 - every direct dependency's exact statement identity (`statement_hash`);
 - normalized semantic and source context;
 - external-basis hash and exact verifier packet context;
-- checker contract and protocol version 5;
+- checker contract and protocol version 6;
 - verifier report and verified, disproved, or rejected outcome; and
 - the declaring source file.
 

@@ -196,16 +196,16 @@ An informal verifier packet contains:
   refutation, and verification mode;
 - the IDs and exact statements of cited direct dependencies, each carried
   with its `statement_hash` identity;
-- the declaring `source_file` and the `semantic_context` definitions the
-  statement relies on;
+- the declaring `source_file` and the `direct_dependency_ids` frontier, with
+  the definition-kind dependencies serving as the semantic context;
 - exact external-basis mode and content;
-- checker contract and verifier protocol version 5; and
+- checker contract and verifier protocol version 6; and
 - an instruction to report errors and gaps independently.
 
 It does not contain dependency proofs, dependency verification states, the
 transitive proof closure, the author's confidence, hidden chain of thought,
 persuasive commentary, unrelated project narrative, or any scope fields beyond
-`type`, `source_file`, `direct_dependency_ids`, and `semantic_context`. The
+`type`, `source_file`, and `direct_dependency_ids`. The
 verifier assumes the supplied direct statements and checks the exact submitted
 proof. It does not decide whether those direct premises have themselves been
 established.
@@ -225,7 +225,7 @@ An abbreviated packet can look like:
 ```json
 {
   "type": "local-conditional-check",
-  "protocol": 5,
+  "protocol": 6,
   "source_file": "workspace/main-proof.qmd",
   "target": {
     "id": "thm-main-even-square",
@@ -241,9 +241,6 @@ An abbreviated packet can look like:
       "identity": { "statement_hash": "sha256:..." }
     }
   ],
-  "semantic_context": {
-    "definitions": []
-  },
   "external_basis": {
     "mode": "none",
     "content": ""

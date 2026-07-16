@@ -258,7 +258,6 @@ export async function verifyFacts(compilation: Compilation, context: Verificatio
         id: dependency,
         kind: dependencyResult.kind,
         title: dependencyResult.title,
-        semantic_text: dependencyStatement,
         statement: dependencyStatement,
         origin: dependencyResult.origin === 'user' ? 'main-goal' : 'fact',
         identity: {
@@ -267,27 +266,20 @@ export async function verifyFacts(compilation: Compilation, context: Verificatio
         source: { file: dependencyResult.file }
       });
     }
+    // The definition entries in `dependencies` are the semantic context (see reviewPrompt);
+    // scope states the frontier as a flat id list rather than re-embedding those bodies.
     const scope = {
       type: 'local-conditional-check',
       source_file: result.file,
-      direct_dependency_ids: dependencies.map((dependency) => dependency.id),
-      semantic_context: {
-        definitions: dependencies.filter((dependency) => dependency.kind === 'definition').map((dependency) => ({
-          id: dependency.id,
-          construction: dependency.statement,
-          identity: dependency.identity
-        }))
-      }
+      direct_dependency_ids: dependencies.map((dependency) => dependency.id)
     };
     return buildVerifierPacket({
       target: {
         id: result.id,
         kind: result.kind,
         title: result.title,
-        semantic_text: statement,
         ...(result.kind === 'definition' ? { construction: statement } : { statement }),
         proof,
-        cited_dependencies: [...new Set(result.dependencies)].sort(),
         identity: { statement_hash: result.statement_hash, proof_hash: result.proof_hash },
         source: { file: result.file },
         verification_mode: result.marker === 'DISPROVED' ? 'refutation' : result.kind === 'definition' ? 'definition-construction' : 'proof'

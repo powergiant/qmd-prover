@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { sha256, stableJson } from '../infrastructure/files.js';
 import { externalPolicyHash, readExternalPolicy } from '../infrastructure/external.js';
 import { asErrorLike, asRecord, isRecord } from '../shared/core.js';
-export const VERIFIER_PROTOCOL_VERSION = 5;
+export const VERIFIER_PROTOCOL_VERSION = 6;
 const PROTOCOL_NAME = 'qmd-prover-independent-verifier';
 function verificationConfig(config = {}) {
     if (isRecord(config) && isRecord(config.verification))
@@ -144,24 +144,25 @@ function normalizedTarget(target = {}) {
         ...value,
         id: String(value.id ?? ''),
         kind,
-        semantic_text: String(value.semantic_text ?? value.statement ?? value.construction ?? ''),
         proof: String(value.proof ?? ''),
-        cited_dependencies: [],
         identity: { statement_hash: String(identity.statement_hash ?? ''), proof_hash: String(identity.proof_hash ?? '') },
         source: { file: String(source.file ?? '') },
         verification_mode: mode
     };
+    // Protocol v6 dropped semantic_text (a write-only duplicate of statement/construction)
+    // and cited_dependencies (the id list now lives once in scope.direct_dependency_ids).
+    // Discard either if a caller passed it through the spread above; keep semantic_text as a
+    // derivation fallback so legacy input carrying only that field still yields a body.
+    delete normalized.semantic_text;
+    delete normalized.cited_dependencies;
     if (mode === 'definition-construction') {
-        normalized.construction = String(value.construction ?? value.statement ?? value.body ?? '');
+        normalized.construction = String(value.construction ?? value.statement ?? value.body ?? value.semantic_text ?? '');
         normalized.proof = String(value.proof ?? '');
     }
     else {
-        normalized.statement = String(value.statement ?? '');
+        normalized.statement = String(value.statement ?? value.semantic_text ?? '');
         normalized.proof = String(value.proof ?? '');
     }
-    normalized.cited_dependencies = Array.isArray(value.cited_dependencies)
-        ? value.cited_dependencies.map(String)
-        : Array.isArray(value.dependencies) ? value.dependencies.map(String) : [];
     return normalized;
 }
 /**
@@ -186,6 +187,7 @@ function reviewPrompt(mode, contract) {
         'Do not inspect or infer whether a dependency has itself been proved. Dependency verification state and dependency proof text are deliberately absent; global validity is computed separately from the dependency graph.',
         'Judge only the exact target, direct dependency statements, semantic context, and external basis supplied in this packet. Do not silently import facts, assumptions, definitions, or intended meanings that are not supplied or explicitly permitted by the external basis.',
         'Check that every cited dependency is used with the hypotheses, domains, directions, side conditions, and quantified variables required by its exact statement. A citation by name is not evidence that it applies.',
+        'Among the dependencies, those with kind "definition" are the semantic context: each such statement fixes the meaning of the terms and notation it introduces and may be unfolded, whereas every other dependency is a fact whose statement you assume but do not unfold.',
         'Check quantifier order, variable binding, hidden existence or uniqueness assumptions, degenerate and boundary cases, and whether every required case is covered.',
         'Report a gap whenever a mathematically necessary step is omitted, even if the conclusion is plausible or standard. Do not repair the argument silently.',
         'Reject the submitted proof if it relies on an undeclared premise, a stronger version of a dependency, or an interpretation not supplied by the semantic context.',

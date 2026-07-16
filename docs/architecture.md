@@ -99,7 +99,7 @@ Large workflows keep orchestration separate from reusable mechanics:
   operations and converts domain failures into stable schema-v6 results.
 - `inspection/report.ts` is presentation-only and must not change selection,
   checking, or publication semantics.
-- `verification/protocol.ts` owns the protocol-version-5 packet contract and
+- `verification/protocol.ts` owns the protocol-version-6 packet contract and
   the interpretation of structured verifier results.
 - `verification/cache.ts` owns the project-level content-addressed exact
   decision cache under `.qmd-prover/verification/checks/`, exact-cache
