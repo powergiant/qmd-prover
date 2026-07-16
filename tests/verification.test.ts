@@ -6,7 +6,7 @@ import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
 import { analyzeDependencies, inspectFact, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
 import { printReport } from '../skills/qmd-prover/src/lib/inspection/report.js';
 import { checkStaleness } from '../skills/qmd-prover/src/lib/verification/staleness.js';
-import { checkerContract, verifierCommand } from '../skills/qmd-prover/src/lib/verification/protocol.js';
+import { buildVerifierPacket, checkerContract, verifierCommand } from '../skills/qmd-prover/src/lib/verification/protocol.js';
 import { document, must, options, project, proof, result, verifier } from './support.js';
 
 test('facts in any project folder join one unified graph and protected statements stay locked', async () => {
@@ -368,5 +368,29 @@ test('checker contract carries the citations/rigor axes and verifierCommand forw
     const cmd = must(verifierCommand({ verification: { backend, effort: 'xhigh', model: 'a-model' } }));
     assert.equal(cmd.args[cmd.args.indexOf('--effort') + 1], 'xhigh');
     assert.equal(cmd.args[cmd.args.indexOf('--model') + 1], 'a-model');
+  }
+});
+
+test('verification.tools drives prompt-level tool permissions and filters unknown names', () => {
+  const packet = (tools: string[]) => buildVerifierPacket({
+    target: { id: 'lem-x', kind: 'lemma', statement: 'S', proof: 'P' },
+    config: { verification: { backend: 'codex', tools } }
+  });
+
+  const none = packet([]);
+  assert.deepEqual(none.checker_contract.tools, []);
+  assert.ok(String(none.instructions).includes('Reason from the packet alone'));
+  assert.ok(!String(none.instructions).includes('You may use the following tools'));
+
+  const some = packet(['code', 'bogus']);
+  assert.deepEqual(some.checker_contract.tools, ['code']); // unknown dropped
+  assert.ok(String(some.instructions).includes('code execution'));
+  assert.ok(!String(some.instructions).includes('web search'));
+
+  const all = packet(['web-search', 'file-read', 'code']);
+  assert.deepEqual(all.checker_contract.tools, ['file-read', 'web-search', 'code']); // canonical order
+  const text = String(all.instructions);
+  for (const phrase of ['code execution', "reading the project's own files", 'web search']) {
+    assert.ok(text.includes(phrase), `missing tool permission: ${phrase}`);
   }
 });

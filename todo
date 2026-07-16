@@ -26,15 +26,11 @@ Decide whether to package this as a plugin installable from a marketplace.
 
 The verifier need not scrutinize stale changes too strictly, and it may refer to the previous historical version.
 
-A "paper" verifies correctness while "notes" verify readability, so notes require each definition to cite enough examples beneath it.
+In the "paper" model, verifier check correctness while in the "notes" model check readability, so notes require each definition to cite enough examples beneath it.
 
-Use GitHub Actions to test each installation method.
+Use GitHub Actions to test each installation method on different systems.
 
 Write documentation and review the skill's AGENTS.md.
-
-Make inspect print its running time, or set a time budget and return control to the AI whenever it is exceeded.
-
-Tune the verifier prompt well and add enough settings, such as reasoning effort and whether tools are allowed.
 
 Tell the agent/user that using this is like learning a new programming language: `check` is the debugger, and writing proofs is like programming, where you write a little and then check.
 

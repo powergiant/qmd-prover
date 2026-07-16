@@ -34,6 +34,8 @@ export interface VerificationConfig {
   citations: string;
   /** How completely a valid step must be spelled out — and whether gaps block: lenient | standard | strict. */
   rigor: string;
+  /** Tool capabilities the verifier is told (in the prompt) it may use: any of file-read | web-search | code. */
+  tools: string[];
   /** Path to the claude/codex CLI when backend is claude|codex (defaults to the backend name on PATH). */
   executable?: string;
   /** Fully custom verifier argv when backend is `command` (advanced escape hatch). */
@@ -62,7 +64,7 @@ const defaults: QmdProverConfig = {
   goals: { 'id-prefix': 'thm-main-', 'protect-statements': true },
   semantic: { 'wildcard-imports': false },
   tools: { pandoc: '', quarto: '' },
-  verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, citations: 'standard', rigor: 'standard', executable: '' },
+  verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, citations: 'standard', rigor: 'standard', tools: [], executable: '' },
   render: { 'graph-engine': 'builtin', 'output-dir': '.qmd-prover/generated' }
 };
 
@@ -153,7 +155,9 @@ function normalizedConfig(value: JsonObject): QmdProverConfig {
       executable: typeof verification.executable === 'string' ? verification.executable : defaults.verification.executable,
       'fresh-context': booleanSetting(verification['fresh-context'], defaults.verification['fresh-context']),
       citations: enumSetting(verification.citations, STRICTNESS_LEVELS, defaults.verification.citations),
-      rigor: enumSetting(verification.rigor, STRICTNESS_LEVELS, defaults.verification.rigor)
+      rigor: enumSetting(verification.rigor, STRICTNESS_LEVELS, defaults.verification.rigor),
+      // Kept as authored strings; protocol.ts filters to the known tool names for the contract/prompt.
+      tools: Array.isArray(verification.tools) ? asStringArray(verification.tools) : defaults.verification.tools
     },
     render: {
       'graph-engine': typeof render['graph-engine'] === 'string' ? render['graph-engine'] : defaults.render['graph-engine'],

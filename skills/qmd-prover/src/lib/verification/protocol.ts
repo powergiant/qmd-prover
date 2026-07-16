@@ -126,6 +126,19 @@ function setting(config: QmdProverConfig | JsonObject, hyphenated: string, under
   return fallback;
 }
 
+/**
+ * Tool capabilities the verifier may be *told* it is allowed to use (in a stable order). These are
+ * prompt-level permissions only — qmd-prover neither provides tools nor enforces them; it simply
+ * states in the reviewer prompt whether each is permitted, and the backend agent uses whatever it
+ * actually has. Part of the checker contract, so changing them re-verifies.
+ */
+export const VERIFIER_TOOLS = ['file-read', 'web-search', 'code'] as const;
+
+function toolList(verification: JsonObject): string[] {
+  const raw = Array.isArray(verification.tools) ? verification.tools.map(String) : [];
+  return VERIFIER_TOOLS.filter((tool) => raw.includes(tool));
+}
+
 export function checkerContract(config: QmdProverConfig | JsonObject = {}): JsonObject {
   const verification = verificationConfig(config);
   return {
@@ -133,6 +146,7 @@ export function checkerContract(config: QmdProverConfig | JsonObject = {}): Json
     model: String(verification.model ?? 'configurable'),
     effort: String(verification.effort ?? 'high'),
     fresh_context: Boolean(setting(config, 'fresh-context', 'fresh_context', true)),
+    tools: toolList(verification),
     // Two orthogonal strictness axes. `citations` (lenient|standard|strict) governs how
     // aggressively an uncited non-standard term is flagged; `rigor` (lenient|standard|strict)
     // governs how completely a valid step must be spelled out — and whether reported gaps block
@@ -379,9 +393,37 @@ function externalBasisParagraph(): string {
   ].join('\n');
 }
 
+/**
+ * What the verifier is told about tools, driven by verification.tools. This is prompt-level only:
+ * it states which capabilities are permitted — used only to *check* the submission, never to import
+ * unsupplied premises — and forbids the rest. With no tools it is the strict self-contained
+ * instruction. qmd-prover does not itself provide or enforce any tool.
+ */
+function toolsParagraph(tools: string[]): string {
+  const allow = new Set(tools);
+  const lead = 'Judge the submission from the material in this packet, and never rely on outside expectations about how this result is usually proved.';
+  const perms: string[] = [];
+  if (allow.has('code')) {
+    perms.push('code execution — write and run code to carry out or check a computation, such as arithmetic, symbolic algebra, or enumerating small finite cases, and reason from its result');
+  }
+  if (allow.has('file-read')) {
+    perms.push("reading the project's own files — to look up the definition or notation of a term the packet leaves unexplained, but never to read a dependency's proof or verification state, which stay outside this local check");
+  }
+  if (allow.has('web-search')) {
+    perms.push('web search — to confirm the exact statement and hypotheses of an external result that the external basis permits or cites, but never to bring in a result the external basis does not allow');
+  }
+  if (!perms.length) {
+    return `${lead} Reason from the packet alone: do not read files, run commands, or search the web.`;
+  }
+  const list = perms.length === 1 ? perms[0] : `${perms.slice(0, -1).join('; ')}; and ${perms[perms.length - 1]}`;
+  return `${lead} You may use the following tools, and only to check the submitted argument rather than to introduce premises the packet does not supply: ${list}. Use no tool beyond these.`;
+}
+
 function reviewPrompt(mode: VerificationMode, contract: JsonObject): string {
   const sections = [
-    'You are an independent mathematical verifier. Judge the submission strictly on its own merits: you did not write it, and you must neither assume it is correct nor repair it. Reason only from the material in this packet — do not read files, run commands, search, or rely on outside expectations about how this result is usually proved.',
+    'You are an independent mathematical verifier. Judge the submission strictly on its own merits: you did not write it, and you must neither assume it is correct nor repair it.',
+
+    toolsParagraph(Array.isArray(contract.tools) ? contract.tools.map(String) : []),
 
     'This is a LOCAL, CONDITIONAL check. Assume every statement in dependencies is true exactly as written, and do not consider how or whether it was proved: dependency proofs and their verification states are withheld deliberately and composed separately. Your only question is whether the submitted argument (the proof, construction, or refutation in target) establishes the exact target from those assumed dependency statements, the semantic context, and the permitted external basis — and from nothing else.',
 

@@ -178,6 +178,8 @@ async function initializeAux(root) {
             `  citations: standard`,
             `  # rigor: how completely a valid step must be spelled out (strict also makes gaps block): lenient | standard | strict`,
             `  rigor: standard`,
+            `  # tools: capabilities the verifier is TOLD (in the prompt) it may use; any of [file-read, web-search, code]`,
+            `  tools: []`,
             ``,
             `render:`,
             `  graph-engine: builtin`,

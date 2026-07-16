@@ -36,6 +36,7 @@ verification:
   fresh-context: true             # each check runs in an isolated context
   citations: standard             # lenient | standard | strict — uncited-term scrutiny
   rigor: standard                 # lenient | standard | strict — how fully steps must be justified
+  tools: []                       # capabilities the verifier is TOLD it may use: [file-read, web-search, code]
 
 render:
   graph-engine: builtin           # dependency-graph SVG engine
@@ -86,6 +87,7 @@ packet protocol and the bundled `claude`/`codex` adapters.
 | `fresh-context` | `true` | boolean | Declares that each check runs in an isolated context (sets `QMD_PROVER_FRESH_CONTEXT=1` for the verifier process) and is recorded in the checker contract. |
 | `citations` | `standard` | `lenient` · `standard` · `strict` | How aggressively the verifier flags a specialized term used **without a cited definition**. `lenient` = assume its evident meaning, never flag a missing citation; `standard` = flag only genuine doubt; `strict` = every load-bearing term must be fixed by a citation. |
 | `rigor` | `standard` | `lenient` · `standard` · `strict` | How completely a **valid** step must be spelled out — i.e. what counts as a `gap`. `lenient` = accept informal/textbook argument; `standard` = ask for material justification but take routine steps as evident; `strict` = every load-bearing step must be explicit **and** any reported gap blocks acceptance. Wrong or misapplied steps (`critical_errors`) always block, at every level. |
+| `tools` | `[]` | inline list of `file-read` · `web-search` · `code` | Which tool capabilities the verifier is **told, in its prompt,** that it may use — always only to *check* the submission, never to import unsupplied premises. **Prompt-only:** qmd-prover neither provides a tool nor enforces this; whether a permitted tool actually works depends on what the backend agent has (e.g. `web-search` needs network, which the read-only codex sandbox lacks). `file-read` = look up a term's definition/notation in the project (never a dependency's proof); `web-search` = confirm an external result the external basis permits/cites; `code` = run a computation to check a step. Empty = reason from the packet alone. |
 
 **Correctness floor, plus two strictness axes.** No level of either axis ever relaxes correctness:
 a wrong, circular, or misapplied step, or a hole that cannot be routinely filled, is a
@@ -95,9 +97,9 @@ whether it blocks. `citations` controls whether an uncited non-standard term is 
 `rigor: strict` makes reported gaps block acceptance — at `lenient`/`standard` a correct argument
 with formality gaps still verifies, and the gaps are recorded as advisories.
 
-**Checker-contract keys vs. operational keys.** Six keys — `backend`, `model`, `effort`,
-`fresh-context`, `citations`, `rigor` — form the *checker contract* that is hashed into every
-verification cache key. Changing any of them re-verifies every fact, because old cached verdicts no
+**Checker-contract keys vs. operational keys.** Seven keys — `backend`, `model`, `effort`,
+`fresh-context`, `citations`, `rigor`, `tools` — form the *checker contract* that is hashed into
+every verification cache key. Changing any of them re-verifies every fact, because old cached verdicts no
 longer match the contract. The remaining two — `executable` and `command` — are only *how to spawn*
 the verifier and do not invalidate cached verdicts.
 
