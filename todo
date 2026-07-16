@@ -1,54 +1,41 @@
-数据库组织原则，重构 （需要把相近的定理放在一起）
+Introduce the concepts of an "idea" and of type classes.
 
-引入idea，类型类的概念
+Introduce a "trajectory" concept into the database, so that results produced from the same chat history belong to the same trajectory.
 
-在数据库中引入trajectory的概念（从同一聊天历史出来的应该在同一trajectory）
+Generate a paper from the verified development.
 
-出论文
+Introduce the progress note.
 
-progress do not write theorem
-
-Ideation skill 只在side task触发
-
-skill需要描述清楚怎么set up project，init
+Implement the ideation skill which is only triggered within a side task.
 
 A `VERIFIED` marker is usable only when it matches the current cached statement, dependency snapshot, and verification record.
 
-似乎还没添加import block
+A proof block must immediately follow its theorem.
 
-proof block must follow the theorem immediately
+Provide a skill that helps the user create the main theorem.
 
+Support conditional development, building on and writing a paper from certain assumed results.
 
-提供skill，帮助用户创建main Theorem
+Write clear help text for every command.
 
-条件开发，基于某些结果开发、写论文
+Do not over-design DISPROVED: it is just a label, and whatever it depends on can be written freely; a DISPROVED entry need not give a counterexample or a reverse proof, since a clear intuition is enough.
 
-把命令的help写清楚
+In README.md, separate the human-facing content from the AI-facing content, and add prompts for automatic pushing and automatic updating.
 
+Decide whether to package this as a plugin installable from a marketplace.
 
-你不要过度设计啊，DISPROVED就是个标签，后面依赖啥都都随便写。DISPROVED不一定写反例、反向的证明，或者很明确的直觉都可以。另外这个标签
+The verifier need not scrutinize stale changes too strictly, and it may refer to the previous historical version.
 
+A "paper" verifies correctness while "notes" verify readability, so notes require each definition to cite enough examples beneath it.
 
-README.md: 区分给人读的与给ai读的。要加上自动推送，自动更新的prompt
+Use GitHub Actions to test each installation method.
 
+Write documentation and review the skill's AGENTS.md.
 
-要做成plugin吗？marketplace安装吗？
+Make inspect print its running time, or set a time budget and return control to the AI whenever it is exceeded.
 
+Tune the verifier prompt well and add enough settings, such as reasoning effort and whether tools are allowed.
 
-verifier, 对于stale变化不用查的太严，可以参考上一次的历史版本。
+Tell the agent/user that using this is like learning a new programming language: `check` is the debugger, and writing proofs is like programming, where you write a little and then check.
 
-
-paper是验证正确、notes是验证可读，notes需要definition下面引用足够多examples
-
-用git action做各个安装的测试
-
-写documentation, 检查skill agents.md
-
-inspect把运行时间打印出来，要不然设定一个运行时间，每次超过返回控制权给ai。
-
-请把verifier的prompt调好，并且添加足够多设置，比如思考强度，是否允许工具等等。
-
-跟他说，就像见了一门新的编程语言，check就是debugger，写作的时候就像编程一样，写一些check一下。
-
-
-跟ai写清楚修改的原理，改一个会影响多少，提醒他注意verifier cost
+Clearly explain to the AI the rationale behind each change and how far a single change reaches, and remind it to watch the verifier cost.
