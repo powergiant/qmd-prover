@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { compileProject, factStatus } from '../semantic/compiler.js';
-import { externalPolicyHash, readExternalPolicy } from '../infrastructure/external.js';
+import { externalPolicyHash } from '../infrastructure/external.js';
 import { atomicJson, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
 import { readLocatedBlock, readLocatedProof } from '../semantic/source.js';
-import { buildVerifierPacket, checkerContract, configured, invokeVerifier, verificationKey, verificationOutcome } from '../verification/protocol.js';
+import { buildVerifierPacket, checkerContract, configured, invokeVerifier, verificationContext, verificationKey, verificationOutcome } from '../verification/protocol.js';
 import { cachedDecision, verifierFailure } from '../verification/cache.js';
 import { asErrorLike, CONTROL_MARKER_SET, SCHEMA_VERSION } from '../shared/core.js';
 import { projectSourceSignature, readPublishedSnapshot } from './snapshot.js';
@@ -68,14 +68,13 @@ export function topologicalOrder(results) {
  * whole project (or the dependency closure of the selected facts). Mutates the
  * indexed results' status, local_verification, global_verification, and disproof.
  */
-export async function verifyFacts(index, options = {}) {
-    const root = index.root;
-    const compilation = index.compilation;
+export async function verifyFacts(compilation, context, options = {}) {
+    const root = compilation.root;
     const config = compilation.config;
     const results = compilation.manifest.results;
     const resultById = new Map(results.map((result) => [result.id, result]));
     const diagnostics = [...compilation.diagnostics];
-    const externalBasis = index.externalBasis;
+    const externalBasis = context.externalBasis;
     const requestedIds = options.selectedIds
         ? new Set([...options.selectedIds].map((selected) => String(selected).replace(/^@/, '')))
         : null;
@@ -93,7 +92,7 @@ export async function verifyFacts(index, options = {}) {
     }
     for (const selected of requestedIds ?? [])
         selectDependencyClosure(selected);
-    const previousSnapshot = await readPublishedSnapshot(index);
+    const previousSnapshot = await readPublishedSnapshot(compilation, context.contextHash);
     const previousById = new Map((previousSnapshot?.manifest.results ?? []).map((result) => [result.id, result]));
     for (const result of results) {
         const previous = previousById.get(result.id);
@@ -260,7 +259,7 @@ export async function verifyFacts(index, options = {}) {
         stopped_after: null
     };
     let fatal = null;
-    const initialSourceSignature = projectSourceSignature(compilation, index.contextHash);
+    const initialSourceSignature = projectSourceSignature(compilation, context.contextHash);
     for (const result of topologicalOrder(results)) {
         if (!verificationIds.has(result.id)) {
             const previous = previousById.get(result.id);
@@ -360,15 +359,9 @@ export async function verifyFacts(index, options = {}) {
             }
             let contextCurrent = false;
             try {
-                const [currentCompilation, currentExternalBasis] = await Promise.all([
-                    compileProject(root, { ...options, write: false }),
-                    readExternalPolicy(root)
-                ]);
-                const currentContextHash = sha256(stableJson({
-                    external_basis_hash: externalPolicyHash(currentExternalBasis),
-                    checker_contract: checkerContract(currentCompilation.config)
-                }, 0));
-                contextCurrent = projectSourceSignature(currentCompilation, currentContextHash) === initialSourceSignature;
+                const currentCompilation = await compileProject(root, { ...options, write: false });
+                const currentContext = await verificationContext(currentCompilation);
+                contextCurrent = projectSourceSignature(currentCompilation, currentContext.contextHash) === initialSourceSignature;
             }
             catch {
                 contextCurrent = false;

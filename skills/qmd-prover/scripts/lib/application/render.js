@@ -4,7 +4,8 @@ import { atomicJson, atomicWrite, AUX } from '../infrastructure/files.js';
 import { quartoCommand } from '../infrastructure/config.js';
 import { executableAvailable } from '../infrastructure/executables.js';
 import { resolveProjectSnapshot } from '../inspection/snapshot.js';
-import { buildProjectInspectionIndex } from '../inspection/index.js';
+import { compileProject } from '../semantic/compiler.js';
+import { verificationContext } from '../verification/protocol.js';
 import { SCHEMA_VERSION } from '../shared/core.js';
 function escapeXml(value = '') {
     const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' };
@@ -48,11 +49,12 @@ function statusQmd(compilation) {
 }
 export async function renderProject(root = process.cwd(), options = {}) {
     root = path.resolve(root);
-    const index = await buildProjectInspectionIndex(root, options);
-    const snapshot = await resolveProjectSnapshot(index, options);
+    const compiled = await compileProject(root, options);
+    const context = await verificationContext(compiled);
+    const snapshot = await resolveProjectSnapshot(compiled, context.contextHash, options);
     const compilation = {
         root,
-        config: index.compilation.config,
+        config: compiled.config,
         manifest: snapshot.manifest,
         graph: snapshot.graph,
         diagnostics: snapshot.diagnostics,
@@ -62,7 +64,9 @@ export async function renderProject(root = process.cwd(), options = {}) {
             errors: snapshot.diagnostics.filter((item) => item.severity === 'error').length,
             warnings: snapshot.diagnostics.filter((item) => item.severity === 'warning').length
         },
-        complete: index.compilation.complete,
+        goals: snapshot.manifest.results.filter((result) => result.origin === 'user'),
+        notes: snapshot.notes,
+        complete: compiled.complete,
         ok: snapshot.diagnostics.every((item) => item.severity !== 'error')
     };
     if (!compilation.ok && options.allowErrors !== true)
@@ -84,7 +88,7 @@ export async function renderProject(root = process.cwd(), options = {}) {
         atomicWrite(path.join(output, 'dependencies.svg'), graphSvg(compilation.graph)),
         atomicJson(path.join(reportDir, 'status.json'), { summary: compilation.summary, diagnostics: compilation.diagnostics })
     ]);
-    const quartoCmd = quartoCommand(index.compilation.config);
+    const quartoCmd = quartoCommand(compiled.config);
     const quartoAvailable = await executableAvailable(quartoCmd);
     return {
         schema_version: SCHEMA_VERSION,

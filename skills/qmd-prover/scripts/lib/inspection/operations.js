@@ -5,7 +5,8 @@ import { SCHEMA_VERSION, indexBy } from '../shared/core.js';
 import { adjacency, allSimplePaths, blockerPaths, boundedInteger, frontier, requireNode, shortestPath, subgraph, traverse } from './graph.js';
 import { deriveGraphFindings, staleFactIds } from './findings.js';
 import { buildProjectSnapshot, publishProjectSnapshot, resolveProjectSnapshot } from './snapshot.js';
-import { buildProjectInspectionIndex } from './index.js';
+import { compileProject } from '../semantic/compiler.js';
+import { verificationContext } from '../verification/protocol.js';
 import { verifyFacts } from './verify.js';
 function byId(items) {
     return indexBy(items, (item) => item.id);
@@ -56,39 +57,40 @@ function tally(facts, key) {
 }
 export async function inspectProject(root = process.cwd(), options = {}) {
     root = path.resolve(root);
-    const index = await buildProjectInspectionIndex(root, options);
-    const run = await verifyFacts(index, options);
-    const snapshot = buildProjectSnapshot(index, run.diagnostics);
-    const snapshotPublished = await publishProjectSnapshot(index, snapshot, options);
+    const compilation = await compileProject(root, options);
+    const context = await verificationContext(compilation);
+    const run = await verifyFacts(compilation, context, options);
+    const snapshot = buildProjectSnapshot(compilation, context.contextHash, run.diagnostics);
+    const snapshotPublished = await publishProjectSnapshot(compilation, snapshot, options);
     const diagnostics = snapshot.diagnostics;
     const facts = run.facts.map((fact) => factCheck(fact, diagnostics));
-    const goalIds = new Set(index.goals.map((goal) => goal.id));
-    const ok = index.compilation.complete
+    const goalIds = new Set(compilation.goals.map((goal) => goal.id));
+    const ok = compilation.complete
         && facts.every((fact) => fact.local_verification.status !== 'error')
         && diagnostics.every((item) => item.severity !== 'error');
     return {
         schema_version: SCHEMA_VERSION,
         operation: 'inspect-project',
         ok,
-        complete: index.compilation.complete,
+        complete: compilation.complete,
         snapshot_id: snapshot.snapshot_id,
         snapshot_published: snapshotPublished,
         scope: { type: 'project', path: '.' },
         summary: {
             ...snapshot.summary,
-            files: index.compilation.manifest.files.length,
+            files: compilation.manifest.files.length,
             kinds: tally(facts, 'kind'),
             statuses: tally(facts, 'status'),
             globally_verified_goals: facts.filter((fact) => goalIds.has(fact.id) && fact.global_verification.status === 'verified').length,
             globally_disproved_goals: facts.filter((fact) => goalIds.has(fact.id) && fact.global_verification.status === 'disproved').length
         },
-        goals: index.goals.map(({ id, file, line, status }) => ({ id, file, line, status })),
-        notes: index.notes,
+        goals: compilation.goals.map(({ id, file, line, status }) => ({ id, file, line, status })),
+        notes: compilation.notes,
         facts,
         graph: snapshot.graph,
         staleness: stalenessReport(true, snapshot.snapshot_id),
         verification: run.verification,
-        blockers: blockerPaths(snapshot.graph, index.goals.map((goal) => goal.id)),
+        blockers: blockerPaths(snapshot.graph, compilation.goals.map((goal) => goal.id)),
         findings: deriveGraphFindings(snapshot),
         diagnostics
     };
@@ -114,18 +116,19 @@ function factFailure(id, diagnostics) {
 export async function inspectFact(root, requested, options = {}) {
     root = path.resolve(root);
     const id = cleanId(requested);
-    const index = await buildProjectInspectionIndex(root, options);
-    const result = index.compilation.manifest.results.find((item) => item.id === id);
+    const compilation = await compileProject(root, options);
+    const context = await verificationContext(compilation);
+    const result = compilation.manifest.results.find((item) => item.id === id);
     if (!result) {
-        const parseDiagnostics = index.diagnostics.filter((item) => item.code === 'PARSE_ERROR');
+        const parseDiagnostics = compilation.diagnostics.filter((item) => item.code === 'PARSE_ERROR');
         return factFailure(id, parseDiagnostics.length ? parseDiagnostics : [{
                 severity: 'error', code: 'FACT_UNKNOWN', id,
                 message: `No fact named @${id} exists in the project`
             }]);
     }
-    const run = await verifyFacts(index, { ...options, selectedIds: [id] });
-    const snapshot = buildProjectSnapshot(index, run.diagnostics);
-    const snapshotPublished = await publishProjectSnapshot(index, snapshot, options);
+    const run = await verifyFacts(compilation, context, { ...options, selectedIds: [id] });
+    const snapshot = buildProjectSnapshot(compilation, context.contextHash, run.diagnostics);
+    const snapshotPublished = await publishProjectSnapshot(compilation, snapshot, options);
     const dependencyIds = traverse(snapshot.graph, id);
     const selected = new Set([id, ...dependencyIds]);
     const graph = subgraph(snapshot.graph, selected);
@@ -136,7 +139,7 @@ export async function inspectFact(root, requested, options = {}) {
     // them against the whole project graph rather than the (downward) subgraph.
     const directReverseDependencies = (adjacency(snapshot.graph, true).get(id) ?? [])
         .map((dependency) => projectNodes.get(dependency)).filter(Boolean);
-    const selectedFiles = new Set(index.compilation.manifest.results
+    const selectedFiles = new Set(compilation.manifest.results
         .filter((item) => selected.has(item.id))
         .flatMap((item) => [item.file, item.proof_file].filter((file) => Boolean(file))));
     const diagnostics = run.diagnostics.filter((item) => item.id ? selected.has(item.id) : !item.file || selectedFiles.has(item.file));
@@ -191,9 +194,10 @@ export async function inspectPath(root, requestedPath, options = {}) {
     }
     if (!info.isDirectory() && !(info.isFile() && absolute.endsWith('.qmd')))
         return failure([{ severity: 'error', code: 'PATH_TYPE_INVALID', message: 'Inspection path must be a QMD file or directory', file: relative }]);
-    const index = await buildProjectInspectionIndex(root, options);
-    const manifest = index.compilation.manifest;
-    const parseDiagnostics = index.diagnostics.filter((item) => item.code === 'PARSE_ERROR' && item.file && isWithinPath(item.file, relative, info.isDirectory()));
+    const compilation = await compileProject(root, options);
+    const context = await verificationContext(compilation);
+    const manifest = compilation.manifest;
+    const parseDiagnostics = compilation.diagnostics.filter((item) => item.code === 'PARSE_ERROR' && item.file && isWithinPath(item.file, relative, info.isDirectory()));
     if (parseDiagnostics.length)
         return failure(parseDiagnostics);
     const selectedFiles = new Set(manifest.files.filter((file) => isWithinPath(file.path, relative, info.isDirectory())).map((file) => file.path));
@@ -202,7 +206,7 @@ export async function inspectPath(root, requestedPath, options = {}) {
         if (selectedFiles.has(proof.file))
             selectedIds.add(proof.target);
     if (selectedIds.size === 0) {
-        const snapshot = await resolveProjectSnapshot(index, options);
+        const snapshot = await resolveProjectSnapshot(compilation, context.contextHash, options);
         return {
             schema_version: SCHEMA_VERSION, operation: 'inspect-path', ok: true, snapshot_id: snapshot.snapshot_id, snapshot_published: true,
             scope: { type: info.isDirectory() ? 'folder' : 'file', path: relative },
@@ -211,9 +215,9 @@ export async function inspectPath(root, requestedPath, options = {}) {
             findings: deriveGraphFindings({ graph: emptyGraph(), manifest: { schema_version: SCHEMA_VERSION, files: [], results: [], proofs: [] }, diagnostics: [] }), diagnostics: []
         };
     }
-    const run = await verifyFacts(index, { ...options, selectedIds });
-    const snapshot = buildProjectSnapshot(index, run.diagnostics);
-    const published = await publishProjectSnapshot(index, snapshot, options);
+    const run = await verifyFacts(compilation, context, { ...options, selectedIds });
+    const snapshot = buildProjectSnapshot(compilation, context.contextHash, run.diagnostics);
+    const published = await publishProjectSnapshot(compilation, snapshot, options);
     const contextIds = new Set(selectedIds);
     for (const id of selectedIds)
         for (const dependency of traverse(snapshot.graph, id))
@@ -242,8 +246,9 @@ export async function inspectPath(root, requestedPath, options = {}) {
     };
 }
 async function latestSnapshot(root, options = {}) {
-    const index = await buildProjectInspectionIndex(root, options);
-    return resolveProjectSnapshot(index, options);
+    const compilation = await compileProject(root, options);
+    const context = await verificationContext(compilation);
+    return resolveProjectSnapshot(compilation, context.contextHash, options);
 }
 export async function analyzeDependencies(root, operation, args = [], options = {}) {
     // Validate bounded options before any project scan so syntax errors are never hidden by graph failures.

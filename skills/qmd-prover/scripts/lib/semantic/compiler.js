@@ -431,28 +431,40 @@ export async function compileProject(root = process.cwd(), options = {}) {
         const result = byId.get(cycle[0]);
         diagnostics.push(diagnostic('error', 'DEPENDENCY_CYCLE', `Semantic dependency cycle: ${cycle.map((id) => `@${id}`).join(' -> ')}`, result?.file, result?.line, result?.id));
     }
-    const locksFile = path.join(root, AUX, 'statement-locks.json');
-    const locks = await readJson(locksFile, {});
-    const protectStatements = options.protectStatements ?? !options.files;
-    if (protectStatements) {
-        for (const result of allResults.filter((item) => item.origin === 'user')) {
-            const prior = locks[result.id];
-            if (!prior)
-                locks[result.id] = { statement_hash: result.statement_hash, title_hash: result.title_hash, file: result.file };
-            else {
-                if (prior.statement_hash !== result.statement_hash)
-                    diagnostics.push(diagnostic('error', 'MAIN_STATEMENT_MUTATED', `${result.id} statement differs from its user-owned baseline`, result.file, result.line, result.id));
-                if (prior.title_hash !== result.title_hash)
-                    diagnostics.push(diagnostic('error', 'MAIN_TITLE_MUTATED', `${result.id} title differs from its user-owned baseline`, result.file, result.line, result.id));
-            }
-        }
-    }
     for (const result of allResults) {
         result.status = factStatus(result);
         if (result.marker === 'VERIFIED' || result.marker === 'REVOKED')
             diagnostics.push(diagnostic('error', 'PROTECTED_MARKER_FORBIDDEN', `${result.id} must not carry the reserved ${result.marker} marker; verification state is recorded by inspection, never in QMD`, result.file, result.proof_line ?? result.line, result.id));
         for (const check of result.reference_checks ?? []) {
             check.cycle = cycleEdges.has(`${result.id}\0${check.dependency}`) ? 'fail' : 'pass';
+        }
+    }
+    // A user-owned main goal's statement and title are locked against agent edits. The
+    // baseline is established as soon as the goal's own declaration is clean — unrelated
+    // errors elsewhere in the project must not delay protection — and any later divergence
+    // from a locked baseline is a hard error. Runs after every diagnostic is known so the
+    // per-goal clean check sees the complete error set.
+    const locksFile = path.join(root, AUX, 'statement-locks.json');
+    const locks = await readJson(locksFile, {});
+    const protectStatements = options.protectStatements ?? !options.files;
+    let locksChanged = false;
+    if (protectStatements) {
+        for (const result of allResults.filter((item) => item.origin === 'user')) {
+            const prior = locks[result.id];
+            if (!prior) {
+                const goalErrors = diagnostics.some((item) => item.severity === 'error'
+                    && (item.id ? item.id === result.id : item.file === result.file));
+                if (goalErrors)
+                    continue;
+                locks[result.id] = { statement_hash: result.statement_hash, title_hash: result.title_hash, file: result.file };
+                locksChanged = true;
+            }
+            else {
+                if (prior.statement_hash !== result.statement_hash)
+                    diagnostics.push(diagnostic('error', 'MAIN_STATEMENT_MUTATED', `${result.id} statement differs from its user-owned baseline`, result.file, result.line, result.id));
+                if (prior.title_hash !== result.title_hash)
+                    diagnostics.push(diagnostic('error', 'MAIN_TITLE_MUTATED', `${result.id} title differs from its user-owned baseline`, result.file, result.line, result.id));
+            }
         }
     }
     allResults.sort((a, b) => a.id.localeCompare(b.id));
@@ -485,23 +497,29 @@ export async function compileProject(root = process.cwd(), options = {}) {
     };
     graph.snapshot_id = sha256(stableJson(graph, 0));
     manifest.snapshot_id = graph.snapshot_id;
+    const goals = allResults.filter((result) => result.origin === 'user');
+    const goalIds = new Set(goals.map((goal) => goal.id));
+    const notes = files.map((file) => ({
+        path: file.path,
+        goals: file.results.filter((id) => goalIds.has(id)).sort()
+    }));
     const summary = {
         files: files.length,
         results: allResults.length,
-        goals: allResults.filter((result) => result.origin === 'user').map(({ id, status, file, line }) => ({ id, status, file, line })),
+        goals: goals.map(({ id, status, file, line }) => ({ id, status, file, line })),
         errors: diagnostics.filter((item) => item.severity === 'error').length,
         warnings: diagnostics.filter((item) => item.severity === 'warning').length
     };
     const ok = summary.errors === 0;
     const complete = diagnostics.every((item) => item.code !== 'PARSE_ERROR');
     // Snapshot publishing is owned by the inspection layer; the compiler persists only
-    // diagnostics and new statement locks when invoked in write mode.
+    // diagnostics and newly established statement locks when invoked in write mode.
     if (options.write !== false) {
         await atomicJson(path.join(root, AUX, 'diagnostics.json'), diagnostics);
-        if (complete && protectStatements && ok)
+        if (complete && locksChanged)
             await atomicJson(locksFile, locks);
     }
-    return { root, config, manifest, graph, diagnostics, summary, ok, complete };
+    return { root, config, manifest, graph, diagnostics, summary, goals, notes, ok, complete };
 }
 export function theoremBundle(compilation, requested) {
     const id = cleanId(requested);

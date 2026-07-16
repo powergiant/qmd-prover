@@ -43,8 +43,8 @@ function compilationSource(compilation) {
 export function projectSourceSignature(compilation, contextHash) {
     return sha256(stableJson({ context_hash: contextHash, compilation: compilationSource(compilation) }, 0));
 }
-export function buildProjectSnapshot(index, diagnostics = index.diagnostics) {
-    const results = index.compilation.manifest.results;
+export function buildProjectSnapshot(compilation, contextHash, diagnostics = compilation.diagnostics) {
+    const results = compilation.manifest.results;
     const nodes = [
         ...results.map((result) => ({
             id: result.id,
@@ -59,70 +59,72 @@ export function buildProjectSnapshot(index, diagnostics = index.diagnostics) {
             global_verification: nodeGlobalVerification(result.global_verification),
             ...(result.disproof ? { disproof: result.disproof } : {})
         })),
-        ...index.compilation.graph.nodes.filter((node) => node.origin === 'unresolved')
+        ...compilation.graph.nodes.filter((node) => node.origin === 'unresolved')
     ];
     const graph = {
         schema_version: SCHEMA_VERSION,
         nodes,
-        edges: index.compilation.graph.edges,
-        cycles: index.compilation.graph.cycles
+        edges: compilation.graph.edges,
+        cycles: compilation.graph.cycles
     };
     // Graph nodes no longer carry statement/proof hashes, so mix the content
     // signature into the snapshot identity: it must still change whenever the
     // exact mathematical content changes, not only when node topology/status does.
-    const sourceSignature = projectSourceSignature(index.compilation, index.contextHash);
-    graph.snapshot_id = sha256(stableJson({ graph, context_hash: index.contextHash, source_signature: sourceSignature }, 0));
-    const manifest = { ...index.compilation.manifest, snapshot_id: graph.snapshot_id };
+    const sourceSignature = projectSourceSignature(compilation, contextHash);
+    graph.snapshot_id = sha256(stableJson({ graph, context_hash: contextHash, source_signature: sourceSignature }, 0));
+    const manifest = { ...compilation.manifest, snapshot_id: graph.snapshot_id };
     const sorted = uniqueDiagnostics(diagnostics);
     return {
         schema_version: SCHEMA_VERSION,
         snapshot_id: graph.snapshot_id,
-        context_hash: index.contextHash,
+        context_hash: contextHash,
         source_signature: sourceSignature,
-        goals: index.goals.map(({ id, file, line, status }) => ({ id, file, line, status })),
-        notes: index.notes,
+        goals: compilation.goals.map(({ id, file, line, status }) => ({ id, file, line, status })),
+        notes: compilation.notes,
         manifest,
         graph,
         diagnostics: sorted,
         summary: {
-            goals: index.goals.length,
-            notes: index.notes.length,
+            goals: compilation.goals.length,
+            notes: compilation.notes.length,
             facts: results.length,
             errors: sorted.filter((item) => item.severity === 'error').length
         }
     };
 }
-export async function publishProjectSnapshot(index, snapshot, options = {}) {
-    if (options.write === false || !index.compilation.complete)
+export async function publishProjectSnapshot(compilation, snapshot, options = {}) {
+    if (options.write === false || !compilation.complete)
         return false;
-    await scaffoldAuxGitignore(index.root);
-    const graphsRoot = path.join(index.root, AUX, 'graphs');
+    const root = compilation.root;
+    await scaffoldAuxGitignore(root);
+    const graphsRoot = path.join(root, AUX, 'graphs');
     const snapshotFile = path.join(graphsRoot, `${snapshot.snapshot_id.replace(/^sha256:/, '')}.json`);
     await Promise.all([
         atomicJson(snapshotFile, snapshot),
-        atomicJson(path.join(index.root, AUX, 'manifest.json'), snapshot.manifest),
-        atomicJson(path.join(index.root, AUX, 'graph.json'), snapshot.graph),
-        atomicJson(path.join(index.root, AUX, 'diagnostics.json'), snapshot.diagnostics)
+        atomicJson(path.join(root, AUX, 'manifest.json'), snapshot.manifest),
+        atomicJson(path.join(root, AUX, 'graph.json'), snapshot.graph),
+        atomicJson(path.join(root, AUX, 'diagnostics.json'), snapshot.diagnostics)
     ]);
     await atomicJson(path.join(graphsRoot, 'latest.json'), {
         schema_version: SCHEMA_VERSION,
         snapshot_id: snapshot.snapshot_id,
-        file: relativePosix(index.root, snapshotFile)
+        file: relativePosix(root, snapshotFile)
     });
     return true;
 }
-/** Read the published snapshot when it is still current for the index's sources. */
-export async function readPublishedSnapshot(index) {
+/** Read the published snapshot when it is still current for the compilation's sources. */
+export async function readPublishedSnapshot(compilation, contextHash) {
     try {
-        const pointer = await readJson(path.join(index.root, AUX, 'graphs', 'latest.json'));
-        const graphsRoot = path.join(index.root, AUX, 'graphs');
-        const snapshotFile = path.resolve(index.root, pointer.file);
+        const root = compilation.root;
+        const pointer = await readJson(path.join(root, AUX, 'graphs', 'latest.json'));
+        const graphsRoot = path.join(root, AUX, 'graphs');
+        const snapshotFile = path.resolve(root, pointer.file);
         if (!snapshotFile.startsWith(`${graphsRoot}${path.sep}`))
             return null;
         const saved = await readJson(snapshotFile);
         if (pointer.schema_version !== SCHEMA_VERSION || saved.schema_version !== SCHEMA_VERSION
             || saved.snapshot_id !== pointer.snapshot_id
-            || saved.source_signature !== projectSourceSignature(index.compilation, index.contextHash)
+            || saved.source_signature !== projectSourceSignature(compilation, contextHash)
             || !Array.isArray(saved.manifest?.results)
             || !Array.isArray(saved.graph?.nodes)
             || !Array.isArray(saved.diagnostics))
@@ -134,11 +136,11 @@ export async function readPublishedSnapshot(index) {
     }
 }
 /** The valid published snapshot, or a freshly built and published one. */
-export async function resolveProjectSnapshot(index, options = {}) {
-    const saved = await readPublishedSnapshot(index);
+export async function resolveProjectSnapshot(compilation, contextHash, options = {}) {
+    const saved = await readPublishedSnapshot(compilation, contextHash);
     if (saved)
         return saved;
-    const current = buildProjectSnapshot(index);
-    await publishProjectSnapshot(index, current, options);
+    const current = buildProjectSnapshot(compilation, contextHash);
+    await publishProjectSnapshot(compilation, current, options);
     return current;
 }

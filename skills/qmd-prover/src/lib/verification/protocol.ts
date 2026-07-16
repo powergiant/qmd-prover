@@ -1,9 +1,12 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { sha256, stableJson } from '../infrastructure/files.js';
+import { externalPolicyHash, readExternalPolicy } from '../infrastructure/external.js';
 import { asErrorLike, asRecord, isRecord } from '../shared/core.js';
 import type { JsonObject } from '../shared/types.js';
 import type { QmdProverConfig } from '../infrastructure/config.js';
+import type { ExternalPolicy } from '../infrastructure/external.js';
+import type { Compilation } from '../semantic/compiler.js';
 
 /** How a fact is discharged: constructing a definition, proving, or refuting a claim. */
 export type VerificationMode = 'definition-construction' | 'proof' | 'refutation';
@@ -116,6 +119,27 @@ export function checkerContract(config: QmdProverConfig | JsonObject = {}): Json
     definition_strictness: String(setting(config, 'definition-strictness', 'definition_strictness', 'off')),
     protocol: { name: PROTOCOL_NAME, version: VERIFIER_PROTOCOL_VERSION }
   };
+}
+
+/**
+ * The verification environment a compilation is checked against: the external policy
+ * (permitted axioms/imports) and a hash combining it with the checker contract. It is
+ * a separate axis from the compiled mathematics — swapping verifier backends leaves the
+ * compilation identical but changes `contextHash` — so it travels alongside a Compilation
+ * rather than being part of it.
+ */
+export interface VerificationContext {
+  externalBasis: ExternalPolicy;
+  contextHash: string;
+}
+
+export async function verificationContext(compilation: Compilation): Promise<VerificationContext> {
+  const externalBasis = await readExternalPolicy(compilation.root);
+  const contextHash = sha256(stableJson({
+    external_basis_hash: externalPolicyHash(externalBasis),
+    checker_contract: checkerContract(compilation.config)
+  }, 0));
+  return { externalBasis, contextHash };
 }
 
 export const VERIFIER_BACKENDS = ['none', 'claude', 'codex', 'command'] as const;

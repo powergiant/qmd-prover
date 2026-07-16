@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { sha256, stableJson } from '../infrastructure/files.js';
+import { externalPolicyHash, readExternalPolicy } from '../infrastructure/external.js';
 import { asErrorLike, asRecord, isRecord } from '../shared/core.js';
 export const VERIFIER_PROTOCOL_VERSION = 5;
 const PROTOCOL_NAME = 'qmd-prover-independent-verifier';
@@ -28,6 +29,14 @@ export function checkerContract(config = {}) {
         definition_strictness: String(setting(config, 'definition-strictness', 'definition_strictness', 'off')),
         protocol: { name: PROTOCOL_NAME, version: VERIFIER_PROTOCOL_VERSION }
     };
+}
+export async function verificationContext(compilation) {
+    const externalBasis = await readExternalPolicy(compilation.root);
+    const contextHash = sha256(stableJson({
+        external_basis_hash: externalPolicyHash(externalBasis),
+        checker_contract: checkerContract(compilation.config)
+    }, 0));
+    return { externalBasis, contextHash };
 }
 export const VERIFIER_BACKENDS = ['none', 'claude', 'codex', 'command'];
 /** Absolute path to a shipped verifier adapter (scripts/verifiers/<backend>.mjs). */
