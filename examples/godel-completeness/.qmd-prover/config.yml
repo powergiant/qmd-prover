@@ -16,8 +16,8 @@ verification:
   model: configurable
   effort: high
   fresh-context: true
-  require-zero-gaps: true
-  definition-strictness: soft
+  citations: standard
+  rigor: standard
 
 render:
   graph-engine: builtin

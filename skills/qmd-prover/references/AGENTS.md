@@ -2,7 +2,7 @@
 
 Copy the managed block below into the root `AGENTS.md` of every mathematical project that uses qmd-prover. Keep the block unchanged. Add project-specific organization, notation, and writing rules outside the managed block.
 
-<!-- qmd-prover-contract:start version=19 -->
+<!-- qmd-prover-contract:start version=20 -->
 
 ## Contents
 
@@ -60,7 +60,7 @@ A semantic declaration is a fenced Div with one stable ID, exactly one kind clas
 
 A definition may have a linked proof when its construction needs justification. Every non-definition candidate needs one nonempty linked proof. A declaration and its linked proof normally remain in the same QMD file. The exception is a protected main goal: its declaration stays in the user's note, while its linked proof may live in any project file, such as `workspace/main-proof.qmd`.
 
-Cite the defining declaration of any specialized term at its first load-bearing use. When a definition body or a linked proof relies on a term, object, or notation that is not standard mathematical vocabulary, cite its `@def-id` — or the `@id` of whatever result fixes it — at that point, so the dependency is recorded and the verifier can resolve the term against the cited construction. Standard vocabulary needs no citation, and the verifier is the authority on what counts as standard: the `verification.definition-strictness` setting (`off`, `soft`, or `strict`) governs how aggressively it scrutinizes terms and reports an uncited non-standard term as a gap.
+Cite the defining declaration of any specialized term at its first load-bearing use. When a definition body or a linked proof relies on a term, object, or notation that is not standard mathematical vocabulary, cite its `@def-id` — or the `@id` of whatever result fixes it — at that point, so the dependency is recorded and the verifier can resolve the term against the cited construction. Standard vocabulary needs no citation, and the verifier is the authority on what counts as standard: the `verification.citations` setting (`lenient`, `standard`, or `strict`) governs how aggressively it scrutinizes terms and reports an uncited non-standard term as a gap, while the separate `verification.rigor` setting governs how completely each proof step must be spelled out.
 
 An `@id` citation records a logical dependency but does not make a declaration from another file available. Same-file citations need no scope metadata. Every cross-file dependency requires both of these steps:
 

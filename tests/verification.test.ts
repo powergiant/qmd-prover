@@ -6,6 +6,7 @@ import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
 import { analyzeDependencies, inspectFact, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
 import { printReport } from '../skills/qmd-prover/src/lib/inspection/report.js';
 import { checkStaleness } from '../skills/qmd-prover/src/lib/verification/staleness.js';
+import { checkerContract, verifierCommand } from '../skills/qmd-prover/src/lib/verification/protocol.js';
 import { document, must, options, project, proof, result, verifier } from './support.js';
 
 test('facts in any project folder join one unified graph and protected statements stay locked', async () => {
@@ -327,5 +328,45 @@ test('staleness auditing rejects a cache whose recorded disproof outcome is inco
     assert.ok(audit.changed.some((item) => item.id === 'thm-main-stale-disproof' && item.reasons.includes('cache-invalid')));
   } finally {
     delete process.env.QMD_PROVER_VERIFIER;
+  }
+});
+
+test('rigor gates whether reported gaps block acceptance; strict blocks, standard does not', async () => {
+  const root = await project();
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  try {
+    await writeFile(path.join(root, 'goal.qmd'), result('lem-has-gap', 'A lemma proved with a routine omission.', { proofText: 'An argument that leaves a GAP for the reader to fill.' }));
+
+    // rigor: standard — the reported gap is advisory, so a correct argument still verifies.
+    await writeFile(path.join(root, '.qmd-prover', 'config.yml'), 'verification:\n  citations: standard\n  rigor: standard\n');
+    const standard = await inspectFact(root, '@lem-has-gap', options);
+    assert.equal(standard.check.local_verification.report?.gaps.length, 1);
+    assert.equal(standard.check.local_verification.outcome, 'verified');
+    assert.equal(standard.check.global_verification.status, 'verified');
+
+    // rigor: strict — the identical report now blocks, because gaps must be empty.
+    await writeFile(path.join(root, '.qmd-prover', 'config.yml'), 'verification:\n  citations: standard\n  rigor: strict\n');
+    const strict = await inspectFact(root, '@lem-has-gap', options);
+    assert.equal(strict.check.local_verification.report?.gaps.length, 1);
+    assert.equal(strict.check.local_verification.status, 'fail');
+    assert.equal(strict.check.global_verification.status, 'rejected');
+  } finally {
+    delete process.env.QMD_PROVER_VERIFIER;
+  }
+});
+
+test('checker contract carries the citations/rigor axes and verifierCommand forwards effort', () => {
+  delete process.env.QMD_PROVER_VERIFIER;
+  const contract = checkerContract({ verification: { backend: 'codex', citations: 'strict', rigor: 'lenient', effort: 'xhigh' } });
+  assert.equal(contract.citations, 'strict');
+  assert.equal(contract.rigor, 'lenient');
+  assert.equal(contract.effort, 'xhigh');
+  assert.equal('require_zero_gaps' in contract, false);
+  assert.equal('definition_strictness' in contract, false);
+
+  for (const backend of ['codex', 'claude'] as const) {
+    const cmd = must(verifierCommand({ verification: { backend, effort: 'xhigh', model: 'a-model' } }));
+    assert.equal(cmd.args[cmd.args.indexOf('--effort') + 1], 'xhigh');
+    assert.equal(cmd.args[cmd.args.indexOf('--model') + 1], 'a-model');
   }
 });

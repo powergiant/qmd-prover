@@ -27,11 +27,13 @@ export interface VerificationConfig {
   /** none | claude | codex | command */
   backend: string;
   model: string;
+  /** Reasoning effort forwarded to the backend: low | medium | high | xhigh | max. */
   effort: string;
   'fresh-context': boolean;
-  'require-zero-gaps': boolean;
-  /** How hard the verifier scrutinizes that terms are defined: off | soft | strict. */
-  'definition-strictness': string;
+  /** How strictly an uncited non-standard term is flagged: lenient | standard | strict. */
+  citations: string;
+  /** How completely a valid step must be spelled out — and whether gaps block: lenient | standard | strict. */
+  rigor: string;
   /** Path to the claude/codex CLI when backend is claude|codex (defaults to the backend name on PATH). */
   executable?: string;
   /** Fully custom verifier argv when backend is `command` (advanced escape hatch). */
@@ -60,7 +62,7 @@ const defaults: QmdProverConfig = {
   goals: { 'id-prefix': 'thm-main-', 'protect-statements': true },
   semantic: { 'wildcard-imports': false },
   tools: { pandoc: '', quarto: '' },
-  verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, 'require-zero-gaps': true, 'definition-strictness': 'off', executable: '' },
+  verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, citations: 'standard', rigor: 'standard', executable: '' },
   render: { 'graph-engine': 'builtin', 'output-dir': '.qmd-prover/generated' }
 };
 
@@ -109,7 +111,10 @@ function booleanSetting(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
-const DEFINITION_STRICTNESS = ['off', 'soft', 'strict'];
+const STRICTNESS_LEVELS = ['lenient', 'standard', 'strict'];
+// Reasoning-effort levels shared by the codex and claude backends (both accept low..xhigh;
+// claude also accepts max, which codex tolerates). Ordered from cheapest to most thorough.
+const EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'];
 
 function enumSetting(value: unknown, allowed: string[], fallback: string): string {
   return typeof value === 'string' && allowed.includes(value) ? value : fallback;
@@ -144,11 +149,11 @@ function normalizedConfig(value: JsonObject): QmdProverConfig {
       ...verification,
       backend: typeof verification.backend === 'string' ? verification.backend : defaults.verification.backend,
       model: typeof verification.model === 'string' ? verification.model : defaults.verification.model,
-      effort: typeof verification.effort === 'string' ? verification.effort : defaults.verification.effort,
+      effort: enumSetting(verification.effort, EFFORT_LEVELS, defaults.verification.effort),
       executable: typeof verification.executable === 'string' ? verification.executable : defaults.verification.executable,
       'fresh-context': booleanSetting(verification['fresh-context'], defaults.verification['fresh-context']),
-      'require-zero-gaps': booleanSetting(verification['require-zero-gaps'], defaults.verification['require-zero-gaps']),
-      'definition-strictness': enumSetting(verification['definition-strictness'], DEFINITION_STRICTNESS, defaults.verification['definition-strictness'])
+      citations: enumSetting(verification.citations, STRICTNESS_LEVELS, defaults.verification.citations),
+      rigor: enumSetting(verification.rigor, STRICTNESS_LEVELS, defaults.verification.rigor)
     },
     render: {
       'graph-engine': typeof render['graph-engine'] === 'string' ? render['graph-engine'] : defaults.render['graph-engine'],

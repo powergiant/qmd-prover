@@ -34,6 +34,10 @@ await runAdapter(async (prompt, options) => {
     const args = ['-p', prompt, '--output-format', 'json'];
     if (typeof options.model === 'string' && options.model)
         args.push('--model', options.model);
+    // Forward the configured reasoning effort (low|medium|high|xhigh|max); claude warns and
+    // falls back to its default on any value it does not recognize.
+    if (typeof options.effort === 'string' && options.effort)
+        args.push('--effort', options.effort);
     const result = await runProcess(executable, args);
     if (result.code !== 0) {
         throw new Error(`claude exited ${result.code ?? `signal ${result.signal}`}: ${result.stderr.trim() || result.stdout.trim()}`);

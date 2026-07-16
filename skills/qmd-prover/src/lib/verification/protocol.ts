@@ -133,10 +133,21 @@ export function checkerContract(config: QmdProverConfig | JsonObject = {}): Json
     model: String(verification.model ?? 'configurable'),
     effort: String(verification.effort ?? 'high'),
     fresh_context: Boolean(setting(config, 'fresh-context', 'fresh_context', true)),
-    require_zero_gaps: Boolean(setting(config, 'require-zero-gaps', 'require_zero_gaps', true)),
-    definition_strictness: String(setting(config, 'definition-strictness', 'definition_strictness', 'off')),
+    // Two orthogonal strictness axes. `citations` (lenient|standard|strict) governs how
+    // aggressively an uncited non-standard term is flagged; `rigor` (lenient|standard|strict)
+    // governs how completely a valid step must be spelled out — and whether reported gaps block
+    // acceptance (only `strict` does). `citations` maps 1:1 to the retired definition-strictness
+    // (lenient=off, standard=soft, strict=strict); `rigor: strict` matches the retired
+    // require-zero-gaps: true. Both default to `standard`.
+    citations: String(verification.citations ?? 'standard'),
+    rigor: String(verification.rigor ?? 'standard'),
     protocol: { name: PROTOCOL_NAME, version: VERIFIER_PROTOCOL_VERSION }
   };
+}
+
+/** True when the configured rigor makes reported gaps block acceptance (i.e. rigor === "strict"). */
+export function requireZeroGaps(contract: JsonObject): boolean {
+  return String(contract.rigor ?? 'strict') === 'strict';
 }
 
 /**
@@ -315,25 +326,42 @@ function normalizedTarget(target: JsonObject = {}): VerifierTarget {
 }
 
 /**
- * The term-citation policy, gated on verification.definition-strictness. It governs only how
- * a specialized term used without a supplied definition is treated; it never relaxes checking
- * of the argument's actual logical steps. `off` is explicitly lenient (assume evident meaning),
- * `soft` flags genuine doubt, `strict` demands every load-bearing term be fixed by a citation.
+ * The term-citation axis, gated on verification.citations. It governs only how a specialized term
+ * used without a supplied definition is treated; it never relaxes checking of the argument's actual
+ * logical steps. `lenient` assumes evident meaning, `standard` flags genuine doubt, `strict` demands
+ * every load-bearing term be fixed by a citation.
  */
-function termCitationRule(strictness: string): string {
-  if (strictness === 'strict') {
-    return 'Term citations (strict): every specialized term, object, or notation the argument depends on must be fixed by a definition in the semantic context or by the external basis, unless it is unambiguously standard mathematical vocabulary. Report as a gap any load-bearing term whose precise meaning is not so fixed, even when the intended meaning seems clear.';
+function citationRule(citations: string): string {
+  if (citations === 'strict') {
+    return 'Citations (strict): every specialized term, object, or notation the argument depends on must be fixed by a definition in the semantic context or by the external basis, unless it is unambiguously standard mathematical vocabulary. Report as a gap any load-bearing term whose precise meaning is not so fixed, even when the intended meaning seems clear.';
   }
-  if (strictness === 'soft') {
-    return 'Term citations (soft): if the argument leans on a specialized term, object, or notation whose precise meaning you genuinely doubt is standard, and that meaning is not fixed by the semantic context or the external basis, report it as a gap. Do not flag ordinary, unambiguously standard vocabulary, or a notion whose intended meaning is clear from context.';
+  if (citations === 'standard') {
+    return 'Citations (standard): if the argument leans on a specialized term, object, or notation whose precise meaning you genuinely doubt is standard, and that meaning is not fixed by the semantic context or the external basis, report it as a gap. Do not flag ordinary, unambiguously standard vocabulary, or a notion whose intended meaning is clear from context.';
   }
-  return 'Term citations (lenient): do not treat the argument as defective merely because a specialized term, object, or notation is used without a supplied definition. When such a term is not fixed by the semantic context, assume its standard or contextually evident meaning and judge the argument on that basis. Report a defect only for an actual logical flaw, never for a missing citation alone.';
+  return 'Citations (lenient): do not treat the argument as defective merely because a specialized term, object, or notation is used without a supplied definition. When such a term is not fixed by the semantic context, assume its standard or contextually evident meaning and judge the argument on that basis. Never report a missing citation on its own as a defect.';
+}
+
+/**
+ * The proof-rigor axis, gated on verification.rigor. It governs how completely a *valid* step must
+ * be spelled out — i.e. what counts as a `gap` — never whether a step may be wrong (that floor is
+ * always enforced as a critical_error). `lenient` accepts informal argument, `standard` asks for
+ * material justification while allowing routine steps, `strict` demands every load-bearing step be
+ * explicit (and, in code, makes any reported gap block acceptance).
+ */
+function rigorRule(rigor: string): string {
+  if (rigor === 'strict') {
+    return 'Rigor (strict): require every load-bearing step, case, and well-definedness obligation the argument actually relies on to be justified rather than merely asserted, and report as a gap any such step that is missing or only asserted — including ones a competent reader could readily supply, such as an omitted case, base case, or unproved nontrivial claim the argument uses. Do not manufacture gaps from routine notation, standard conventions, or completeness points that do not affect whether the argument or construction goes through.';
+  }
+  if (rigor === 'lenient') {
+    return 'Rigor (lenient): judge the argument at an informal, textbook level. Take a step as evident whenever a competent reader could routinely supply it, and do not report such routine omissions; report a gap only for a step whose justification a careful reader would genuinely stop to question. A routine existence or well-definedness claim may be taken for granted.';
+  }
+  return 'Rigor (standard): judge the argument at an ordinary rigorous level. Report as a gap a step whose justification a competent reader would want to see spelled out, but take genuinely mechanical or immediate steps as evident, and do not manufacture gaps from routine notation, standard conventions, or completeness points that do not bear on whether the argument goes through. A routine well-definedness claim need not carry its own proof; a nontrivial one should.';
 }
 
 /** The mode-specific paragraph describing what kind of target is being checked. */
 function modeParagraph(mode: VerificationMode): string {
   if (mode === 'definition-construction') {
-    return 'The target is a definition: its construction introduces a term, object, or notation and normally carries no separate proof. Confirm that everything needed to make the construction meaningful is supplied or available from the semantic context, that every existence, uniqueness, or well-definedness obligation the construction itself claims is discharged (inline or in a linked justification), and that it is not circular through itself or its dependencies. Do not demand a theorem-style proof for a purely definitional stipulation, but do require justification for any nontrivial well-definedness claim the construction actually asserts.';
+    return 'The target is a definition: its construction introduces a term, object, or notation and normally carries no separate proof. Confirm that everything needed to make the construction meaningful is supplied or available from the semantic context and that it is not circular through itself or its dependencies. Do not demand a theorem-style proof for a purely definitional stipulation; judge any existence, uniqueness, or well-definedness claim it actually asserts at the rigor level stated below.';
   }
   if (mode === 'refutation') {
     return 'The target is a theorem-like statement accompanied by a proposed counterexample or refutation. Confirm that the argument really falsifies the exact quantified statement, satisfies every stated hypothesis, and does not merely expose a gap in some proof attempt. If it succeeds, return verdict "disproved" with a self-contained refutation; otherwise return verdict "incorrect" and explain the defect.';
@@ -352,10 +380,6 @@ function externalBasisParagraph(): string {
 }
 
 function reviewPrompt(mode: VerificationMode, contract: JsonObject): string {
-  const zeroGaps = contract.require_zero_gaps !== false;
-  const correctRule = zeroGaps
-    ? '- verdict "correct": the submission fully and validly establishes the exact target; critical_errors and gaps must both be empty.'
-    : '- verdict "correct": the submission fully and validly establishes the exact target; critical_errors and gaps must both be empty, so record any immaterial observation as a nonblocking_comment rather than a gap.';
   const sections = [
     'You are an independent mathematical verifier. Judge the submission strictly on its own merits: you did not write it, and you must neither assume it is correct nor repair it. Reason only from the material in this packet — do not read files, run commands, search, or rely on outside expectations about how this result is usually proved.',
 
@@ -369,17 +393,19 @@ function reviewPrompt(mode: VerificationMode, contract: JsonObject): string {
 
     'Establish the exact target and nothing weaker, stronger, or adjacent. Check that every cited dependency is applied with the exact hypotheses, domains, directions, side conditions, and quantified variables its statement requires — naming a result is not evidence that it applies. Scrutinize quantifier order and scope, variable binding and capture, hidden existence, uniqueness, or well-definedness assumptions, degenerate and boundary cases, and whether every case the argument relies on is actually covered.',
 
-    'Report a defect whenever a mathematically necessary step is missing, unjustified, or wrong — even when the conclusion is true, standard, or plausible — and never silently fill or replace it. Classify each defect: critical_errors are steps that are wrong, invalid, or depend on an undeclared or stronger-than-stated premise, so the argument fails as written; gaps are necessary steps that are missing or asserted without adequate justification, so the argument is incomplete though perhaps repairable; nonblocking_comments are remarks that do not affect validity.',
+    'Sort every defect you find into one of two kinds, because they are judged differently. A critical_error means the submission does not establish the target as written: a step that is wrong, invalid, or circular, a use of a dependency, definition, or hypothesis that does not actually apply, or a load-bearing part of the argument that is missing and cannot be routinely supplied. A gap means the argument is correct and complete in structure but a step is left terser or less justified than the rigor level below asks for, so a competent reader could routinely fill it. Put anything that does not bear on validity in nonblocking_comments, and never silently fill or replace a step.',
 
-    'Keep leniency about the meaning of terms separate from the rigor demanded of steps: granting a term its standard or evident meaning never licenses an unjustified inference. Every load-bearing step must be genuinely justified even when its conclusion is plausible, standard, or true, and a cited definition, lemma, or hypothesis supports a step only when it applies exactly as stated — invoking one for a claim it does not actually entail, or appealing to a result whose hypotheses are not met, is itself a defect rather than acceptable shorthand.',
+    'Correctness is a floor and is never relaxed: leniency about the meaning of a term, or about how tersely a routine step is stated, never licenses a wrong or unsupported inference. A cited definition, lemma, or hypothesis supports a step only when it applies exactly as stated — invoking one for a claim it does not entail, or appealing to a result whose hypotheses are not met, is a critical_error, not acceptable shorthand.',
 
-    termCitationRule(String(contract.definition_strictness ?? 'off')),
+    citationRule(String(contract.citations ?? 'lenient')),
+
+    rigorRule(String(contract.rigor ?? 'strict')),
 
     [
       'Return exactly one JSON object matching output_schema, and nothing else — no prose, no markdown, no code fences.',
-      correctRule,
-      '- verdict "incorrect": the submission does not establish the target as written; list the specific critical_errors and/or gaps. This rejects the argument; it does not assert the target is false.',
-      '- verdict "disproved": the exact target statement is itself false; provide a self-contained refutation and keep critical_errors and gaps empty.'
+      '- verdict "correct": the submission is valid and establishes the exact target — it has no critical_errors. Still list under gaps every step left less justified than the rigor level asks for; report them honestly even when they do not overturn a correct argument.',
+      '- verdict "incorrect": the submission does not establish the target as written — it has at least one critical_error. List them. This rejects the argument; it does not assert the target is false.',
+      '- verdict "disproved": the exact target statement is itself false; provide a self-contained refutation.'
     ].join('\n')
   ];
   return sections.join('\n\n');
@@ -473,22 +499,20 @@ function normalizeReport(value: unknown): VerifierReport {
   return normalized;
 }
 
-export function accepted(report: Partial<VerifierReport> | null | undefined): boolean {
+export function accepted(report: Partial<VerifierReport> | null | undefined, gapsBlock = true): boolean {
   return report?.verdict === 'correct'
     && Array.isArray(report.critical_errors)
     && report.critical_errors.length === 0
-    && Array.isArray(report.gaps)
-    && report.gaps.length === 0;
+    && (!gapsBlock || (Array.isArray(report.gaps) && report.gaps.length === 0));
 }
 
-export function disproved(report: Partial<VerifierReport> | null | undefined): boolean {
+export function disproved(report: Partial<VerifierReport> | null | undefined, gapsBlock = true): boolean {
   return report?.verdict === 'disproved'
     && typeof report.refutation === 'string'
     && report.refutation.trim().length > 0
     && Array.isArray(report.critical_errors)
     && report.critical_errors.length === 0
-    && Array.isArray(report.gaps)
-    && report.gaps.length === 0;
+    && (!gapsBlock || (Array.isArray(report.gaps) && report.gaps.length === 0));
 }
 
 export function verificationOutcome(
@@ -498,9 +522,12 @@ export function verificationOutcome(
   const mode = typeof packetOrMode === 'string'
     ? packetOrMode
     : targetMode(asRecord(packetOrMode.target));
-  if (mode === 'refutation') return disproved(report) ? 'disproved' : 'rejected';
-  if (accepted(report)) return 'verified';
-  if (mode === 'proof' && disproved(report)) return 'disproved';
+  // Only rigor "strict" makes reported gaps block acceptance; at lenient/standard a correct
+  // argument with formality gaps still verifies (the gaps stay recorded as advisories).
+  const gapsBlock = typeof packetOrMode === 'string' ? true : requireZeroGaps(asRecord(packetOrMode.checker_contract));
+  if (mode === 'refutation') return disproved(report, gapsBlock) ? 'disproved' : 'rejected';
+  if (accepted(report, gapsBlock)) return 'verified';
+  if (mode === 'proof' && disproved(report, gapsBlock)) return 'disproved';
   return 'rejected';
 }
 
