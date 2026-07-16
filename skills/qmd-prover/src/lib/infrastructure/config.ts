@@ -30,6 +30,8 @@ export interface VerificationConfig {
   effort: string;
   'fresh-context': boolean;
   'require-zero-gaps': boolean;
+  /** How hard the verifier scrutinizes that terms are defined: off | soft | strict. */
+  'definition-strictness': string;
   /** Path to the claude/codex CLI when backend is claude|codex (defaults to the backend name on PATH). */
   executable?: string;
   /** Fully custom verifier argv when backend is `command` (advanced escape hatch). */
@@ -58,7 +60,7 @@ const defaults: QmdProverConfig = {
   goals: { 'id-prefix': 'thm-main-', 'protect-statements': true },
   semantic: { 'wildcard-imports': false },
   tools: { pandoc: '', quarto: '' },
-  verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, 'require-zero-gaps': true, executable: '' },
+  verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, 'require-zero-gaps': true, 'definition-strictness': 'off', executable: '' },
   render: { 'graph-engine': 'builtin', 'output-dir': '.qmd-prover/generated' }
 };
 
@@ -107,6 +109,12 @@ function booleanSetting(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
+const DEFINITION_STRICTNESS = ['off', 'soft', 'strict'];
+
+function enumSetting(value: unknown, allowed: string[], fallback: string): string {
+  return typeof value === 'string' && allowed.includes(value) ? value : fallback;
+}
+
 function normalizedConfig(value: JsonObject): QmdProverConfig {
   const project = asRecord(value.project);
   const goals = asRecord(value.goals);
@@ -139,7 +147,8 @@ function normalizedConfig(value: JsonObject): QmdProverConfig {
       effort: typeof verification.effort === 'string' ? verification.effort : defaults.verification.effort,
       executable: typeof verification.executable === 'string' ? verification.executable : defaults.verification.executable,
       'fresh-context': booleanSetting(verification['fresh-context'], defaults.verification['fresh-context']),
-      'require-zero-gaps': booleanSetting(verification['require-zero-gaps'], defaults.verification['require-zero-gaps'])
+      'require-zero-gaps': booleanSetting(verification['require-zero-gaps'], defaults.verification['require-zero-gaps']),
+      'definition-strictness': enumSetting(verification['definition-strictness'], DEFINITION_STRICTNESS, defaults.verification['definition-strictness'])
     },
     render: {
       'graph-engine': typeof render['graph-engine'] === 'string' ? render['graph-engine'] : defaults.render['graph-engine'],

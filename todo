@@ -30,3 +30,6 @@ proof block must follow the theorem immediately
 
 
 README.md: 区分给人读的与给ai读的。要加上自动推送，自动更新的prompt
+
+
+verifier, 对于stale变化不用查的太严。

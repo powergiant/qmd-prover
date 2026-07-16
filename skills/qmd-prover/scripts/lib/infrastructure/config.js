@@ -6,7 +6,7 @@ const defaults = {
     goals: { 'id-prefix': 'thm-main-', 'protect-statements': true },
     semantic: { 'wildcard-imports': false },
     tools: { pandoc: '', quarto: '' },
-    verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, 'require-zero-gaps': true, executable: '' },
+    verification: { backend: 'none', model: 'configurable', effort: 'high', 'fresh-context': true, 'require-zero-gaps': true, 'definition-strictness': 'off', executable: '' },
     render: { 'graph-engine': 'builtin', 'output-dir': '.qmd-prover/generated' }
 };
 function scalar(text) {
@@ -60,6 +60,10 @@ function merge(left, right) {
 function booleanSetting(value, fallback) {
     return typeof value === 'boolean' ? value : fallback;
 }
+const DEFINITION_STRICTNESS = ['off', 'soft', 'strict'];
+function enumSetting(value, allowed, fallback) {
+    return typeof value === 'string' && allowed.includes(value) ? value : fallback;
+}
 function normalizedConfig(value) {
     const project = asRecord(value.project);
     const goals = asRecord(value.goals);
@@ -92,7 +96,8 @@ function normalizedConfig(value) {
             effort: typeof verification.effort === 'string' ? verification.effort : defaults.verification.effort,
             executable: typeof verification.executable === 'string' ? verification.executable : defaults.verification.executable,
             'fresh-context': booleanSetting(verification['fresh-context'], defaults.verification['fresh-context']),
-            'require-zero-gaps': booleanSetting(verification['require-zero-gaps'], defaults.verification['require-zero-gaps'])
+            'require-zero-gaps': booleanSetting(verification['require-zero-gaps'], defaults.verification['require-zero-gaps']),
+            'definition-strictness': enumSetting(verification['definition-strictness'], DEFINITION_STRICTNESS, defaults.verification['definition-strictness'])
         },
         render: {
             'graph-engine': typeof render['graph-engine'] === 'string' ? render['graph-engine'] : defaults.render['graph-engine'],

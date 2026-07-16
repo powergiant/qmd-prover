@@ -113,6 +113,7 @@ export function checkerContract(config: QmdProverConfig | JsonObject = {}): Json
     effort: String(verification.effort ?? 'high'),
     fresh_context: Boolean(setting(config, 'fresh-context', 'fresh_context', true)),
     require_zero_gaps: Boolean(setting(config, 'require-zero-gaps', 'require_zero_gaps', true)),
+    definition_strictness: String(setting(config, 'definition-strictness', 'definition_strictness', 'off')),
     protocol: { name: PROTOCOL_NAME, version: VERIFIER_PROTOCOL_VERSION }
   };
 }
@@ -254,6 +255,21 @@ function normalizedTarget(target: JsonObject = {}): VerifierTarget {
   return normalized;
 }
 
+/**
+ * A term-definedness rule, gated on verification.definition-strictness. `off` adds nothing;
+ * `soft` only flags terms the verifier genuinely doubts; `strict` flags every load-bearing
+ * non-standard term that is not fixed by a cited definition, semantic context, or external basis.
+ */
+function termDefinednessRule(strictness: string): string | null {
+  if (strictness === 'soft') {
+    return 'Term definedness (soft): If the argument leans on a specialized term, object, or notation whose precise meaning you genuinely doubt is standard, and that meaning is not fixed by a cited definition, the supplied semantic context, or the external basis, report it as a gap. Do not flag ordinary, unambiguously standard mathematical vocabulary.';
+  }
+  if (strictness === 'strict') {
+    return 'Term definedness (strict): Every specialized term, object, or notation the argument depends on must be fixed by a cited definition, the supplied semantic context, or the external basis, unless it is unambiguously standard mathematical vocabulary. Report as a gap any load-bearing term whose precise meaning is not so fixed, even when its intended meaning seems clear.';
+  }
+  return null;
+}
+
 function reviewPrompt(mode: VerificationMode, contract: JsonObject): string {
   const common = [
     'Act as an independent mathematical verifier, not as the author of the submission.',
@@ -277,6 +293,8 @@ function reviewPrompt(mode: VerificationMode, contract: JsonObject): string {
     common.splice(2, 0,
       'The target is a theorem-like result (theorem, lemma, proposition, or corollary). Verify that the supplied proof establishes the exact statement—not a nearby, weaker, stronger, converse, or special-case claim—from the supplied hypotheses and admissible dependencies.');
   }
+  const termRule = termDefinednessRule(String(contract.definition_strictness ?? 'off'));
+  if (termRule) common.splice(common.length - 1, 0, termRule);
   return common.join('\n\n');
 }
 
