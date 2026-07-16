@@ -72,7 +72,7 @@ Read [references/cli.md](references/cli.md) when configuring Pandoc or the verif
 
 ## Environment and verifier setup
 
-Run `doctor` first: it reports Node, Pandoc, the optional verifier, and Quarto, plus the exact path it resolved for each. Configure anything it reports missing entirely through `.qmd-prover/config.yml` (or environment variables) — you never edit qmd-prover's own code.
+Run `doctor` first: it reports Node, Pandoc, the optional verifier, and Quarto, plus the exact path it resolved for each. Configure anything it reports missing entirely through `.qmd-prover/config.yml` (or environment variables) — you never edit qmd-prover's own code. Every `.qmd-prover/config.yml` setting is documented in [references/config.md](references/config.md).
 
 - **Pandoc (required) and Quarto (optional for final render).** If `doctor` reports either as unavailable, install or download it, then record its path under `tools:` so every later command finds it:
 
@@ -103,7 +103,7 @@ Every QMD file in the project is semantic mathematics in one unified dependency 
 
 Write new agent-created definitions, intermediate results, proof attempts, calculations, examples, counterexamples, and progress notes in ordinary project QMD files, by convention under a `workspace/` folder in the project root. Folders are organizational only, never a semantic boundary: organize `workspace/` by theme, by goal, or flat, as the argument demands, and follow any folder principles in local project policy. Edit pre-existing user files cautiously. Put the linked proof of a main goal in a proof overlay file such as `workspace/main-proof.qmd` without repeating the protected theorem, and never copy a proof or marker into a protected statement.
 
-Follow the complete declaration, proof, import, and export rules in the canonical contract. An `@id` citation is a dependency but does not grant cross-file scope. Cite the defining `@def-id` of any non-standard term at its first load-bearing use; the `verification.definition-strictness` setting governs how aggressively the verifier flags an uncited non-standard term. Keep every explicit ID globally unique across the project. Any fact may cite any other project fact, including a protected main goal, subject to import scope; global composition keeps dependents blocked until the cited fact is globally verified.
+Follow the complete declaration, proof, import, and export rules in the canonical contract. An `@id` citation is a dependency but does not grant cross-file scope. Cite the defining `@def-id` of any non-standard term at its first load-bearing use; the `verification.citations` setting governs how aggressively the verifier flags an uncited non-standard term, and `verification.rigor` sets how completely each step must be justified. Keep every explicit ID globally unique across the project. Any fact may cite any other project fact, including a protected main goal, subject to import scope; global composition keeps dependents blocked until the cited fact is globally verified.
 
 Follow every unproved dependency instead of treating it as established. Read the three separate inspection layers: `mechanical` describes machine structure, `local_verification` says only whether the submitted proof follows conditionally from its direct dependency statements, and `global_verification` composes the whole upstream closure. Use a fact as a premise only when its global status is `verified`. These are informal AI-review states, not formal verification, human review, or permission to weaken protected statements.
 

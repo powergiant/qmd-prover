@@ -47,4 +47,4 @@ npm run typecheck
 npm run build
 ```
 
-See [the CLI reference](skills/qmd-prover/references/cli.md) for configuration and commands, the [canonical project contract](skills/qmd-prover/references/AGENTS.md) for project-agent rules, and [the design](docs/design.md) for architectural details.
+See [the CLI reference](skills/qmd-prover/references/cli.md) for commands, [the configuration reference](skills/qmd-prover/references/config.md) for every `.qmd-prover/config.yml` setting, the [canonical project contract](skills/qmd-prover/references/AGENTS.md) for project-agent rules, and [the design](docs/design.md) for architectural details.
