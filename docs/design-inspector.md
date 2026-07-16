@@ -24,9 +24,12 @@ The inspector uses Pandoc JSON as its semantic parser. It extracts dependency
 edges only from `@id` references in a definition construction or linked proof.
 Ordinary expository prose and bibliographic citations do not enter the graph.
 
-Inspection returns stable schema-v5 JSON by default. `--print` selects a
-human-readable report but must not change selection, diagnostics, verification,
-graph construction, or snapshot publication.
+Inspection returns stable schema-v6 JSON by default. The default JSON is lean:
+every fact is a compact reference (`id`, `kind`, `status`, `file`, `line`) and
+the full dependency graph is emitted only with `--graph`; it is always persisted
+to `.qmd-prover/graph.json` regardless. `--print` selects a human-readable report
+but must not change selection, diagnostics, verification, graph construction, or
+snapshot publication.
 
 The shared project index is built before verifier work. One compilation pass
 discovers every QMD source below the project root and registers notes,
@@ -82,8 +85,10 @@ contract.
 
 `inspect fact @ID` accepts any protected main-goal or explicit declaration ID.
 It resolves the ID in the single project namespace and returns the selected
-fact, its check result, source text, explanatory dependency closure, blockers,
-diagnostics, verification counts, and staleness state.
+fact, its check result, source text, its dependency closure as compact
+references, blockers, diagnostics, verification counts, and staleness state. The
+full dependency subgraph is included only with `--graph` and is always persisted
+to `.qmd-prover/graph.json`.
 
 ### Select and parse the fact
 
@@ -221,13 +226,14 @@ aliases; verification state lives only in tool records and snapshots.
 
 ### Construct the related dependency graph
 
-The single-fact graph contains:
+With `--graph` (or `--print`), the single-fact dependency graph — always
+persisted to `.qmd-prover/graph.json` — contains:
 
 - the selected fact;
 - its direct dependencies;
 - its complete transitive dependency closure;
 - unresolved references needed to explain failures;
-- status, origin, identity, and source location for each node;
+- status, kind, origin, ownership, local and global verification, and source location for each node;
 - structured disproof evidence on every independently disproved node; and
 - edge-level machine existence, scope, and cycle checks.
 
@@ -291,9 +297,9 @@ failure rather than a silently retargeted goal.
 
 ### Aggregate dependency graph
 
-The returned path graph contains the selected facts and their dependency
-context. Nodes are marked `selected` or `external` relative to the
-path selection. “External” here means outside the selected path but inside the
+With `--graph`, the path graph contains the selected facts and their dependency
+context; it is always persisted to `.qmd-prover/graph.json`. Nodes are marked
+`selected` or `external` relative to the path selection. “External” here means outside the selected path but inside the
 same project graph; it does not mean an external-basis result.
 
 After a complete narrow check, qmd-prover refreshes the publishable project
@@ -360,7 +366,7 @@ A full project inspection:
   upstream AI outcomes;
 - reuses exact current local verified, disproved, or rejected decisions;
 - computes global status over the complete project graph; and
-- publishes a schema-v5 project snapshot when compilation is complete.
+- publishes a schema-v6 project snapshot when compilation is complete.
 
 A malformed source file does not prevent healthy facts elsewhere from being
 inspected or included with full results. The top-level result is nevertheless
@@ -390,7 +396,7 @@ contains:
 
 Snapshots are content-addressed at `.qmd-prover/graphs/<sha>.json`, with
 `graphs/latest.json` naming the current one and `manifest.json`, `graph.json`,
-and `diagnostics.json` exposing the same schema-v5 state.
+and `diagnostics.json` exposing the same schema-v6 state.
 
 The source signature allows dependency analysis to reuse a saved graph only
 while sources and context remain current. Local evidence has its own exact
@@ -410,7 +416,7 @@ For project inspection, show:
 
 ## 4. Analyze and search the dependency graph
 
-Dependency operations use the latest current schema-v5 aggregate snapshot.
+Dependency operations use the latest current schema-v6 aggregate snapshot.
 They never analyze a snapshot whose `source_signature` no longer matches
 current sources; a stale or missing snapshot requires a fresh inspection.
 

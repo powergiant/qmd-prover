@@ -237,7 +237,7 @@ If render preparation produces
 ![Proof dependency graph](.qmd-prover/generated/dependencies.svg){fig-alt="A directed graph from protected goals to supporting lemmas and definitions."}
 ```
 
-The SVG is derived from a published schema-v5 project snapshot. Quarto decides
+The SVG is derived from a published schema-v6 project snapshot. Quarto decides
 how it is embedded or converted.
 
 ## Separation of concerns

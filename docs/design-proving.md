@@ -352,7 +352,7 @@ For current context, inspection:
 2. records the result under `local_verification` without changing any machine
    edge or upstream state;
 3. computes `global_verification` deterministically over the project graph;
-4. constructs a complete schema-v5 project manifest and graph;
+4. constructs a complete schema-v6 project manifest and graph;
 5. lets facts outside a narrow selection inherit their prior snapshot results
    when the `source_signature` and fact identities are unchanged;
 6. atomically publishes the content-addressed snapshot under
@@ -389,7 +389,7 @@ qmd-prover may retain under `.qmd-prover/`:
 - exact verified, disproved, and rejected verifier records under
   `verification/checks/`;
 - verifier infrastructure failure reports under `verification/failures/`;
-- content-addressed schema-v5 graph snapshots under `graphs/`, with
+- content-addressed schema-v6 graph snapshots under `graphs/`, with
   `graphs/latest.json` naming the current one; and
 - the project `manifest.json`, `graph.json`, and `diagnostics.json`.
 

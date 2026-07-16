@@ -1,6 +1,6 @@
 # Mathematical project instructions
 
-<!-- qmd-prover-contract:start version=17 -->
+<!-- qmd-prover-contract:start version=18 -->
 
 ## Contents
 
@@ -156,7 +156,7 @@ Apply these rules:
 5. Before relying on a fact, inspect its global state. Use it as an established premise only when `global_verification.status` is `verified`. A local conditional pass is not enough, and a globally disproved fact is evidence about the false statement, not a usable dependency.
 6. Repair every mechanical diagnostic and every local verifier critical error or gap. An unconfigured verifier is a supported machine-only mode and leaves local/global verification incomplete. If the user requests AI verification and the verifier is missing, failing, or malformed, repair `verification.command` or `QMD_PROVER_VERIFIER`; do not loop and do not declare the result verified yourself.
 
-`inspect project` compiles every project QMD file into one graph, runs machine analysis and optional local conditional verification for every fact, and returns the schema-v5 facts, graph, findings, staleness, local-verification totals, and global-verification totals. One malformed file does not suppress results elsewhere. Operational success does not imply that every goal is globally verified; inspect each goal's global field and blockers.
+`inspect project` compiles every project QMD file into one graph, runs machine analysis and optional local conditional verification for every fact, and returns a lean schema-v6 view: a summary, the goals, one compact status row per fact, finding counts, and verification totals. Pass `--graph` for the full dependency graph, which is also written to `.qmd-prover/graph.json`. One malformed file does not suppress results elsewhere. Operational success does not imply that every goal is globally verified; inspect each goal's global field and blockers.
 
 `inspect fact @ID` locates any explicit declaration, including a protected main goal; for a goal it uses the goal's linked proof overlay and user notes stay byte-for-byte unchanged. `inspect path` applies the full semantic contract to the facts declared under any project file or folder.
 

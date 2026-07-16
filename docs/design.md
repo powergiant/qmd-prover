@@ -164,7 +164,7 @@ uniform-index-project/
 └── .qmd-prover/
     ├── config.yml
     ├── statement-locks.json
-    ├── manifest.json                      # published schema-v5 manifest
+    ├── manifest.json                      # published schema-v6 manifest
     ├── graph.json                         # published project graph
     ├── diagnostics.json
     ├── graphs/
@@ -388,7 +388,7 @@ The public scopes are:
 - `inspect project` for one unified compile, machine analysis, optional local
   conditional verification, and global composition over every fact; and
 - `dependency ...` for analysis and search over the current published
-  schema-v5 snapshot.
+  schema-v6 snapshot.
 
 Narrow scopes verify the selected facts plus their transitive dependency
 closure, and unchanged facts inherit their results from the last published
@@ -401,9 +401,13 @@ all machine checks pass.
 
 ### Three inspection layers
 
-Every current result exposes separate `mechanical`, `local_verification`, and
-`global_verification` fields. The composed status string is a compact
-presentation of that state, not an input to dependency analysis.
+A directly inspected fact (`inspect fact @ID`) exposes separate `mechanical`,
+`local_verification`, and `global_verification` fields. In list contexts — the
+project and path `facts[]` and the `dependency` subcommands — facts appear as
+compact references (`id`, `kind`, `status`, `file`, `line`), and the full
+per-fact verification is obtained from `inspect fact @ID`. The composed status
+string is a compact presentation of that state, not an input to dependency
+analysis.
 
 Mechanical state covers parsing, declaration and proof shape, ID ownership,
 exact imports and exports, reference existence and scope, cycles, protected

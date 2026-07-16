@@ -30,7 +30,7 @@ makes it clear which layer owns a safety decision.
 
 `inspection/index.ts` and `inspection/snapshot.ts` are deliberate first-class
 modules. The former discovers project sources and performs project-wide
-preflight; the latter constructs and publishes the schema-v5 project view.
+preflight; the latter constructs and publishes the schema-v6 project view.
 Neither belongs in the application dispatcher, because rendering, inspection,
 and dependency analysis all need the same project model.
 
@@ -90,13 +90,13 @@ Large workflows keep orchestration separate from reusable mechanics:
 - `inspection/verify.ts` drives local conditional verification over a selected
   dependency closure and deterministically composes global status.
 - `inspection/snapshot.ts` normalizes project-relative locations, computes the
-  schema-v5 total graph with its `source_signature`, and publishes it
+  schema-v6 total graph with its `source_signature`, and publishes it
   atomically when publication is safe.
 - `inspection/graph.ts` owns traversal, subgraphs, shortest paths, alternative
   paths, and proof-frontier mechanics.
 - `inspection/findings.ts` derives reusable graph findings.
 - `inspection/operations.ts` coordinates project, fact, path, and dependency
-  operations and converts domain failures into stable schema-v5 results.
+  operations and converts domain failures into stable schema-v6 results.
 - `inspection/report.ts` is presentation-only and must not change selection,
   checking, or publication semantics.
 - `verification/protocol.ts` owns the protocol-version-5 packet contract and
