@@ -331,6 +331,37 @@ test('staleness auditing rejects a cache whose recorded disproof outcome is inco
   }
 });
 
+test('staleness ignores superseded cache files left behind after a proof is re-verified', async () => {
+  const root = await project();
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  try {
+    const goal = path.join(root, 'goal.qmd');
+    await writeFile(goal, result('thm-main-resettled', 'The resettled conclusion holds.', { proofText: 'A first valid argument.' }));
+    assert.equal((await inspectFact(root, '@thm-main-resettled', options)).check.local_verification.outcome, 'verified');
+
+    // Re-verify a changed proof. The cache is keyed by verification digest, so this writes
+    // a second file and leaves the first (naming the old proof) on disk.
+    await writeFile(goal, result('thm-main-resettled', 'The resettled conclusion holds.', { proofText: 'A second, equally valid argument.' }));
+    assert.equal((await inspectFact(root, '@thm-main-resettled', options)).check.local_verification.outcome, 'verified');
+    const checks = path.join(root, '.qmd-prover', 'verification', 'checks');
+    assert.equal((await readdir(checks)).length, 2, 'the superseded cache file should still be on disk');
+
+    // The current proof has a valid, matching cache entry, so the leftover file for the old
+    // proof must not report the target as stale.
+    const audit = await checkStaleness(root, options);
+    assert.equal(audit.ok, true);
+    assert.equal(audit.changed.some((item) => item.id === 'thm-main-resettled'), false, JSON.stringify(audit.changed));
+    assert.equal(audit.invalidated.some((item) => item.id === 'thm-main-resettled'), false);
+
+    // But once the current source itself drifts with no matching cache entry, it is stale again.
+    await writeFile(goal, result('thm-main-resettled', 'The resettled conclusion holds.', { proofText: 'A third argument, not yet verified.' }));
+    const drifted = await checkStaleness(root, options);
+    assert.ok(drifted.changed.some((item) => item.id === 'thm-main-resettled' && item.reasons.includes('source-changed')));
+  } finally {
+    delete process.env.QMD_PROVER_VERIFIER;
+  }
+});
+
 test('rigor gates whether reported gaps block acceptance; strict blocks, standard does not', async () => {
   const root = await project();
   process.env.QMD_PROVER_VERIFIER = verifier;

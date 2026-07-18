@@ -35,38 +35,61 @@ export async function checkStaleness(root = process.cwd(), options = {}) {
         reasons.add(reason);
         reasonsByTarget.set(target, reasons);
     };
+    // Each cache file is named after its verification key, so editing a proof (or the
+    // checker contract, or the external basis) and re-verifying writes a fresh file while
+    // the superseded one lingers on disk. Collect every record under its target, then judge
+    // the target from a single representative — one that still matches the current source,
+    // and among those the most recently verified — so an obsolete leftover cannot make a
+    // result that already has a valid current cache entry look stale.
+    const candidatesByTarget = new Map();
+    const addCandidate = (target, candidate) => {
+        const list = candidatesByTarget.get(target) ?? [];
+        list.push(candidate);
+        candidatesByTarget.set(target, list);
+    };
     for (const file of await jsonFiles(path.join(root, AUX, 'verification', 'checks'))) {
         let record;
         try {
             record = await readJson(file);
         }
         catch {
-            flag(path.basename(file, '.json'), 'cache-invalid');
+            addCandidate(path.basename(file, '.json'), { reasons: new Set(['cache-invalid']), matchesSource: false, verifiedAt: '' });
             continue;
         }
         const target = typeof record.target === 'string' ? record.target : path.basename(file, '.json');
+        const reasons = new Set();
         if (!isRecord(record.report) || !isRecord(record.packet) || !isRecord(record.packet.target)) {
-            flag(target, 'cache-invalid');
+            reasons.add('cache-invalid');
         }
         else {
             const outcome = verificationOutcome(record.report, record.packet);
             if (record.outcome !== outcome || record.accepted !== (outcome !== 'rejected'))
-                flag(target, 'cache-invalid');
+                reasons.add('cache-invalid');
         }
         if (record.external_basis_hash !== externalHash)
-            flag(target, 'external-basis-changed');
+            reasons.add('external-basis-changed');
         if (stableJson(record.checker_contract ?? {}, 0) !== stableJson(contract, 0))
-            flag(target, 'checker-contract-changed');
+            reasons.add('checker-contract-changed');
         const current = resultById.get(target);
-        if (!current || record.statement_hash !== current.statement_hash || record.proof_hash !== current.proof_hash)
-            flag(target, 'source-changed');
+        const matchesSource = !!current && record.statement_hash === current.statement_hash && record.proof_hash === current.proof_hash;
+        if (!matchesSource)
+            reasons.add('source-changed');
         const dependencySnapshot = isRecord(record.dependency_snapshot) ? record.dependency_snapshot : {};
         for (const [dependencyId, saved] of Object.entries(dependencySnapshot)) {
             const dependency = resultById.get(dependencyId);
             const identity = isRecord(saved) && isRecord(saved.identity) ? saved.identity : {};
             if (!dependency || identity.statement_hash !== dependency.statement_hash)
-                flag(target, 'dependency-context-changed');
+                reasons.add('dependency-context-changed');
         }
+        addCandidate(target, { reasons, matchesSource, verifiedAt: typeof record.verified_at === 'string' ? record.verified_at : '' });
+    }
+    for (const [target, candidates] of candidatesByTarget) {
+        // Prefer records still matching the current source; if none do, the target has no
+        // current cache entry, so its newest record carries the genuine source-changed signal.
+        const pool = candidates.some((candidate) => candidate.matchesSource) ? candidates.filter((candidate) => candidate.matchesSource) : candidates;
+        const chosen = pool.reduce((best, candidate) => (candidate.verifiedAt >= best.verifiedAt ? candidate : best));
+        for (const reason of chosen.reasons)
+            flag(target, reason);
     }
     const changed = [...reasonsByTarget].map(([id, reasons]) => ({
         id,
