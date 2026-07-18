@@ -3,9 +3,9 @@ import { execFile } from 'node:child_process';
 import { chmod, cp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
-import { inspectFact, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
-import type { GraphEdge } from '../skills/qmd-prover/src/lib/semantic/dependency-graph.js';
+import { readJson } from '../skills/qmd-prover/src/core/infrastructure/files.js';
+import { inspectFact, inspectProject } from '../skills/qmd-prover/src/commands/inspect/index.js';
+import type { GraphEdge } from '../skills/qmd-prover/src/core/semantic/dependency-graph.js';
 import { bareProject, fakePandoc, here, must, verifier } from './support.js';
 
 const fixture = path.join(here, 'fixtures', 'large-project');

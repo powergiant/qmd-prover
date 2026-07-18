@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { ConfigError, loadConfig, parseSimpleYaml } from '../skills/qmd-prover/src/lib/infrastructure/config.js';
-import { checkerContract, configured, verifierCommand } from '../skills/qmd-prover/src/lib/verification/protocol.js';
+import { ConfigError, loadConfig, parseSimpleYaml } from '../skills/qmd-prover/src/core/infrastructure/config.js';
+import { checkerContract, configured, verifierCommand } from '../skills/qmd-prover/src/core/verification/protocol.js';
 import { bareProject, must } from './support.js';
 
 test('config parser: value types, trailing comments, and quote/bracket protection', () => {

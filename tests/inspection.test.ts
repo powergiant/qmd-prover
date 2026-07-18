@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { analyzeDependencies, inspectFact, inspectPath, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
-import { checkStaleness } from '../skills/qmd-prover/src/lib/verification/staleness.js';
+import { inspectFact, inspectPath, inspectProject } from '../skills/qmd-prover/src/commands/inspect/index.js';
+import { analyzeDependencies } from '../skills/qmd-prover/src/commands/dependency/index.js';
+import { checkStaleness } from '../skills/qmd-prover/src/commands/check/index.js';
 import { document, must, options, project, proof, result, verifier } from './support.js';
 
 async function folderFile(root: string, folder: string, name: string, body: string): Promise<string> {

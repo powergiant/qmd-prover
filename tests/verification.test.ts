@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
-import { analyzeDependencies, inspectFact, inspectProject } from '../skills/qmd-prover/src/lib/inspection/operations.js';
-import { printReport } from '../skills/qmd-prover/src/lib/inspection/report.js';
-import { checkStaleness } from '../skills/qmd-prover/src/lib/verification/staleness.js';
-import { buildVerifierPacket, checkerContract, verifierCommand } from '../skills/qmd-prover/src/lib/verification/protocol.js';
+import { readJson } from '../skills/qmd-prover/src/core/infrastructure/files.js';
+import { inspectFact, inspectProject } from '../skills/qmd-prover/src/commands/inspect/index.js';
+import { analyzeDependencies } from '../skills/qmd-prover/src/commands/dependency/index.js';
+import { printReport } from '../skills/qmd-prover/src/cli/output/report.js';
+import { checkStaleness } from '../skills/qmd-prover/src/commands/check/index.js';
+import { buildVerifierPacket, checkerContract, verifierCommand } from '../skills/qmd-prover/src/core/verification/protocol.js';
 import { document, must, options, project, proof, result, verifier } from './support.js';
 
 test('facts in any project folder join one unified graph and protected statements stay locked', async () => {

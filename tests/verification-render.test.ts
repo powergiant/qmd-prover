@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { renderProject } from '../skills/qmd-prover/src/lib/application/render.js';
-import { readJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
-import { inspectFact } from '../skills/qmd-prover/src/lib/inspection/operations.js';
+import { renderProject } from '../skills/qmd-prover/src/commands/render/index.js';
+import { readJson } from '../skills/qmd-prover/src/core/infrastructure/files.js';
+import { inspectFact } from '../skills/qmd-prover/src/commands/inspect/index.js';
 import { options, project, proof, result, verifier } from './support.js';
 
 test('render prepares Quarto-compatible status QMD and an SVG linked to user main goals', async () => {

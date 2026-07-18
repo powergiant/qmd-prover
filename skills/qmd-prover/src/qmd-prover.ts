@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { main } from './lib/application/cli.js';
-import { asErrorLike, SCHEMA_VERSION } from './lib/shared/core.js';
+import { main } from './cli/run.js';
+import { asErrorLike, SCHEMA_VERSION } from './core/shared/core.js';
 
 main(process.argv.slice(2)).catch((error) => {
   const failure = asErrorLike(error);

@@ -17,7 +17,7 @@
 // needed to point it at a different model or executable — only config.
 
 import { runAdapter, runProcess } from './lib.js';
-import type { VerifierUsage } from '../lib/verification/protocol.js';
+import type { VerifierUsage } from '../core/shared/verdicts.js';
 
 /** Map the `usage` object of a `claude -p --output-format json` envelope into a VerifierUsage. */
 function claudeUsage(envelope: Record<string, unknown>): VerifierUsage | undefined {

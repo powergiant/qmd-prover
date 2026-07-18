@@ -3,8 +3,8 @@ import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
-import { initializeProject } from '../skills/qmd-prover/src/lib/application/project.js';
-import { readExternalPolicy } from '../skills/qmd-prover/src/lib/infrastructure/external.js';
+import { initializeProject } from '../skills/qmd-prover/src/commands/init/index.js';
+import { readExternalPolicy } from '../skills/qmd-prover/src/core/infrastructure/external.js';
 import { bareProject, fakePandoc, here, must, proof, result, verifier } from './support.js';
 
 interface CliError extends Error { code?: string | number | null }

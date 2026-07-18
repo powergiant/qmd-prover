@@ -1,8 +1,8 @@
-import type { compileProject } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
-import type { verifyFacts } from '../skills/qmd-prover/src/lib/inspection/verify.js';
-import type { JsonObject } from '../skills/qmd-prover/src/lib/shared/types.js';
-import type { InspectionVerificationSummary } from '../skills/qmd-prover/src/lib/inspection/verify.js';
-import type { Compilation } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
+import type { compileProject } from '../skills/qmd-prover/src/core/semantic/compiler.js';
+import type { verifyFacts } from '../skills/qmd-prover/src/core/graph/verify.js';
+import type { JsonObject } from '../skills/qmd-prover/src/core/shared/types.js';
+import type { InspectionVerificationSummary } from '../skills/qmd-prover/src/core/graph/verify.js';
+import type { Compilation } from '../skills/qmd-prover/src/core/semantic/compiler.js';
 
 type IsAny<T> = 0 extends (1 & T) ? true : false;
 type Assert<T extends true> = T;

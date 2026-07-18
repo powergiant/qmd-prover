@@ -3,10 +3,10 @@ import test from 'node:test';
 import {
   asErrorLike, CONTROL_MARKERS, errorMessage, hasErrorCode, indexBy, isControlMarker,
   KIND_BY_PREFIX, pushToMap, SEMANTIC_ID_PATTERN, uniqueSorted
-} from '../skills/qmd-prover/src/lib/shared/core.js';
-import { stableJson } from '../skills/qmd-prover/src/lib/infrastructure/files.js';
-import { factStatus } from '../skills/qmd-prover/src/lib/semantic/compiler.js';
-import type { SemanticResult } from '../skills/qmd-prover/src/lib/semantic/model.js';
+} from '../skills/qmd-prover/src/core/shared/core.js';
+import { stableJson } from '../skills/qmd-prover/src/core/infrastructure/files.js';
+import { factStatus } from '../skills/qmd-prover/src/core/semantic/compiler.js';
+import type { SemanticResult } from '../skills/qmd-prover/src/core/semantic/model.js';
 
 test('shared semantic constants keep IDs, result kinds, and protected markers aligned', () => {
   assert.deepEqual(CONTROL_MARKERS, ['OPEN', 'REJECTED', 'DISPROVED', 'VERIFIED', 'REVOKED']);

@@ -15,7 +15,8 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { VerifierPacket, VerifierReport, VerifierUsage } from '../lib/verification/protocol.js';
+import type { VerifierPacket } from '../core/verification/protocol.js';
+import type { VerifierReport, VerifierUsage } from '../core/shared/verdicts.js';
 
 /** Flags parsed from argv: `--name value` yields a string, a bare `--flag` yields true. */
 export type AdapterOptions = Record<string, string | boolean>;

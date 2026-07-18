@@ -11,105 +11,114 @@ second regular-expression semantic parser.
 
 ## Module layout
 
-`src/lib` is organized by responsibility:
+`src` is organized around what the tool does. The top level separates the
+command-line surface, the individual commands, the shared engine, and the
+verifier adapters:
 
 ```text
-lib/
-├── application/      CLI dispatch, help, doctor, project setup, and rendering
-├── infrastructure/   configuration, executables, filesystem safety, external policy
-├── inspection/       project index, verification driver, snapshots, graph queries, findings, reports
-├── semantic/         Pandoc JSON parsing, sources, compilation, discovery, dependency cycles
-├── shared/           dependency-free types and compact runtime primitives
-└── verification/     verifier protocol, exact caches, read-only staleness, submissions
+src/
+├── cli/            argv parsing, dispatch, help, and output projections
+├── commands/       one module per command: init, doctor, render, inspect,
+│                   dependency, check, verification
+├── core/           the shared engine every command composes
+│   ├── semantic/       Pandoc JSON parsing, sources, compilation, discovery, dependency cycles
+│   ├── verification/   verifier protocol and exact decision cache
+│   ├── graph/          graph algorithms, findings, snapshot persistence, the verification driver
+│   ├── infrastructure/ configuration, executables, filesystem safety, external policy
+│   └── shared/         dependency-free types, primitives, verdict vocabulary, result DTOs
+└── verifiers/      standalone verifier adapter executables (claude, codex)
 ```
 
-There are no compatibility facades or barrel-only files under `src/lib`.
-Source, tests, and tooling import the owning domain module directly. This keeps
-the filesystem representation aligned with the actual dependency graph and
-makes it clear which layer owns a safety decision.
+There are no compatibility facades or barrel-only files. Source, tests, and
+tooling import the owning module directly, so the filesystem layout matches the
+actual dependency graph and makes it clear which layer owns a safety decision.
 
-`inspection/index.ts` and `inspection/snapshot.ts` are deliberate first-class
-modules. The former discovers project sources and performs project-wide
-preflight; the latter constructs and publishes the schema-v6 project view.
-Neither belongs in the application dispatcher, because rendering, inspection,
-and dependency analysis all need the same project model.
+Each `commands/*` module is a thin orchestrator: it composes `core/` mechanisms
+over the selected scope and returns a stable schema-v6 result. Command modules
+never import one another; anything shared between two commands — a helper or a
+result type such as the staleness report — lives in `core/`, so the command
+surface stays legible and independent.
 
 ## Dependency direction
 
-The intended file-level dependency direction is:
+The intended dependency direction runs strictly inward:
 
 ```text
-application
-  ├── inspection/operations
-  │     └── inspection/verify
-  │           └── inspection/{index,snapshot,graph,findings}
-  └── application/render
-              │
-              v
-semantic + verification (protocol, cache, staleness)
-              │
-              v
-infrastructure + shared
+cli  (parse, dispatch, help, output)
+  │
+  v
+commands  (init, doctor, render, inspect, dependency, check, verification)
+  │
+  v
+core  (semantic, verification, graph, infrastructure, shared)
 ```
 
-`shared` and infrastructure must not depend on higher layers. Infrastructure
-owns unsafe boundary operations such as JSON reads, path containment checks,
-locks, and atomic writes. Semantic compilation owns the Pandoc representation
-and produces typed manifests and dependency graphs. Verification owns the
-external protocol and exact decision identity. None of those layers introduces
-an alternative parser.
+`cli` parses argv into a command, dispatches to the matching `commands/*`
+module, and renders that module's result — the full report under `--print`, the
+lean agent-facing projection by default. Nothing in `core/` imports `cli` or
+`commands`, and no command imports another command. The verifier adapters under
+`src/verifiers/` depend only on `core/verification` and the shared verdict
+vocabulary.
 
-The inspection domain deliberately has two levels. Project indexing, snapshot
-construction, findings, and graph mechanics are lower-level primitives; they
-may depend on the verification cache and protocol, but never on the
-verification driver. `inspection/verify.ts` consumes those primitives to run
-local conditional verification and compose global status. The higher-level
-`inspection/operations.ts` invokes that driver over the selected closure and
-composes project, fact, path, and dependency
-results. This ordering keeps the file import graph acyclic:
-`inspection/verify.ts` never imports `inspection/operations.ts`, and the index
-and snapshot builder never import `inspection/verify.ts` at runtime. The
-application layer coordinates these public operations, project setup,
-rendering, help, and stable output formatting; it does not reimplement
-semantic or verifier decisions.
+Within `core`, the layering is `semantic → verification → graph`, all resting on
+`infrastructure` and `shared`. `shared` and `infrastructure` must not depend on
+a higher layer. `infrastructure` owns unsafe boundary operations such as JSON
+reads, path containment checks, locks, and atomic writes. `semantic` owns the
+Pandoc representation and produces typed manifests and dependency graphs;
+because the verdict vocabulary (`AiCheck`, `GlobalVerification`,
+`DisproofEvidence`, …) lives in `core/shared/verdicts`, a semantic result carries
+overlaid verification status without depending on the verifier. `verification`
+owns the external protocol and exact decision identity. `graph` owns the
+verification driver, snapshot persistence, graph traversal, and findings; it may
+depend on the verification cache and protocol but never on a command. None of
+these layers introduces an alternative parser.
+
+`core/graph/verify.ts` is the verification driver: it runs local conditional
+verification over a selected closure and deterministically composes global
+status. `commands/inspect` and `commands/dependency` invoke it (directly or
+through the published snapshot) and compose project, fact, path, and dependency
+results; they never reimplement semantic or verifier decisions.
 
 ## Larger workflows
 
 Large workflows keep orchestration separate from reusable mechanics:
 
-- `semantic/compiler.ts` owns the single full compilation pass. Every
+- `core/semantic/compiler.ts` owns the single full compilation pass. Every
   discovered QMD file receives the complete semantic-QMD contract, and
   protected main goals are recognized where they are declared.
-- `semantic/discovery.ts` owns deterministic QMD discovery; `.qmd-prover/` is
-  excluded as derived state.
-- `semantic/pandoc.ts` and `semantic/source.ts` own Pandoc invocation and
-  exact source reading and fingerprints.
-- `semantic/dependency-graph.ts` owns cycle normalization and detection.
-- `inspection/index.ts` discovers project QMD, protected main goals, global
-  IDs, and duplicate-ID conflicts without calling the verifier.
-- `inspection/verify.ts` drives local conditional verification over a selected
+- `core/semantic/discovery.ts` owns deterministic QMD discovery; `.qmd-prover/`
+  is excluded as derived state.
+- `core/semantic/pandoc.ts` and `core/semantic/source.ts` own Pandoc invocation
+  and exact source reading and fingerprints.
+- `core/semantic/dependency-graph.ts` owns cycle normalization and detection.
+- `core/graph/verify.ts` drives local conditional verification over a selected
   dependency closure and deterministically composes global status.
-- `inspection/snapshot.ts` normalizes project-relative locations, computes the
+- `core/graph/snapshot.ts` normalizes project-relative locations, computes the
   schema-v6 total graph with its `source_signature`, and publishes it
   atomically when publication is safe.
-- `inspection/graph.ts` owns traversal, subgraphs, shortest paths, alternative
-  paths, and proof-frontier mechanics.
-- `inspection/findings.ts` derives reusable graph findings.
-- `inspection/operations.ts` coordinates project, fact, path, and dependency
-  operations and converts domain failures into stable schema-v6 results.
-- `inspection/report.ts` is presentation-only and must not change selection,
-  checking, or publication semantics.
-- `verification/protocol.ts` owns the protocol-version-6 packet contract and
-  the interpretation of structured verifier results.
-- `verification/cache.ts` owns the project-level content-addressed exact
+- `core/graph/algorithms.ts` owns traversal, subgraphs, shortest paths,
+  alternative paths, and proof-frontier mechanics.
+- `core/graph/findings.ts` derives reusable graph findings.
+- `commands/inspect/index.ts` composes project, fact, and path inspection over
+  the verification driver and published snapshot.
+- `commands/dependency/index.ts` composes the dependency queries and converts
+  domain failures into stable schema-v6 results.
+- `commands/check/index.ts` audits current cache records against sources,
+  external basis, and checker contract without mutating QMD.
+- `commands/verification/index.ts` reads retained verifier submissions and
+  failure reports under `.qmd-prover/verification/`.
+- `cli/output/report.ts` is presentation-only and must not change selection,
+  checking, or publication semantics; `cli/output/lean.ts` projects the compact
+  agent-facing view.
+- `core/verification/protocol.ts` owns the protocol-version-6 packet contract
+  and the interpretation of structured verifier results.
+- `core/verification/cache.ts` owns the project-level content-addressed exact
   decision cache under `.qmd-prover/verification/checks/`, exact-cache
   validation, and deterministic scheduling.
-- `verification/staleness.ts` audits current cache records against sources,
-  external basis, and checker contract without mutating QMD.
-- `verification/submissions.ts` records verifier submissions and retained
-  failure reports under `.qmd-prover/verification/failures/`.
-- `shared/core.ts` combines only small dependency-free primitives that are
-  broadly reused; domain-specific helpers stay with their owner.
+- `core/shared/verdicts.ts` owns the verifier result vocabulary (verdicts,
+  reports, and run-cost metrics) shared across the engine; `core/shared/core.ts`
+  combines only small dependency-free primitives that are broadly reused, and
+  domain-specific helpers stay with their owner.
 
 When a workflow grows, first extract a cohesive mechanism with a typed input
 and output. Do not create a general `utils` module or move unrelated helpers
