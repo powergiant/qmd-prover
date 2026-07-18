@@ -85,7 +85,7 @@ export function verifierFailure(error: unknown, target: string, inherited = fals
     error: inherited
       ? `Local conditional verification stopped after the verifier command failed while checking @${target}`
       : failure.message,
-    remediation: 'Repair verification.command or QMD_PROVER_VERIFIER, then rerun inspection. The local result remains unverified.',
+    remediation: 'Repair the verifier (verification.backend, verification.command, or QMD_PROVER_VERIFIER), then rerun inspection. The local result remains unverified.',
     ...(isRecord(details) ? { details } : {}),
     fatal: true,
     ...(inherited ? { inherited: true, failed_target: target } : {})

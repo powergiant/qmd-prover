@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { loadConfig, pandocCommand, quartoCommand } from '../infrastructure/config.js';
+import { ConfigError, loadConfig, pandocCommand, quartoCommand } from '../infrastructure/config.js';
 import { executableAvailable } from '../infrastructure/executables.js';
 import { verifierProbe } from '../verification/protocol.js';
 import { SCHEMA_VERSION } from '../shared/core.js';
@@ -15,7 +15,24 @@ interface DependencyStatus {
 
 export async function doctorProject(root = process.cwd()): Promise<OperationResult> {
   root = path.resolve(root);
-  const config = await loadConfig(root);
+  let config;
+  try {
+    config = await loadConfig(root);
+  } catch (error) {
+    // A malformed config.yml should be reported by doctor, not crash it — this is the command a
+    // user runs to find config problems.
+    if (error instanceof ConfigError) {
+      return {
+        schema_version: SCHEMA_VERSION,
+        operation: 'doctor',
+        ok: false,
+        root,
+        config_error: error.message,
+        next_actions: [{ dependency: 'config', remediation: `Fix ${error.message}` }]
+      };
+    }
+    throw error;
+  }
   const pandocCmd = pandocCommand(config);
   const quartoCmd = quartoCommand(config);
   const verifier = verifierProbe(config);

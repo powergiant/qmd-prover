@@ -14,7 +14,6 @@ export interface GraphNode {
   origin?: GraphNodeOrigin;
   ownership?: string;
   scope?: 'selected' | 'external';
-  identity?: { statement_hash: string; proof_hash: string };
   local_verification?: AiCheck;
   global_verification?: GlobalVerification;
   disproof?: DisproofEvidence;
@@ -30,7 +29,6 @@ export interface GraphEdge {
   from: string;
   to: string;
   checks?: GraphEdgeChecks;
-  source?: string;
 }
 
 export interface DependencyGraph {

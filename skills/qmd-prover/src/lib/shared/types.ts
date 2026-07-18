@@ -25,8 +25,6 @@ export interface Diagnostic {
   id?: string;
   remediation?: string;
   repair_hints?: string;
-  dependency?: string;
-  locations?: string[];
 }
 
 /** Stable CLI/API result. Individual operations refine the known fields they expose. */
@@ -37,7 +35,6 @@ export interface OperationResult {
   snapshot_id?: string;
   status?: string;
   snapshot_published?: boolean;
-  render_command?: string;
   [key: string]: unknown;
 }
 

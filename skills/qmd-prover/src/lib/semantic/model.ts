@@ -68,14 +68,10 @@ export interface SemanticResult {
   marker?: ControlMarker | null;
   marker_valid?: boolean;
   export?: string | null;
-  construction_text?: string;
-  construction_hash?: string;
   construction_dependencies: string[];
   dependencies: string[];
-  uses: string[];
   reference_checks?: ReferenceCheck[];
   stale_reasons?: string[];
-  rejection_stale_reasons?: string[];
   disproof?: DisproofEvidence;
   local_verification?: AiCheck;
   global_verification?: GlobalVerification;

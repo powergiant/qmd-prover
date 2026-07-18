@@ -12,7 +12,6 @@ import type { VerifierPacket, VerifierReport } from './protocol.js';
 export interface StalenessChange {
   id: string;
   reasons: string[];
-  previous?: unknown;
   current?: unknown;
 }
 

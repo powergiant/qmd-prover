@@ -5,7 +5,7 @@
 //   verification:
 //     backend: claude
 //     executable: ""      # path to the `claude` CLI, or leave blank if it is on PATH
-//     model: configurable # or a concrete model id, e.g. claude-opus-4-8
+//     model: ""           # "" uses the CLI default, or a concrete model id, e.g. claude-opus-4-8
 //
 // qmd-prover spawns `node claude.js --executable <claude> [--model <id>]` and pipes
 // the verification packet to this adapter's stdin. We run the Claude Code CLI in

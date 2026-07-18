@@ -10,14 +10,6 @@ function verificationConfig(config = {}) {
         return config.verification;
     return isRecord(config) ? config : {};
 }
-function setting(config, hyphenated, underscored, fallback) {
-    const verification = verificationConfig(config);
-    if (verification[hyphenated] !== undefined)
-        return verification[hyphenated];
-    if (verification[underscored] !== undefined)
-        return verification[underscored];
-    return fallback;
-}
 /**
  * Tool capabilities the verifier may be *told* it is allowed to use (in a stable order). These are
  * prompt-level permissions only — qmd-prover neither provides tools nor enforces them; it simply
@@ -33,9 +25,11 @@ export function checkerContract(config = {}) {
     const verification = verificationConfig(config);
     return {
         backend: String(verification.backend ?? 'none'),
-        model: String(verification.model ?? 'configurable'),
+        // Hash the model as written, with unset and "" collapsing to "" (via modelFlag) so blanking or
+        // removing the model line does not re-verify. A concrete id is hashed verbatim and does.
+        model: modelFlag(verification),
         effort: String(verification.effort ?? 'high'),
-        fresh_context: Boolean(setting(config, 'fresh-context', 'fresh_context', true)),
+        fresh_context: verification['fresh-context'] === undefined ? true : Boolean(verification['fresh-context']),
         tools: toolList(verification),
         // Two orthogonal strictness axes. `citations` (lenient|standard|strict) governs how
         // aggressively an uncited non-standard term is flagged; `rigor` (lenient|standard|strict)
@@ -60,15 +54,13 @@ export async function verificationContext(compilation) {
     }, 0));
     return { externalBasis, contextHash };
 }
-export const VERIFIER_BACKENDS = ['none', 'claude', 'codex', 'command'];
 /** Absolute path to a shipped verifier adapter (scripts/verifiers/<backend>.js). */
 function builtinAdapter(backend) {
     return fileURLToPath(new URL(`../../verifiers/${backend}.js`, import.meta.url));
 }
 /** The concrete model id to pass to a CLI, or '' when the backend should pick its own default. */
 function modelFlag(verification) {
-    const model = typeof verification.model === 'string' ? verification.model.trim() : '';
-    return model && model !== 'configurable' ? model : '';
+    return typeof verification.model === 'string' ? verification.model.trim() : '';
 }
 /**
  * The reasoning-effort level to forward to a backend adapter, or '' when unset. Restricted to a
@@ -95,7 +87,9 @@ function customCommand(command) {
 /**
  * The process to spawn for one verification. `claude`/`codex` backends run a shipped
  * adapter under Node that bridges the packet to that CLI, so no custom command is needed.
- * Precedence: QMD_PROVER_VERIFIER env > verification.backend claude|codex > verification.command.
+ * Precedence: QMD_PROVER_VERIFIER env > verification.backend claude|codex > (backend: command)
+ * verification.command. `backend: none` means no verifier, and any leftover verification.command
+ * is ignored — the command fallback is reached only for `backend: command`.
  */
 export function verifierCommand(config = {}) {
     const override = process.env.QMD_PROVER_VERIFIER?.trim();
@@ -103,6 +97,8 @@ export function verifierCommand(config = {}) {
         return { command: override, args: [], source: 'environment' };
     const verification = verificationConfig(config);
     const backend = String(verification.backend ?? 'none').trim();
+    if (backend === 'none')
+        return null;
     if (backend === 'claude' || backend === 'codex') {
         const model = modelFlag(verification);
         const effort = effortFlag(verification);
@@ -113,8 +109,11 @@ export function verifierCommand(config = {}) {
         ];
         return { command: process.execPath, args, source: `backend:${backend}` };
     }
-    const custom = customCommand(verification.command);
-    return custom ? { ...custom, source: 'config' } : null;
+    if (backend === 'command') {
+        const custom = customCommand(verification.command);
+        return custom ? { ...custom, source: 'config' } : null;
+    }
+    return null;
 }
 /**
  * The underlying tool whose availability doctor should probe and display. For claude/codex
@@ -126,10 +125,15 @@ export function verifierProbe(config = {}) {
         return { command: override, backend: 'command' };
     const verification = verificationConfig(config);
     const backend = String(verification.backend ?? 'none').trim();
+    if (backend === 'none')
+        return null;
     if (backend === 'claude' || backend === 'codex')
         return { command: backendExecutable(verification, backend), backend };
-    const custom = customCommand(verification.command);
-    return custom ? { command: custom.command, backend: 'command' } : null;
+    if (backend === 'command') {
+        const custom = customCommand(verification.command);
+        return custom ? { command: custom.command, backend: 'command' } : null;
+    }
+    return null;
 }
 export function configured(config = {}) {
     return verifierCommand(config) !== null;
@@ -450,7 +454,7 @@ function extractUsage(report) {
 export async function invokeVerifier(packet, config = {}) {
     const executable = verifierCommand(config);
     if (!executable) {
-        throw new VerifierError('unconfigured', 'No verifier command configured. Set verification.command in .qmd-prover/config.yml or QMD_PROVER_VERIFIER.');
+        throw new VerifierError('unconfigured', 'No verifier configured. Set verification.backend to claude or codex in .qmd-prover/config.yml (or backend: command with verification.command, or QMD_PROVER_VERIFIER).');
     }
     let result;
     try {

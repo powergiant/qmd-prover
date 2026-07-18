@@ -112,8 +112,6 @@ export function printReport(input) {
         lines.push(`staleness: ${result.staleness.ok ? 'checked' : 'failed'}, changed=${result.staleness.changed?.length ?? 0}, invalidated=${result.staleness.invalidated?.length ?? 0}`);
         for (const item of result.staleness.changed ?? []) {
             lines.push(`  changed @${item.id}: ${item.reasons.join(', ')}`);
-            if (item.previous !== undefined)
-                lines.push(`    previous: ${JSON.stringify(item.previous)}`);
             if (item.current !== undefined)
                 lines.push(`    current: ${JSON.stringify(item.current)}`);
         }
@@ -215,8 +213,6 @@ export function printReport(input) {
         lines.push('stale identities:');
         for (const item of result.changed) {
             lines.push(`  @${item.id}: ${item.reasons.join(', ')}`);
-            if (item.previous !== undefined)
-                lines.push(`    previous: ${JSON.stringify(item.previous)}`);
             if (item.current !== undefined)
                 lines.push(`    current: ${JSON.stringify(item.current)}`);
         }

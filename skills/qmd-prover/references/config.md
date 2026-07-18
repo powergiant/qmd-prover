@@ -11,9 +11,6 @@ A complete file, with every key at its default, looks like this:
 
 ```yaml
 project:
-  name: ""                        # informational project name
-  root: ..                        # project root, relative to this .qmd-prover/ folder
-  discover-qmd-recursively: true  # descend into subfolders when discovering .qmd files
   exclude: [.qmd-prover]          # extra path patterns to skip during discovery
 
 goals:
@@ -28,8 +25,8 @@ tools:
   quarto: ""                      # path to Quarto when not on PATH (only for render)
 
 verification:
-  backend: none                   # none | claude | codex | command
-  model: configurable             # forwarded as --model unless "configurable"
+  backend: none                   # none | claude | codex | command (none = no proof is ever verified)
+  model: ""                       # concrete model id forwarded as --model, or "" for the CLI default
   effort: high                    # low | medium | high | xhigh | max — reasoning effort
   executable: ""                  # path to the backend CLI when not on PATH
   # command: [node, verify.js]    # custom verifier argv, for backend: command
@@ -47,10 +44,7 @@ render:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `name` | `""` | Informational project name, echoed in output. Does not affect analysis. |
-| `root` | `..` | The project root directory, **relative to the `.qmd-prover/` folder that contains this config**. `..` (the normal value) means the parent directory. All discovery, imports, and paths are resolved against this root. |
-| `discover-qmd-recursively` | `true` | Whether project discovery descends into subfolders under `root` rather than only its top level. |
-| `exclude` | `[.qmd-prover]` | Additional path patterns to skip during discovery, written as an inline array. `.qmd-prover`, `.git`, `node_modules`, and `render.output-dir` are always excluded regardless, and entries in a project `.gitignore` are honored too. |
+| `exclude` | `[.qmd-prover]` | Additional path patterns to skip during discovery, written as an inline array. `.qmd-prover`, `.git`, `node_modules`, and `render.output-dir` are always excluded regardless, and entries in a project `.gitignore` are honored too. Discovery always descends into subfolders. |
 
 ## `goals`
 
@@ -79,8 +73,8 @@ packet protocol and the bundled `claude`/`codex` adapters.
 
 | Key | Default | Accepted values | Meaning |
 |---|---|---|---|
-| `backend` | `none` | `none` · `claude` · `codex` · `command` | Which verifier runs. `none` = machine inspection only (local checks stay `not-run`, nothing becomes globally verified). `claude`/`codex` run the bundled adapters. `command` (and any unrecognized value) uses the custom `command` below. |
-| `model` | `configurable` | `configurable` or a concrete model id | Forwarded to the backend CLI as `--model`. `configurable` (or empty) forwards nothing, so the CLI uses its own default model; a concrete id (e.g. `gpt-5-codex`, `claude-opus-4-8`) is passed through. |
+| `backend` | `none` | `none` · `claude` · `codex` · `command` | Which verifier runs. `none` = machine inspection only (local checks stay `not-run`, nothing becomes globally verified), and any `verification.command` is ignored. `claude`/`codex` run the bundled adapters. `command` uses the custom `command` below. Any other value is a config error, so a typo cannot quietly disable verification. |
+| `model` | `""` | `""` or a concrete model id | Forwarded to the backend CLI as `--model`. Empty (`""`) forwards nothing, so the CLI uses its own default model; a concrete id (e.g. `gpt-5-codex`, `claude-opus-4-8`) is passed through. The checker contract hashes the model as written (unset and `""` are the same), so blanking or removing the line does not re-verify — but pinning a concrete id does, even if it equals the CLI's own default. (The retired `configurable` sentinel is rejected; use `""`.) |
 | `effort` | `high` | `low` · `medium` · `high` · `xhigh` · `max` | Reasoning effort forwarded to the backend, ordered cheapest→most thorough. Both backends accept `low`/`medium`/`high`/`xhigh`; `max` is claude's top level (codex tolerates it). It is forwarded as `--effort` to claude and as `-c model_reasoning_effort="<effort>"` to codex. An unrecognized value falls back to `high`. Higher effort means more reasoning tokens and time per check. |
 | `executable` | `""` | filesystem path | Path to the backend CLI when it is not on `PATH`. Empty = use the bare command (`codex`/`claude`) from `PATH`. |
 | `command` | — (unset) | string, or inline array | The custom verifier for `backend: command`. A string is the executable; an array is `[executable, ...args]`. It must speak the JSON packet protocol on stdin/stdout. |
@@ -118,14 +112,22 @@ usage, surfaced per fact as `local_verification.metrics` and summed into the ver
 
 ## Notes on the file format
 
-- The reader accepts a **minimal YAML subset**: nested mappings by indentation, and scalar values
-  that are booleans (`true`/`false`), `null`, numbers, quoted strings, or **inline arrays**
-  (`exclude: [a, b]`, `command: [node, verify.js]`). Block sequences (`- item` lines), anchors,
-  and multi-line/block scalars are **not** supported; inline-array elements are split on commas, so
-  values containing commas cannot be expressed.
-- Hyphenated keys are canonical; `fresh-context` also accepts the underscore spelling
-  `fresh_context`. `citations` and `rigor` are single words.
-- Unknown values fall back safely: an invalid `citations` or `rigor` becomes `standard`, and an
-  unrecognized `backend` with no `command` behaves like `none`.
+- The reader accepts a **minimal YAML subset**: nested mappings by (space-only) indentation, and
+  three kinds of value. A value's kind is fixed by its first character: a quote opens a literal
+  string (`name: ""`, `pandoc: "/opt/pandoc"`), a `[` opens an **inline list** of strings
+  (`exclude: [a, b]`, `command: [node, verify.js]`), and anything else is bare text — the exact
+  words `true`/`false` become booleans, and everything else is a string. There are **no numbers and
+  no null**: `30` and `null` are just the strings `"30"` and `"null"`.
+- **Comments** run from a `#` to end of line, whether the `#` starts the line or follows a space
+  (`backend: codex   # note` reads as `codex`). A `#` with no space before it, or one inside a
+  quoted string or inside `[...]`, is a literal character. A comment may sit on its own line or
+  after a value.
+- **Not supported:** block sequences (`- item` lines), anchors, multi-line/block scalars, numbers,
+  and null. Inline-list elements are split on commas, so an element cannot contain a comma. A
+  malformed line — a tab in the indentation, a line that is not `key: value` or `key:`, or an
+  unterminated quote or `[` — stops loading with an error naming the line number, rather than being
+  silently skipped.
+- Enum values are validated: an invalid `citations`, `rigor`, or `effort` falls back to its default
+  (`standard`, `standard`, `high`); an unrecognized `backend` is a config error.
 - Run `doctor` to see the resolved Pandoc, Quarto, and verifier commands and whether each is
-  available.
+  available; it also reports a malformed `config.yml` instead of crashing.

@@ -57,7 +57,7 @@ Run the dispatcher from the project root:
 node "$QMD_PROVER" <subcommand> [arguments]
 ```
 
-Requirements: Node.js 20 or later and Pandoc on `PATH` (or `QMD_PROVER_PANDOC`, or `tools.pandoc` in config). The independent verifier is optional unless AI verification is requested; Quarto is optional unless final rendered output is requested. Run `doctor` first when availability is uncertain, and see "Environment and verifier setup" below to configure any missing tool. JSON is the default output; commands marked below accept `--print` for a concise human report. Semantic IDs accept either `@ID` or bare `ID`, and output normalizes them as `@ID`.
+Requirements: Node.js 20 or later and Pandoc on `PATH` (or `QMD_PROVER_PANDOC`, or `tools.pandoc` in config). Decide the verifier up front: to have proofs independently checked, set `verification.backend` to `claude` or `codex` before your first inspection (see "Environment and verifier setup" below) — with `backend: none` every proof stays unverified. Quarto is optional unless final rendered output is requested. Run `doctor` first when availability is uncertain, and see "Environment and verifier setup" below to configure any missing tool. JSON is the default output; commands marked below accept `--print` for a concise human report. Semantic IDs accept either `@ID` or bare `ID`, and output normalizes them as `@ID`.
 
 Complete leaf-command map:
 
@@ -106,14 +106,16 @@ Run `doctor` first: it reports Node, Pandoc, the optional verifier, and Quarto, 
 
   `QMD_PROVER_PANDOC` and `QMD_PROVER_QUARTO` also work and take precedence. Leave a value blank to fall back to `PATH`.
 
-- **Independent AI verifier (optional).** Machine-only mode needs no verifier: local checks stay `not-run` and global states stay unverified. To enable independent checking of proofs and refutations, choose a backend in `.qmd-prover/config.yml`:
+- **Independent AI verifier.** As an early step, decide whether proofs will be independently checked. Run `doctor`; if you intend to verify and it shows no verifier, set a backend in `.qmd-prover/config.yml` before your first inspection:
 
   ```yaml
   verification:
     backend: claude        # or: codex
     executable: ""         # path to the claude/codex CLI; blank uses PATH
-    model: configurable    # or a concrete model id
+    model: ""              # "" lets the CLI use its own default model
   ```
+
+  Leaving `backend: none` is a deliberate machine-only choice — local checks stay `not-run` and global states stay unverified; never present that as verified work.
 
   qmd-prover ships the `claude` and `codex` adapters, so no external verifier script is needed. The selected CLI must be installed and authenticated (an API key or a completed interactive login in this environment). Re-run `doctor` until the verifier reads `available`, then `inspect` calls it automatically. For a bespoke verifier, set `backend: command` with a `verification.command` argv, or point `QMD_PROVER_VERIFIER` at an executable that speaks the stdin/stdout protocol in [references/cli.md](references/cli.md).
 
@@ -143,7 +145,7 @@ node "$QMD_PROVER" inspect project
 
 Fact and path inspection check only selected facts and their transitive local dependencies. Use `inspect project` for deliberate whole-project audits: it compiles every project QMD into one graph and checks every fact.
 
-Repair every mechanical diagnostic and every local-verifier critical error or gap. An unconfigured verifier is a supported machine-only mode: the graph remains available, local checks are `not-run`, and global results remain unverified. When the user requests AI verification, configure or repair the verifier (`verification.backend` with `claude`/`codex` and an optional `executable` path, a custom `verification.command`, or `QMD_PROVER_VERIFIER`) until `doctor` reports it available, before relying on global results. Never declare your own work verified.
+Repair every mechanical diagnostic and every local-verifier critical error or gap. Set up the verifier before relying on global results: run `doctor`, and if you intend to verify, configure `verification.backend` (`claude`/`codex` with an optional `executable` path, a custom `verification.command`, or `QMD_PROVER_VERIFIER`) until `doctor` reports it available. Machine-only mode (no verifier) is a deliberate choice, not a default to drift into: the graph remains available, local checks are `not-run`, and global results remain unverified. Never declare your own work verified.
 
 Use dependency operations to inspect the project graph, search facts, show paths and cycles, calculate impact, and locate proof frontiers. A duplicate explicit ID is a structural error and must be renamed before dependency analysis can proceed.
 

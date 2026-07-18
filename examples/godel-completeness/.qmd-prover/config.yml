@@ -1,7 +1,4 @@
 project:
-  name: godel-completeness
-  root: ..
-  discover-qmd-recursively: true
   exclude: [.qmd-prover]
 
 goals:
@@ -13,7 +10,7 @@ semantic:
 
 verification:
   backend: codex
-  model: configurable
+  model: ""
   effort: high
   fresh-context: true
   citations: standard

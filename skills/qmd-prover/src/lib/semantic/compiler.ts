@@ -23,11 +23,8 @@ export { findCycles } from './dependency-graph.js';
 export interface CompilationSummary {
   files: number;
   results: number;
-  proofs?: number;
   errors: number;
   warnings: number;
-  statuses?: Record<string, number>;
-  kinds?: Record<string, number>;
   goals?: Array<{ id: string; status: string; file: string; line?: number }>;
 }
 
@@ -194,17 +191,21 @@ async function initializeAux(root: string): Promise<void> {
   await Promise.all(directories.map((directory) => mkdir(path.join(root, AUX, directory), { recursive: true })));
   const configFile = path.join(root, AUX, 'config.yml');
   if (!await exists(configFile)) await atomicWrite(configFile, [
+    `# Comments must be on their own line, not after a value.`,
+    ``,
     `project:`,
-    `  name: ${path.basename(root)}`,
-    `  root: ..`,
-    `  discover-qmd-recursively: true`,
+    `  # exclude: extra path patterns to skip during discovery (.qmd-prover, .git, node_modules,`,
+    `  # the render output-dir, and .gitignore entries are always skipped).`,
     `  exclude: [.qmd-prover]`,
     ``,
     `goals:`,
+    `  # id-prefix: explicit IDs starting with this become protected main goals — locked statement,`,
+    `  # and each must carry both .theorem and .goal.`,
     `  id-prefix: thm-main-`,
     `  protect-statements: true`,
     ``,
     `semantic:`,
+    `  # wildcard-imports: when false, use: ['*'] is a WILDCARD_IMPORT error; import each ID by name.`,
     `  wildcard-imports: false`,
     ``,
     `tools:`,
@@ -213,23 +214,27 @@ async function initializeAux(root: string): Promise<void> {
     `  quarto: ""`,
     ``,
     `verification:`,
-    `  # backend selects the independent verifier: none | claude | codex | command`,
+    `  # backend selects the independent verifier: none | claude | codex | command.`,
+    `  # none = machine checks only; no proof is ever verified. Set claude or codex to check proofs.`,
     `  backend: none`,
-    `  # For claude/codex: path to the CLI executable (defaults to the backend name on PATH).`,
+    `  # executable: for claude/codex, path to the CLI (defaults to the backend name on PATH).`,
     `  executable: ""`,
-    `  model: configurable`,
-    `  # effort: reasoning effort forwarded to the backend: low | medium | high | xhigh | max`,
+    `  # model: concrete model id forwarded as --model, or "" to let the CLI use its own default.`,
+    `  model: ""`,
+    `  # effort: reasoning effort forwarded to the backend: low | medium | high | xhigh | max.`,
     `  effort: high`,
+    `  # fresh-context: run each check in an isolated context. Changing it re-verifies every fact.`,
     `  fresh-context: true`,
-    `  # citations: how strictly an uncited non-standard term is flagged: lenient | standard | strict`,
+    `  # citations: how strictly an uncited non-standard term is flagged: lenient | standard | strict.`,
     `  citations: standard`,
-    `  # rigor: how completely a valid step must be spelled out (strict also makes gaps block): lenient | standard | strict`,
+    `  # rigor: how completely a valid step must be spelled out (strict also makes gaps block): lenient | standard | strict.`,
     `  rigor: standard`,
-    `  # tools: capabilities the verifier is TOLD (in the prompt) it may use; any of [file-read, web-search, code]`,
+    `  # tools: capabilities the verifier is TOLD (in the prompt) it may use; any of [file-read, web-search, code].`,
     `  tools: []`,
     ``,
     `render:`,
     `  graph-engine: builtin`,
+    `  # output-dir: where render writes generated inputs; created on demand, always excluded.`,
     `  output-dir: .qmd-prover/generated`,
     ``
   ].join('\n'));
@@ -312,10 +317,8 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
           marker_valid: kind === 'definition'
             ? content.markers.length <= 1 && content.markers.every((marker) => marker.index === content.marker_index)
             : content.markers.length === 0,
-          ...(kind === 'definition' ? { construction_text: statementText, construction_hash: statementHash } : {}),
           construction_dependencies: constructionDependencies,
-          dependencies: constructionDependencies,
-          uses: constructionDependencies
+          dependencies: constructionDependencies
         };
         results.push(result);
         allResults.push(result);
@@ -387,7 +390,6 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
       result.proof_text = proof.proof_text;
       if (result.kind !== 'definition') result.marker = proof.marker;
       result.dependencies = uniqueSorted([...result.construction_dependencies, ...proof.dependencies]);
-      result.uses = result.dependencies;
       result.proof_file = proof.file;
       result.proof_line = proof.line;
     }
@@ -492,11 +494,10 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
   const graph: DependencyGraph = {
     schema_version: SCHEMA_VERSION,
     nodes: [
-      ...allResults.map(({ id, title, kind, status, file, line, origin, statement_hash, proof_hash }) => ({
+      ...allResults.map(({ id, title, kind, status, file, line, origin }) => ({
         id, title, kind, status, file, line,
         origin: origin === 'user' ? 'main-goal' as const : 'fact' as const,
-        ownership: origin,
-        identity: { statement_hash, proof_hash }
+        ownership: origin
       })),
       ...missingIds.map((id) => ({ id, title: '', kind: 'unknown' as const, status: 'missing', origin: 'unresolved' as const }))
     ],

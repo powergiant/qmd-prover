@@ -85,7 +85,7 @@ function unknownFact(id: string): SemanticResult {
   return {
     id, file: '', kind: 'unknown', classes: [], title: '', date: '', origin: 'agent', status: 'missing', export: null,
     statement_text: '', statement_hash: '', title_hash: '', proof_hash: '', proof_present: false, proof_text: '', marker: null,
-    construction_dependencies: [], dependencies: [], uses: []
+    construction_dependencies: [], dependencies: []
   };
 }
 

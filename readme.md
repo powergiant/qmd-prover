@@ -1,70 +1,113 @@
 # qmd-prover
 
-**qmd-prover is a skill for your AI coding agent** (Codex or Claude Code) that develops and checks
-real mathematics in [Quarto Markdown](https://quarto.org/). A `.qmd` file is a readable plain-text
-document that combines ordinary Markdown prose, mathematical notation, and structured theorem and
-proof blocks; Quarto can render it as a polished web page or PDF. qmd-prover works two ways. Give it
-a goal and it can run **autonomously** — inventing the definitions, lemmas, and proofs the result
-needs and building them up on its own. Or hand it **your own notes** — a proof sketch, a draft, a
-pile of half-finished arguments — and it formalizes them, fills the gaps, and checks the result
-against what you wrote. Either way, everything compiles into one dependency graph; the agent checks
-the structure, optionally has each proof reviewed by an independent AI verifier, and tells you — in
-plain language — what is proved, what is still open, and what is blocked.
+qmd-prover is an add-on for your AI coding assistant (either **Claude Code** or **Codex**) that
+helps it write and check real mathematics.
 
-You never operate the dependency graph by hand. After a one-time install — which the agent can
-handle for you (see the Quickstart) — you simply describe what you want ("prove this theorem",
-"formalize these notes", "find what's still unproved and complete the proof"), and the agent drives
-the tool for you.
+The most important thing to understand first: **you do not run any of this yourself.** You talk to
+your AI assistant in plain English — "prove this theorem", "check my notes", "what is still
+unproved?" — and the assistant runs every command for you and explains the results back in plain
+words. Throughout this page you will see commands and code. They are shown only so you can see what
+the assistant is doing behind the scenes. You never type them.
 
-## What you get
+## What it is, in one paragraph
 
-- **Readable, linked mathematics.** The agent writes ordinary `.qmd` files, usually under
-  `workspace/`, with each definition, lemma, and theorem in its own block and each justification in
-  a separate, linked proof. Whenever a proof uses another result or a specialized definition, it
-  cites that fact by `@id` at the point of use. Those citations make every assumption visible.
-- **One project, one proof graph.** qmd-prover compiles every `.qmd` file together. Each citation
-  becomes a dependency edge, so it can trace exactly what every result rests on, even across files.
-- **Protected goals.** Your main theorem statements are locked. The agent can prove them and build
-  on them, but it cannot quietly weaken or reword what you asked it to establish.
-- **Mechanical checks plus independent review.** First, checks that use no AI validate structure,
-  IDs, proof links, scope, cycles, and freshness. Then, if configured, an independent Claude or
-  Codex process reviews each exact proof against its directly cited statements and reports errors or
-  gaps. This second layer is AI review, not formal proof certification.
-- **Honest end-to-end status.** A locally accepted proof is not enough: qmd-prover marks a result
-  globally verified only when its mechanical checks pass and every result it depends on is globally
-  verified too. That status is composed deterministically over the graph.
-- **Useful output.** Generate theorem navigation and a dependency graph for exploring the project,
-  then use Quarto to publish the mathematics as HTML or PDF.
+The mathematics lives in **`.qmd` files**. A `.qmd` file is a plain-text document that mixes
+ordinary writing, mathematical notation, and clearly labeled theorem and proof blocks.
+[Quarto](https://quarto.org/) can later turn a `.qmd` file into a polished web page or PDF.
+
+You give your assistant a goal, and it can work in either of two ways:
+
+- **From scratch.** Give it a result you want proved, and it invents the definitions, lemmas, and
+  proofs the result needs and builds them up on its own.
+- **From your own notes.** Hand it a rough proof sketch or a set of half-finished arguments, and it
+  writes them up properly, fills the gaps, and checks the result against what you wrote.
+
+Either way, the assistant checks the work in two layers — first with plain non-AI checks on how the
+document is put together, and then (if you set it up) with a second, independent AI that reviews each
+proof. It then tells you, in plain language, what is proved, what is still unproved, and what is
+stuck.
+
+## A few words you will need
+
+You only need a handful of terms to follow the rest of this page. Each is defined once, here.
+
+- **Goal.** A main result you want proved. Its wording is *protected*: once you state a goal, the
+  assistant can prove it and build on it, but it cannot change or weaken what you asked for without
+  telling you.
+- **Dependency.** When one proof uses another result, we say the first *depends on* the second. If
+  you change or remove the second, the first may no longer hold.
+- **Dependency graph.** The full map of which results depend on which other results across your whole
+  project. The assistant builds and maintains this map for you.
+- **Verifier.** A separate AI (Claude or Codex) that reads one proof at a time and judges whether it
+  is correct, using only the exact statements that proof cites. This layer is optional. It is AI
+  review, not a mathematical certificate of correctness.
+- **The status of a result.** Every result is in one of a few plain states:
+  - **open** — stated, but not proved yet.
+  - **unverified** — it has a proof that passed the mechanical checks, but no verifier has reviewed
+    that proof yet (for example, because you have not set up a verifier).
+  - **verified** — it has a proof that passed the checks, *and* every result its proof relies on is
+    verified too. This is the only state you should build on.
+  - **blocked** — it has a proof, but that proof relies on something that is not verified yet.
+  - **disproved** — the assistant found a specific counterexample showing the statement is false.
+
+## What it does for you
+
+- **Readable, linked mathematics.** The assistant writes ordinary `.qmd` files (by convention inside
+  a `workspace/` folder), with each definition, lemma, and theorem in its own labeled block and each
+  proof in a separate block linked to the statement it proves. Whenever a proof uses another result
+  or a specialized definition, it points to that fact by a short label (`@id`) right where it is
+  used. Those pointers make every assumption visible.
+- **One project, one map of dependencies.** The assistant reads every `.qmd` file in the project
+  together. Each pointer becomes a link in the dependency graph, so it can trace exactly what any
+  result depends on, even across different files.
+- **Your goals are protected.** The statements of your main goals are locked. The assistant can prove
+  them and build on them, but it cannot reword them or weaken them without your approval.
+- **Two layers of checking.** First come the *mechanical checks*, which use no AI. They confirm the
+  document is put together correctly: every block is labeled, every proof links to a real statement,
+  every pointer targets a real result, no argument is circular (A relying on B relying back on A),
+  and nothing that was already checked has changed since. Then, if you have set up a verifier, a
+  separate Claude or Codex reviews each individual proof against the exact statements it cites and
+  reports any errors or gaps.
+- **Honest overall status.** A proof that looks fine on its own is not enough. A result is marked
+  *verified* only when its own checks pass and every result it depends on is verified too — and every
+  result those depend on, in turn. The assistant determines this for the whole project and will not
+  let an unproved step count as established.
+- **Output you can browse.** The assistant can build a navigation view and a picture of the
+  dependency graph, and then use Quarto to publish everything as an HTML web page or a PDF.
 
 ## Requirements
 
-- **Node.js 20 or later** — runs the tool.
-- **Pandoc** — required; it is the parser for every `.qmd` file. On `PATH`, or configured (see
-  below). If you have Quarto, Pandoc is already bundled inside it.
-- **Quarto** — optional, only for producing final rendered HTML/PDF.
-- **An AI verifier** — optional. The `claude` or `codex` command-line tool, installed and logged in.
-  Without one, all the mechanical checks still work; proofs simply stay unverified.
+- **Node.js version 20 or later** — the program that runs the tool.
+- **Pandoc** — required. It is the reader that parses every `.qmd` file. It must be available on your
+  system (either on your `PATH`, or its location recorded in the settings — see below). If you
+  already have Quarto installed, a copy of Pandoc comes bundled inside it, so you may not need a
+  separate one.
+- **Quarto** — optional. Only needed for the final step of producing a rendered HTML page or PDF.
+- **An AI verifier** — optional. This is the `claude` or `codex` command-line program, installed and
+  logged in. Without one, all the mechanical checks still run; the proofs simply stay unverified.
 
 ---
 
 ## Quickstart
 
-This whole flow is done by talking to your agent. The commands are shown so you know what's
-happening, but you type English, not shell.
+Everything below is done by talking to your assistant. The commands are shown so you can see what is
+happening, but you type English, not shell commands.
 
-### 1. Install the skill
+### 1. Install the add-on
 
 Open Codex or Claude Code in any folder and say:
 
-> **"Install the qmd-prover skill from `github.com/powergiant/qmd-prover`. Before installation, please first read the `readme.md` carefully. Check that Node, Pandoc,
-> and Quarto are set up, then get it ready."**
+> **"Install the qmd-prover skill from `github.com/powergiant/qmd-prover`. First read its `readme.md`
+> carefully. Then check that Node, Pandoc, and Quarto are set up, and get it ready."**
 
-The agent follows the recipe in [For agents: installing from GitHub](#for-agents-installing-from-github)
-below — it fetches the repo, copies the skill into your agent's skills directory, checks your tools,
-and wires up any paths.
+The assistant follows the recipe in
+[For AI assistants: installing from GitHub](#for-ai-assistants-installing-from-github) below. It
+downloads the project, copies the add-on into your assistant's skills folder, checks your tools, and
+records any file locations it needs.
 
-Prefer to do the install by hand? Clone the repo and run the installer. It installs **per-project**
-by default or **globally**, for either host:
+If you would rather install it by hand, download the project and run the installer. It installs into
+one project by default, or for every project if you choose the global option, and it works for either
+assistant:
 
 ```bash
 git clone https://github.com/powergiant/qmd-prover
@@ -75,29 +118,31 @@ npm install
 npm run install:skill:global         # Claude Code → ~/.claude/skills/qmd-prover
 npm run install:skill:codex:global   # Codex       → ~/.codex/skills/qmd-prover
 
-# Per-project — vendored into one project (run from it, or pass --dir):
+# Per-project — placed inside one project (run from it, or pass --dir):
 tsx tooling/install-skill.ts --local --dir /path/to/project           # Claude Code → <project>/.claude/skills/qmd-prover
 tsx tooling/install-skill.ts --local --codex --dir /path/to/project   # Codex       → <project>/.codex/skills/qmd-prover
 ```
 
-The runtime is dependency-free, so copying the `skills/qmd-prover/` folder into any of those skills
-directories is also a complete install. Claude Code discovers the skill and resolves its own
-dispatcher; Codex uses `~/.codex/skills/qmd-prover` by default. `QMD_PROVER_HOME` is the one override
-that points any host at the skill, so no other environment variables are needed.
+The tool has no external dependencies, so copying the `skills/qmd-prover/` folder into any of those
+skills folders is by itself a complete install. Claude Code finds the add-on and locates its own
+paths. Codex looks in `~/.codex/skills/qmd-prover` by default. If you install it somewhere else, the
+single setting `QMD_PROVER_HOME` points the assistant at it; no other setup is needed.
 
 ### 2. Start a project and state your first goal
 
-If the first set up the project successfully, this step is done and you can skip it — you'll see
-a `.qmd-prover/` folder (and a `workspace/` folder for your development) appear in the project. If
-those don't show up, the agent likely ran into an issue; ask it to do the following.
+If the install step above already set up the project and recorded a goal, this step is done and you
+can skip it — you will see an `AGENTS.md` file in the project, and (once the assistant has checked the
+project at least once) a `.qmd-prover/` folder. If that setup did not happen, ask the assistant to do
+the following.
 
 Go to the folder where your mathematics will live and say:
 
-> **"Initialize qmd-prover here, then state my main theorem: _every finite integral domain is a
-> field_."**
+> **"Set up qmd-prover here, then record my main goal: _every finite integral domain is a field_."**
 
-The agent runs `init`, which writes an `AGENTS.md` and a
-`.qmd-prover/config.yml`, and records your goal as a **protected** result — something like:
+The assistant runs the setup step. This writes an `AGENTS.md` file (a set of rules the assistant
+follows inside the project). The `.qmd-prover/` folder, with its settings file, is created a little
+later — the first time the assistant checks the project. The assistant records your goal as a
+*protected* result — a labeled block that looks like this:
 
 ```markdown
 ::: {#thm-main-finite-domain-field .theorem .goal name="Finite integral domains are fields"}
@@ -105,118 +150,133 @@ Every finite integral domain is a field.
 :::
 ```
 
-No proof is needed yet; a goal with no proof is simply *open*.
+No proof is needed yet. A goal with no proof is simply *open*.
+
+A settings file, `.qmd-prover/config.yml`, is created with safe defaults the first time the assistant
+checks the project. You do not need to change it; see [Settings and commands](#settings-and-commands)
+below for the two things you might later ask the assistant to change.
 
 ### 3. Develop and check
 
-> **"Prove `thm-main-finite-domain-field`. Introduce whatever lemmas you need, then inspect the
-> project and tell me what's verified and what's still blocked."**
+> **"Prove `thm-main-finite-domain-field`. Add whatever lemmas you need, then check the project and
+> tell me what is verified and what is still blocked."**
 
-The agent writes definitions, lemmas, and the proof into files under `workspace/`, and after each
-coherent edit it inspects the narrowest scope it needs — a single fact, a file, or the whole
-project. It repairs anything the mechanical layer flags and reports back in natural language: what is
-verified, what is still open, and what is blocked. You never touch the commands.
+The assistant writes the definitions, lemmas, and proof into files under `workspace/`. After each
+coherent piece of work, it *checks* — meaning it reads the relevant files, rebuilds the dependency
+graph, and runs the checks. It can check just one fact, one file, or the whole project, and it uses
+the narrowest check that fits. It fixes anything the mechanical checks flag, and then reports back in
+plain words: what is verified, what is still open, and what is blocked. You never run the commands
+yourself.
 
 ### 4. See it rendered (optional)
 
 > **"Render the project so I can browse it."**
 
-Rendering turns your development into something you can read and navigate. It happens in two stages,
-and the agent runs both:
+Rendering turns your work into something you can read and click through. It happens in two stages,
+and the assistant runs both:
 
-1. **qmd-prover builds the navigation.** It compiles your mathematics and writes fresh status data
-   and a **dependency-graph diagram** — an SVG in which every definition, lemma, and theorem is a
-   node, each citation is an edge, and each node is marked by state (verified, open, or blocked).
-   These go into `.qmd-prover/generated/`. If the project still has structural errors, this stage
-   stops first, so you never publish a broken graph.
+1. **qmd-prover builds the navigation.** It reads all your `.qmd` files, determines the current status
+   of every result, and draws a **picture of the dependency graph** — an image in which every
+   definition, lemma, and theorem is a dot, every dependency is a line between dots, and each dot is
+   colored by its state (verified, open, or blocked). These are written into
+   `.qmd-prover/generated/`. If the project still has structural problems, this stage stops first, so
+   a broken graph is never published.
 2. **Quarto produces the document.** Your `.qmd` files, together with that generated navigation, are
-   rendered by [Quarto](https://quarto.org/) into a polished website or PDF — theorem numbering,
+   turned by [Quarto](https://quarto.org/) into a finished web page or PDF — with theorem numbering,
    cross-references, and the dependency graph included. This stage needs Quarto installed (see
    [Requirements](#requirements)).
 
 The result is a browsable version of your project: each result linked to its proof and to everything
-it depends on, so a reader can see at a glance what is established and what still rests on open work.
-You just ask the agent to render — it runs both stages for you.
+it depends on, so a reader can see immediately which results are finished and which still depend on
+unfinished work. You just ask the assistant to render; it runs both stages for you.
 
 ---
 
-## How you actually use it, day to day
+## How you use it day to day
 
-- **Talk; don't type commands.** You describe what you want in plain English — "prove this",
-  "where is it stuck?", "tighten that lemma" — and the agent picks the right operations, runs them,
-  and translates the results back into plain language. You never memorize a command or read raw JSON.
-- **Work in small, checkable steps.** The rhythm is: state something → prove a little → have it
-  inspected → fix what's flagged → repeat. Inspection is the debugger, and it's cheap, so lean on it
-  often instead of writing a whole development and checking only at the end. A "step" can be one
-  lemma or a whole file — size it to the argument, not to an arbitrary minimum.
-- **Ask for the state whenever you want.** At any point you can ask "what's proved, what's open,
-  what's blocked?" and the agent inspects the project and gives you the current picture: which goals
-  are done, which results are still on the frontier, and exactly what is holding each blocked result
-  back.
-- **Trust only what's globally verified.** A result is safe to build on only when its *entire*
-  dependency chain checks out — its own proof plus every result it cites, all the way down. A proof
-  that looks fine on its own but rests on an unproved lemma is *blocked*, not done, and the agent
-  will say so rather than let it quietly become a premise.
-- **Your statements are safe.** The statements of your main goals are locked: the agent can prove,
-  cite, and build on them, but it can't silently reword or weaken what you asked it to establish. If
-  it ever concludes a goal is actually false, it won't touch your statement — it shows you a specific
-  counterexample and lets you decide what to do.
-- **Dead ends are kept, not deleted.** A failed approach is marked as rejected and set aside — still
-  visible for later, but never silently reused as a premise. Nothing you explore is lost, and nothing
-  broken sneaks back into the argument.
-- **Watch verifier cost.** Independent verification calls a real model, so it spends tokens and time
-  — more at higher effort or stricter settings. While iterating, ask the agent to check narrowly (one
-  fact or file); run a full-project verification when you want the whole picture or before you rely
-  on a result.
+- **You talk; the assistant runs the commands.** You describe what you want in plain English — "prove
+  this", "where is it stuck?", "improve that lemma" — and the assistant picks the right operations,
+  runs them, and turns the results back into plain language. You do not memorize commands or read raw
+  output.
+- **Work in small steps you can check.** The usual pattern is: state something, prove a little, have
+  it checked, fix what is flagged, and repeat. Checking is quick, so it is worth doing often rather
+  than writing a large amount and checking only at the end. A step can be one lemma or a whole file —
+  make it as big as the argument needs.
+- **Ask for the current state whenever you want.** At any point you can ask "what is proved, what is
+  open, what is blocked?" and the assistant checks the project and gives you the picture: which goals
+  are done, which results are still being worked on, and exactly what is missing for each blocked
+  result.
+- **Only build on results that are verified.** A result is safe to build on only when its whole chain
+  of dependencies passes the checks — its own proof plus every result it uses, and every result those
+  use in turn. A proof that looks correct by itself but depends on an unproved lemma is *blocked*, not
+  done, and the assistant will tell you so rather than treat it as established.
+- **Your statements stay as you wrote them.** The statements of your main goals are locked: the
+  assistant can prove them and build on them, but it cannot change or weaken them without telling you.
+  If it ever concludes that a goal is actually false, it does not change your statement — it shows you
+  a specific counterexample and lets you decide what to do.
+- **Failed attempts are kept, not deleted.** When an approach does not work, the assistant marks it as
+  rejected and sets it aside. It stays visible in case it is useful later, but it is never reused as
+  if it were an established fact.
+- **Be aware of verifier cost.** The independent verifier calls a real AI model, so it uses time and
+  tokens — more at higher effort settings. While you are still working things out, ask the assistant
+  to check narrowly (one fact or one file). Run a full-project check when you want the complete
+  picture, or before you rely on a result.
 
 ---
 
-## Configuration and commands
+## Settings and commands
 
-**You normally never run a command or edit a config file yourself — you just ask the agent.** This
-section exists only so you know what it is doing on your behalf, and what you can ask it to change.
+**You normally never run a command or edit a settings file yourself — you just ask the assistant.**
+This section exists only so you know what it is doing on your behalf, and what you can ask it to
+change.
 
-**The commands.** Everything runs through a single tool the agent calls in the background: `init`
-prepares the project, `inspect` compiles and checks it, `render` builds the navigation, and a family
-of dependency queries explores the graph. You speak in English; the agent chooses and runs the right
-command and turns the result back into plain language. The complete list is in the
-[CLI reference](skills/qmd-prover/references/cli.md).
+**The commands.** Everything runs through a single tool that the assistant calls in the background.
+Its main actions are:
 
-**The configuration file.** Project settings live in `.qmd-prover/config.yml`, created on first use
-with safe defaults. The two things you might ask the agent to adjust:
+- **set up** (`init`) — prepares the project.
+- **check** (`inspect`) — reads the `.qmd` files, rebuilds the dependency graph, and runs the checks.
+- **render** — builds the navigation and dependency-graph picture for publishing.
+- a set of **dependency questions** — for exploring the graph (for example, what a result depends on,
+  or what would be affected if it changed).
 
-- **Independent verification.** Out of the box there is no AI verifier, so proofs are
-  structure-checked but stay unverified. To have each proof independently reviewed, tell the agent
-  which CLI you have logged in — Claude or Codex — and it sets the backend:
+You speak in English; the assistant chooses and runs the right command and turns the result back into
+plain language. The full list is in the [command reference](skills/qmd-prover/references/cli.md).
+
+**The settings file.** Project settings live in `.qmd-prover/config.yml`, created with safe defaults
+the first time the assistant checks the project. You do not need to change it. There are two things
+you might ask the assistant to adjust:
+
+- **Turn on independent verification.** By default there is no AI verifier, so proofs get the
+  mechanical checks but stay unverified. To have each proof independently reviewed, tell the assistant
+  which command-line tool you have logged in — Claude or Codex — and it records the choice:
 
   ```yaml
   verification:
-    backend: codex   # or: claude   (none = structure checks only)
+    backend: codex   # or: claude   (none = mechanical checks only)
     effort: high     # low | medium | high | xhigh | max
   ```
 
-  Proofs then move from `not-run` to `verified`, `blocked`, or `disproved`. **Heads up on cost:**
-  every fresh check calls a real model, and higher `effort` (or stricter settings) spends more
-  tokens and time.
-- **Tool paths.** If Pandoc or Quarto is not on your `PATH`, the agent records its location here so
-  every command can find it.
+  Proofs then move from unverified to *verified*, *blocked*, or *disproved*. **A note on cost:** every
+  fresh review calls a real AI model, and a higher `effort` setting uses more time and tokens.
+- **Tool locations.** If Pandoc or Quarto is not found automatically on your system, the assistant
+  records its exact location here so every command can find it.
 
-Every setting is documented in the
-[configuration reference](skills/qmd-prover/references/config.md) — but again, you ask the agent to
+Every setting is explained in the
+[settings reference](skills/qmd-prover/references/config.md) — but again, you ask the assistant to
 change it rather than editing it yourself.
 
 ---
 
-## For agents: installing from GitHub
+## For AI assistants: installing from GitHub
 
-> **If you are an agent asked to install qmd-prover from GitHub, do the following.** Do not skip the
-> environment checks, and never use a mutation flag or change project policy without explicit user
-> approval.
+> **If you are an AI assistant asked to install qmd-prover from GitHub, do the following.** Do not
+> skip the environment checks, and never use a mutation flag or change project policy without explicit
+> user approval.
 
 1. **Get the runtime.** Clone or download `https://github.com/powergiant/qmd-prover`. The installable
    runtime is the self-contained `skills/qmd-prover/` folder; it has no package dependencies.
 
-2. **Install it into the host agent's skills directory.** Per-project keeps the runtime inside the
+2. **Install it into the host assistant's skills directory.** Per-project keeps the runtime inside the
    project; global makes it available everywhere.
 
    ```bash
@@ -289,7 +349,7 @@ change it rather than editing it yourself.
      quarto: ""
    verification:
      backend: none        # none | claude | codex | command
-     model: configurable
+     model: ""            # "" lets the CLI use its own default model
      effort: high
    ```
 
@@ -303,18 +363,18 @@ change it rather than editing it yourself.
 
 ## References
 
-- [CLI reference](skills/qmd-prover/references/cli.md) — every command, filter, exit code, and the
-  verifier protocol.
-- [Configuration reference](skills/qmd-prover/references/config.md) — every `.qmd-prover/config.yml`
+- [Command reference](skills/qmd-prover/references/cli.md) — every command, filter, exit code, and
+  the verifier protocol.
+- [Settings reference](skills/qmd-prover/references/config.md) — every `.qmd-prover/config.yml`
   setting.
-- [Project contract](skills/qmd-prover/references/AGENTS.md) — the rules the agent follows inside a
-  project (declarations, proofs, imports/exports, verification discipline).
+- [Project contract](skills/qmd-prover/references/AGENTS.md) — the rules the assistant follows inside
+  a project (declarations, proofs, imports/exports, verification discipline).
 - [Design docs](docs/design.md) — architecture and internals for maintainers.
 
 ## Project layout
 
 ```text
-skills/qmd-prover/       the installable skill (SKILL.md, references, runtime, dispatcher)
+skills/qmd-prover/       the installable add-on (SKILL.md, references, runtime, dispatcher)
   scripts/qmd-prover.js  the dependency-free Node dispatcher
 tests/                   compiler, verification, concurrency, and rendering tests
 tooling/                 development and installation tools
@@ -331,7 +391,7 @@ npm test        # AST-producing Pandoc adapter + mock verifiers; no real Pandoc 
 ```
 
 `npm run install:skill` (and its `:global` / `:codex` variants) copies `skills/qmd-prover/` into the
-chosen agent's skills directory via `tsx tooling/install-skill.ts`; the source checkout stays the
+chosen assistant's skills directory via `tsx tooling/install-skill.ts`; the source checkout stays the
 source of truth.
 
 ## License

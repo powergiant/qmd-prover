@@ -5,7 +5,7 @@
 //   verification:
 //     backend: codex
 //     executable: ""      # path to the `codex` CLI, or leave blank if it is on PATH
-//     model: configurable # or a concrete model id, e.g. gpt-5-codex
+//     model: ""           # "" uses the CLI default, or a concrete model id, e.g. gpt-5-codex
 //
 // qmd-prover spawns `node codex.js --executable <codex> [--model <id>]` and pipes the
 // verification packet to this adapter's stdin. We run the Codex CLI non-interactively
