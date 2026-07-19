@@ -8,8 +8,8 @@ export const KINDS = ['definition', 'lemma', 'theorem', 'proposition', 'corollar
 
 /** Allowed values for the `--status` filter. */
 export const STATUSES = [
-  'candidate', 'open', 'rejected', 'disproof-candidate', 'revoked', 'missing', 'stale',
-  'verified', 'disproved', 'blocked', 'unverified', 'invalid'
+  'candidate', 'open', 'abandoned', 'disproof-candidate', 'missing',
+  'verified', 'disproved', 'blocked', 'unverified', 'rejected', 'invalid'
 ] as const;
 
 /** Allowed values for the `--origin` filter. */

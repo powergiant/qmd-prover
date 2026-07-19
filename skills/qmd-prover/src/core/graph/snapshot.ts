@@ -53,7 +53,10 @@ function compilationSource(compilation: Compilation): unknown {
     results: compilation.manifest.results.map((result) => ({
       id: result.id, file: result.file, kind: result.kind, classes: result.classes, date: result.date,
       statement_hash: result.statement_hash, title_hash: result.title_hash, proof_hash: result.proof_hash,
-      proof_present: result.proof_present, dependencies: result.dependencies, export: result.export, marker: result.marker
+      proof_present: result.proof_present, dependencies: result.dependencies, export: result.export,
+      // The author's checking intent is part of the source identity; the engine-written `status`
+      // attribute is deliberately excluded, so projecting a verdict back never re-keys the snapshot.
+      refutation: result.refutation, abandon: result.abandon
     })),
     proofs: compilation.manifest.proofs,
     diagnostics: compilation.diagnostics

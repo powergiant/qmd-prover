@@ -39,12 +39,22 @@ export function checkerContract(config = {}) {
         // require-zero-gaps: true. Both default to `standard`.
         citations: String(verification.citations ?? 'standard'),
         rigor: String(verification.rigor ?? 'standard'),
+        // A separate rigor axis for proposed refutations: how strongly a disproof must be argued, and
+        // whether its gaps block (only `strict` does). `lenient` accepts strong refuting evidence,
+        // `standard` a genuine refutation, `strict` a fully rigorous one. Defaults to `standard`.
+        rigor_disprove: String(verification['rigor-disprove'] ?? 'standard'),
         protocol: { name: PROTOCOL_NAME, version: VERIFIER_PROTOCOL_VERSION }
     };
 }
-/** True when the configured rigor makes reported gaps block acceptance (i.e. rigor === "strict"). */
-export function requireZeroGaps(contract) {
-    return String(contract.rigor ?? 'strict') === 'strict';
+/** The rigor axis in force for a mode: a refutation uses `rigor-disprove`, every other mode uses `rigor`. */
+function effectiveRigor(contract, mode) {
+    return mode === 'refutation'
+        ? String(contract.rigor_disprove ?? contract.rigor ?? 'standard')
+        : String(contract.rigor ?? 'standard');
+}
+/** True when the rigor in force for `mode` makes reported gaps block acceptance (i.e. it is "strict"). */
+export function requireZeroGaps(contract, mode = 'proof') {
+    return effectiveRigor(contract, mode) === 'strict';
 }
 export async function verificationContext(compilation) {
     const externalBasis = await readExternalPolicy(compilation.root);
@@ -293,7 +303,7 @@ function reviewPrompt(mode, contract) {
         'Sort every defect you find into one of two kinds, because they are judged differently. A critical_error means the submission does not establish the target as written: a step that is wrong, invalid, or circular, a use of a dependency, definition, or hypothesis that does not actually apply, or a load-bearing part of the argument that is missing and cannot be routinely supplied. A gap means the argument is correct and complete in structure but a step is left terser or less justified than the rigor level below asks for, so a competent reader could routinely fill it. Put anything that does not bear on validity in nonblocking_comments, and never silently fill or replace a step.',
         'Correctness is a floor and is never relaxed: leniency about the meaning of a term, or about how tersely a routine step is stated, never licenses a wrong or unsupported inference. A cited definition, lemma, or hypothesis supports a step only when it applies exactly as stated — invoking one for a claim it does not entail, or appealing to a result whose hypotheses are not met, is a critical_error, not acceptable shorthand.',
         citationRule(String(contract.citations ?? 'lenient')),
-        rigorRule(String(contract.rigor ?? 'strict')),
+        rigorRule(effectiveRigor(contract, mode)),
         [
             'Return exactly one JSON object matching output_schema, and nothing else — no prose, no markdown, no code fences.',
             '- verdict "correct": the submission is valid and establishes the exact target — it has no critical_errors. Still list under gaps every step left less justified than the rigor level asks for; report them honestly even when they do not overturn a correct argument.',
@@ -399,9 +409,10 @@ export function verificationOutcome(report, packetOrMode) {
     const mode = typeof packetOrMode === 'string'
         ? packetOrMode
         : targetMode(asRecord(packetOrMode.target));
-    // Only rigor "strict" makes reported gaps block acceptance; at lenient/standard a correct
-    // argument with formality gaps still verifies (the gaps stay recorded as advisories).
-    const gapsBlock = typeof packetOrMode === 'string' ? true : requireZeroGaps(asRecord(packetOrMode.checker_contract));
+    // Only "strict" rigor makes reported gaps block acceptance; at lenient/standard a correct
+    // argument with formality gaps still verifies (the gaps stay recorded as advisories). A
+    // refutation is judged against the `rigor-disprove` axis, every other mode against `rigor`.
+    const gapsBlock = typeof packetOrMode === 'string' ? true : requireZeroGaps(asRecord(packetOrMode.checker_contract), mode);
     if (mode === 'refutation')
         return disproved(report, gapsBlock) ? 'disproved' : 'rejected';
     if (accepted(report, gapsBlock))

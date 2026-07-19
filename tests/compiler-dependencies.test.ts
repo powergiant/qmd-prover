@@ -101,21 +101,21 @@ test('compiler validates result names, semantic kinds, and main-goal classes', a
   assert.ok(codes.has('EXPORT_ID_MISMATCH'));
 });
 
-test('compiler enforces introduction dates and record-backed marker placement', async () => {
+test('compiler enforces introduction dates and attribute placement', async () => {
   const root = await project();
   const missingDate = result('lem-date-missing', 'Missing date.').replace(' date="2026-07-13"', '');
   const invalidDate = result('lem-date-invalid', 'Invalid date.').replace('2026-07-13', '2026-02-30');
-  const misplacedDefinition = result('def-marker-position', 'VERIFIED\n\nA construction.');
-  const disprovedDefinition = result('def-disproved', 'A construction.\n\nDISPROVED');
-  const misplacedDisproof = result('lem-disproof-position', 'A claim.', { proofText: 'An argument.\n\nDISPROVED' });
-  const unsupportedRejected = result('lem-rejected-marker', 'A claim.', { proofText: 'REJECTED\n\nA failed proof.' });
-  await writeFile(path.join(root, 'shape-details.qmd'), [missingDate, invalidDate, misplacedDefinition, disprovedDefinition, misplacedDisproof, unsupportedRejected].join('\n'));
+  // The refutation flag belongs on a linked .proof div, never on a result body.
+  const disproofOnBody = result('lem-disproof-on-body', 'A claim.', { extra: ' .disproof' });
+  // A definition cannot carry a .disproof proof; challenge a theorem-like claim instead.
+  const disprovedDefinition = result('def-disproved', 'A construction.', { proofText: 'A refutation.', disproof: true });
+  // An abandoned proof is detached memory: its result reverts to an open candidate with no active proof.
+  const abandonedProof = result('lem-abandoned', 'A claim.', { proofText: 'A superseded attempt.', abandon: true });
+  await writeFile(path.join(root, 'shape-details.qmd'), [missingDate, invalidDate, disproofOnBody, disprovedDefinition, abandonedProof].join('\n'));
   const compilation = await compileProject(root, options);
   const codes = new Set(compilation.diagnostics.map((item) => item.code));
-  for (const code of ['RESULT_DATE_MISSING', 'RESULT_DATE_INVALID', 'DEFINITION_MARKER_POSITION', 'DEFINITION_DISPROVED_FORBIDDEN', 'PROOF_MARKER_POSITION']) assert.ok(codes.has(code), code);
-  assert.equal(codes.has('REJECTED_RECORD_INVALID'), false);
-  assert.equal(must(compilation.manifest.results.find((item) => item.id === 'def-marker-position')).status, 'candidate');
-  assert.equal(must(compilation.manifest.results.find((item) => item.id === 'lem-rejected-marker')).status, 'rejected');
+  for (const code of ['RESULT_DATE_MISSING', 'RESULT_DATE_INVALID', 'RESULT_DISPROOF_FORBIDDEN', 'DEFINITION_DISPROOF_FORBIDDEN']) assert.ok(codes.has(code), code);
+  assert.equal(must(compilation.manifest.results.find((item) => item.id === 'lem-abandoned')).status, 'open');
 });
 
 test('main statement and name baselines are immutable', async () => {

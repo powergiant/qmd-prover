@@ -170,14 +170,14 @@ test('parse failures remain PARSE_ERROR instead of becoming unknown facts', asyn
   assert.ok(inspected.diagnostics.every((item) => item.code === 'PARSE_ERROR'));
 });
 
-test('reserved VERIFIED and REVOKED markers are structural errors and are never rewritten', async () => {
+test('inspection without a verifier leaves QMD source byte-for-byte untouched', async () => {
   const root = await project();
-  const userFile = path.join(root, 'legacy.qmd');
-  await writeFile(userFile, result('thm-main-legacy', 'Legacy statement.', { proofText: 'VERIFIED\n\nLegacy proof.' }));
+  const userFile = path.join(root, 'goal.qmd');
+  await writeFile(userFile, result('thm-main-legacy', 'Legacy statement.', { proofText: 'Legacy proof.' }));
   const before = await readFile(userFile);
   const inspected = await inspectProject(root, options);
-  assert.equal(inspected.ok, false);
-  assert.ok(inspected.diagnostics.some((item) => item.code === 'PROTECTED_MARKER_FORBIDDEN' && item.id === 'thm-main-legacy'));
+  assert.equal(inspected.ok, true);
+  // No verifier is configured, so nothing is checked and no status attribute is projected back.
   const audit = await checkStaleness(root, options);
   assert.equal(audit.operation, 'check-staleness');
   assert.deepEqual(await readFile(userFile), before);

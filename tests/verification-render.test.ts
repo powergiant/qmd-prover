@@ -31,7 +31,7 @@ test('render exposes independently verified disproof evidence in status QMD and 
     await mkdir(path.join(root, 'workspace'), { recursive: true });
     await writeFile(
       path.join(root, 'workspace', 'main-proof.qmd'),
-      proof('thm-main-render-disproof', 'DISPROVED\n\nThe integer 1 satisfies the hypothesis | but is not even.')
+      proof('thm-main-render-disproof', 'The integer 1 satisfies the hypothesis | but is not even.', { disproof: true })
     );
     const inspected = await inspectFact(root, '@thm-main-render-disproof', options);
     assert.equal(inspected.fact.status, 'disproved');

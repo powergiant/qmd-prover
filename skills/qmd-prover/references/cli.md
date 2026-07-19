@@ -29,7 +29,7 @@ The verifier receives one JSON packet on standard input for one local conditiona
 }
 ```
 
-The protocol accepts `correct`, `incorrect`, or `disproved`. A locally accepted proof requires `correct` with empty `critical_errors` and `gaps`. A locally accepted disproof, including review of a source proof marked `DISPROVED`, requires `disproved`, a nonempty independently checkable `refutation`, and no critical errors or gaps. These are conditional AI decisions. The inspector separately computes global state over the machine dependency graph; neither layer is formal verification or human review.
+From that packet the check records a single *local, conditional* outcome: `verified`, `rejected`, or `disproved`. It is local because the verifier assumes each direct dependency's statement exactly as written — never inspecting how, or whether, that dependency was itself proved — and asks only whether the submitted argument establishes the exact target from those assumed statements, the semantic context, and the permitted external basis, and nothing else. A submitted proof is `verified` when the verifier affirms it with no critical errors and no gaps that the configured `rigor` treats as blocking, and `rejected` otherwise. A submitted refutation — a proof carrying the `.disproof` attribute — is `disproved` when the verifier confirms it defeats the exact statement with a nonempty, independently checkable `refutation` and no critical errors or blocking gaps (here governed by `rigor-disprove`), and `rejected` otherwise; the verifier may also return `disproved` for an ordinary candidate whose statement it independently finds false. This is a conditional AI decision, not a global one: the inspector composes global state separately over the machine dependency graph, and neither layer is formal verification or human review.
 
 ## Commands
 
@@ -81,7 +81,7 @@ All explicit IDs are globally unique across the project. A duplicate lists every
 
 Inspection exposes three separate fields. `mechanical` is computed without AI and covers source shape, exact dependency edges, existence, scope, imports/exports, cycles, and freshness. `local_verification` checks the submitted proof conditionally on direct dependency statements; it may run even when an upstream proof is rejected, unverified, or cyclic, provided the direct statements can be materialized. `global_verification` is then computed deterministically: a mechanically valid, locally accepted result is globally verified only when every direct dependency is globally verified.
 
-A theorem-like proof beginning with `DISPROVED` is locally checked as a proposed refutation; an unmarked proof is checked as a proof, although the verifier may independently discover that the statement is false. A local disproof is globally conclusive only when its dependency closure is globally verified. Local decisions are cached by target statement or construction, submitted proof or refutation, exact direct dependency statements, semantic context, external basis, checker contract, and protocol. Dependency proof hashes and verification labels are not cache inputs. Consequently, changing an upstream proof without changing its statement reuses downstream local decisions and only recomputes global status.
+A theorem-like proof carrying the `.disproof` attribute is locally checked as a proposed refutation; a proof without it is checked as a proof, although the verifier may independently discover that the statement is false. A local disproof is globally conclusive only when its dependency closure is globally verified. Local decisions are cached by target statement or construction, submitted proof or refutation, exact direct dependency statements, semantic context, external basis, checker contract, and protocol. Dependency proof hashes and verification labels are not cache inputs. Consequently, changing an upstream proof without changing its statement reuses downstream local decisions and only recomputes global status.
 
 Dependency commands always operate on the published project machine graph, but each returns only its own answer — the target and its dependencies or dependents, the requested path, the matching facts, cycles, or findings — not the whole graph; matches are compact references (`id`, `kind`, `status`, `file`, `line`). The `status` is the fact's machine status; use `inspect fact @ID` for its full `local_verification` and `global_verification`. A fact is usable as an established premise only when its global state is `verified`; blocked, unverified, rejected, invalid, and disproved facts appear as frontier blockers. Refutation evidence identifies whether it is merely conditional or globally composed. Queries without a target, including cycles, findings, unused declarations, isolated facts, unreachable facts, ready candidates, reused facts, and search, cover the complete project graph. Search matches every fact when its `QUERY` is omitted, and accepts text, kind, status, origin, and path filters plus dependency, reverse-dependency, frontier, stale-impact, directness, and cycle-participant filters that combine with AND. Every result identifies the snapshot used.
 
@@ -94,7 +94,7 @@ Dependency commands always operate on the published project machine graph, but e
 ### Diagnostic codes
 
 An uppercase diagnostic code is a stable value in the JSON
-`diagnostics[].code` field. It is not a QMD class, attribute, status marker, or
+`diagnostics[].code` field. It is not a QMD class, attribute, status value, or
 instruction to edit a source file. Codes may also appear in `--print`
 output and derived diagnostic or snapshot JSON; qmd-prover never inserts them
 into mathematical QMD.
@@ -108,10 +108,10 @@ The inspection codes most useful when handling command output are:
 | `PATH_NOT_FOUND`, `PATH_OUTSIDE_PROJECT`, `PATH_TYPE_INVALID` | A path request names no entry, escapes the project, or is not a QMD file or directory. Correct the requested path. |
 | `DUPLICATE_ID` | An explicit ID is declared more than once in the project. Rename the conflicting declarations before dependency analysis can continue. |
 | `MAIN_STATEMENT_MUTATED`, `MAIN_TITLE_MUTATED` | A protected main goal differs from its locked baseline. Restore the user statement; change it only with explicit user approval. |
-| `PROTECTED_MARKER_FORBIDDEN` | A source file carries a reserved `VERIFIED` or `REVOKED` marker. Remove it; verification state is recorded by inspection, never in QMD. |
+| `RESULT_DISPROOF_FORBIDDEN` | The `.disproof` attribute is on a result body. Move it onto the linked `.proof` div of a theorem-like result. |
 | `SOURCE_STALE` | Sources or verifier context changed while a check was running. Discard that result and reinspect the affected scope. |
-| `AI_DISPROOF_REJECTED` | The independent verifier did not validate a proposed refutation. Repair the counterexample or return the proof to an appropriate non-disproof state. |
-| `DEFINITION_DISPROVED_FORBIDDEN` | A definition uses `DISPROVED`, which is meaningful only for a theorem-like statement. Move the challenge to a linked theorem-like claim. |
+| `AI_DISPROOF_REJECTED` | The independent verifier did not validate a proposed refutation. Repair the counterexample or remove the `.disproof` attribute. |
+| `DEFINITION_DISPROOF_FORBIDDEN` | A definition's linked proof carries `.disproof`, which is meaningful only for a theorem-like statement. Move the challenge to a linked theorem-like claim. |
 | `DEPENDENCY_UNAVAILABLE` | A citation names a fact that is neither local to the citing file nor explicitly imported. Add the export/import pair or move the declaration. |
 
 Other semantic-shape, import, proof, verifier, and cache codes are
@@ -154,15 +154,13 @@ When the exact theorem-like statement is false, preserve the declaration and put
 Every integer is even.
 :::
 
-::: {.proof of="lem-false-parity"}
-DISPROVED
-
+::: {.proof .disproof of="lem-false-parity"}
 The integer (1) satisfies the stated domain hypothesis, but it is not divisible
 by (2). Thus it is a counterexample to the universal conclusion.
 :::
 ```
 
-`DISPROVED` must be the first nonempty proof paragraph and cannot be used on a definition. A successful local check records conditional disproof evidence. It becomes `disproved` only after global composition verifies every dependency; otherwise the node is blocked. A failed local check records a rejected global state. The verifier never writes the marker or edits QMD, and it may return a disproved outcome for an ordinary candidate when it independently finds a counterexample.
+The `.disproof` attribute makes the proof a refutation and cannot be used on a definition. A successful local check records conditional disproof evidence. It becomes `disproved` only after global composition verifies every dependency; otherwise the node is blocked. A failed local check records a rejected global state. The verifier never edits the proof body, and it may return a disproved outcome for an ordinary candidate when it independently finds a counterexample. Inspection projects the local verdict into a display-only `status` attribute on the proof div, which never affects checking.
 
 ## Install the tool and skill from a source checkout
 

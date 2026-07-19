@@ -8,7 +8,7 @@ import { deriveGraphFindings } from '../../core/graph/findings.js';
 import { buildProjectSnapshot, publishProjectSnapshot, resolveProjectSnapshot } from '../../core/graph/snapshot.js';
 import { compileProject } from '../../core/semantic/compiler.js';
 import { verificationContext } from '../../core/verification/protocol.js';
-import { verifyFacts } from '../../core/graph/verify.js';
+import { verifyFacts, writeStatusProjection } from '../../core/graph/verify.js';
 import type { FactInspectionCheck, InspectionVerificationSummary, VerifiedFact } from '../../core/graph/verify.js';
 import type { Diagnostic, JsonObject, OperationResult, CompilerOptions, SelectionOptions } from '../../core/shared/types.js';
 import type { DependencyGraph } from '../../core/semantic/dependency-graph.js';
@@ -71,7 +71,8 @@ function stalenessReport(ok: boolean, snapshotId?: string): StalenessReport {
 function unknownFact(id: string): SemanticResult {
   return {
     id, file: '', kind: 'unknown', classes: [], title: '', date: '', origin: 'agent', status: 'missing', export: null,
-    statement_text: '', statement_hash: '', title_hash: '', proof_hash: '', proof_present: false, proof_text: '', marker: null,
+    statement_text: '', statement_hash: '', title_hash: '', proof_hash: '', proof_present: false, proof_text: '',
+    refutation: false, abandon: false,
     construction_dependencies: [], dependencies: []
   };
 }
@@ -127,6 +128,7 @@ export async function inspectProject(root = process.cwd(), options: CompilerOpti
   const run = await verifyFacts(compilation, context, options);
   const snapshot = buildProjectSnapshot(compilation, context.contextHash, run.diagnostics);
   const snapshotPublished = await publishProjectSnapshot(compilation, snapshot, options);
+  await writeStatusProjection(compilation, run, options);
   const diagnostics = snapshot.diagnostics;
   const facts = run.facts.map((fact) => factCheck(fact, diagnostics));
   const goalIds = new Set(compilation.goals.map((goal) => goal.id));
@@ -198,6 +200,7 @@ export async function inspectFact(root: string, requested: string, options: Comp
   const run = await verifyFacts(compilation, context, { ...options, selectedIds: [id] });
   const snapshot = buildProjectSnapshot(compilation, context.contextHash, run.diagnostics);
   const snapshotPublished = await publishProjectSnapshot(compilation, snapshot, options);
+  await writeStatusProjection(compilation, run, options);
   const dependencyIds = traverse(snapshot.graph, id);
   const selected = new Set([id, ...dependencyIds]);
   const graph = subgraph(snapshot.graph, selected);
@@ -281,6 +284,7 @@ export async function inspectPath(root: string, requestedPath: string, options: 
   const run = await verifyFacts(compilation, context, { ...options, selectedIds });
   const snapshot = buildProjectSnapshot(compilation, context.contextHash, run.diagnostics);
   const published = await publishProjectSnapshot(compilation, snapshot, options);
+  await writeStatusProjection(compilation, run, options);
   const contextIds = new Set<string>(selectedIds);
   for (const id of selectedIds) for (const dependency of traverse(snapshot.graph, id)) contextIds.add(dependency);
   const graph = subgraph(snapshot.graph, contextIds);

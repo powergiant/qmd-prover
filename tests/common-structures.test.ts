@@ -1,24 +1,25 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  asErrorLike, CONTROL_MARKERS, errorMessage, hasErrorCode, indexBy, isControlMarker,
+  asErrorLike, STATUS_VALUES, errorMessage, hasErrorCode, indexBy,
   KIND_BY_PREFIX, pushToMap, SEMANTIC_ID_PATTERN, uniqueSorted
 } from '../skills/qmd-prover/src/core/shared/core.js';
 import { stableJson } from '../skills/qmd-prover/src/core/infrastructure/files.js';
 import { factStatus } from '../skills/qmd-prover/src/core/semantic/compiler.js';
 import type { SemanticResult } from '../skills/qmd-prover/src/core/semantic/model.js';
 
-test('shared semantic constants keep IDs, result kinds, and protected markers aligned', () => {
-  assert.deepEqual(CONTROL_MARKERS, ['OPEN', 'REJECTED', 'DISPROVED', 'VERIFIED', 'REVOKED']);
-  assert.equal(isControlMarker('DISPROVED'), true);
-  assert.equal(isControlMarker('VERIFIED'), true);
-  assert.equal(isControlMarker('disproof-candidate'), false);
+test('shared semantic constants keep IDs, result kinds, and status vocabulary aligned', () => {
+  assert.deepEqual(STATUS_VALUES, ['verified', 'rejected']);
   assert.equal(SEMANTIC_ID_PATTERN.test('thm-main-uniform-index'), true);
   assert.equal(SEMANTIC_ID_PATTERN.test('theorem-uniform-index'), false);
   assert.deepEqual(KIND_BY_PREFIX, {
     def: 'definition', lem: 'lemma', thm: 'theorem', prp: 'proposition', cor: 'corollary'
   });
-  assert.equal(factStatus({ kind: 'lemma', proof_present: true } as SemanticResult, 'DISPROVED'), 'disproof-candidate');
+  // A refutation proof that is present but unverified is a disproof-candidate.
+  assert.equal(factStatus({ kind: 'lemma', proof_present: true, refutation: true, abandon: false } as SemanticResult), 'disproof-candidate');
+  assert.equal(factStatus({ kind: 'lemma', proof_present: true, refutation: false, abandon: false } as SemanticResult), 'candidate');
+  assert.equal(factStatus({ kind: 'lemma', proof_present: false, refutation: false, abandon: false } as SemanticResult), 'open');
+  assert.equal(factStatus({ kind: 'lemma', proof_present: true, refutation: false, abandon: true } as SemanticResult), 'abandoned');
 });
 
 test('shared collection and error helpers preserve deterministic runtime behavior', () => {

@@ -3,12 +3,12 @@ import path from 'node:path';
 import { atomicJson, cleanId, readJson, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
 import { auxLayout, scaffoldAux } from '../infrastructure/aux.js';
 import { loadConfig, pandocCommand } from '../infrastructure/config.js';
-import { divContent, inlineText, metaValue, normalizedAst, paragraphText, readAst, references, walk } from './pandoc.js';
+import { divContent, inlineText, metaValue, normalizedAst, readAst, references, walk } from './pandoc.js';
 import { locateDiv, locateProof } from './source.js';
 import {
-  KIND_BY_PREFIX, RESULT_KINDS, SCHEMA_VERSION, SEMANTIC_ID_PATTERN, SEMANTIC_PREFIX_PATTERN, isControlMarker
+  ABANDON_CLASS, DISPROOF_CLASS, KIND_BY_PREFIX, RESULT_KINDS, SCHEMA_VERSION, SEMANTIC_ID_PATTERN, SEMANTIC_PREFIX_PATTERN
 } from '../shared/core.js';
-import type { ControlMarker, ResultKind } from '../shared/core.js';
+import type { ResultKind } from '../shared/core.js';
 import { asArray, asRecord, errorMessage, uniqueSorted } from '../shared/core.js';
 import type { PandocAttributes, PandocDocument, PandocNode } from './pandoc.js';
 import type { CompilerOptions, Diagnostic, DiagnosticSeverity, UnknownRecord } from '../shared/types.js';
@@ -57,11 +57,7 @@ function diagnostic(
 
 
 interface SemanticEntry { type: 'proof' | 'result'; attribute: PandocAttributes; blocks: PandocNode[]; kind?: ResultKind }
-interface MarkerEntry { marker: ControlMarker; index: number }
 interface ParsedProof extends ProofRecord {
-  marker: ControlMarker | null;
-  marker_index: number | null;
-  markers: MarkerEntry[];
   blocks: PandocNode[];
 }
 
@@ -103,38 +99,6 @@ function semanticDivs(ast: PandocDocument): SemanticEntry[] {
   return entries;
 }
 
-function markerParagraph(block: PandocNode | undefined): ControlMarker | null {
-  const text = paragraphText(block);
-  return text !== null && isControlMarker(text) ? text : null;
-}
-
-function proofContent(blocks: PandocNode[]): { marker: ControlMarker | null; marker_index: number | null; markers: MarkerEntry[]; blocks: PandocNode[] } {
-  const index = blocks.findIndex((block) => block.t !== 'Null');
-  const markers = blocks.map((block, blockIndex) => ({ marker: markerParagraph(block), index: blockIndex }))
-    .filter((entry): entry is MarkerEntry => entry.marker !== null);
-  const marker = index >= 0 ? markerParagraph(blocks[index]) : null;
-  return {
-    marker,
-    marker_index: marker ? index : null,
-    markers,
-    blocks: marker ? blocks.filter((_, blockIndex) => blockIndex !== index) : blocks
-  };
-}
-
-function definitionContent(blocks: PandocNode[]): { marker: ControlMarker | null; marker_index: number | null; markers: MarkerEntry[]; blocks: PandocNode[] } {
-  const nonempty = blocks.map((block, index) => ({ block, index })).filter(({ block }) => block.t !== 'Null');
-  const last = nonempty.at(-1)?.index ?? -1;
-  const markers = blocks.map((block, index) => ({ marker: markerParagraph(block), index }))
-    .filter((entry): entry is MarkerEntry => entry.marker !== null);
-  const marker = last >= 0 ? markerParagraph(blocks[last]) : null;
-  return {
-    marker,
-    marker_index: marker ? last : null,
-    markers,
-    blocks: marker ? blocks.filter((_, index) => index !== last) : blocks
-  };
-}
-
 function validIntroductionDate(value: unknown): boolean {
   const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return false;
@@ -152,13 +116,12 @@ function resolveImport(importer: string, imported: string): string | null {
   return candidate.startsWith('../') || path.posix.isAbsolute(candidate) ? null : candidate;
 }
 
-/** Marker- and proof-derived status before any verification overlay. */
-export function factStatus(result: SemanticResult, marker = result.marker): string {
-  if (marker === 'OPEN') return 'open';
-  if (marker === 'REJECTED') return 'rejected';
-  if (marker === 'DISPROVED') return 'disproof-candidate';
-  if (marker === 'REVOKED') return 'revoked';
-  return result.kind === 'definition' || result.proof_present ? 'candidate' : 'open';
+/** Attribute- and proof-derived status before any verification overlay. */
+export function factStatus(result: SemanticResult): string {
+  if (result.abandon) return 'abandoned';
+  if (result.kind === 'definition') return 'candidate';
+  if (!result.proof_present) return 'open';
+  return result.refutation ? 'disproof-candidate' : 'candidate';
 }
 
 export async function compileProject(root = process.cwd(), options: CompilerOptions = {}): Promise<Compilation> {
@@ -228,21 +191,21 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
               const target = cleanId(String(values.of ?? ''));
               const located = target ? locateProof(source, target) : null;
               const line = located?.startLine;
-              const content = proofContent(entry.blocks);
+              const blocks = entry.blocks;
+              const abandon = classes.includes(ABANDON_CLASS);
               const proof: ParsedProof = {
                 target, file: file.relative, line,
-                marker: content.marker,
-                proof_hash: sha256(stableJson(normalizedAst(content.blocks), 0)),
-                proof_present: inlineText(content.blocks).length > 0 || content.blocks.some((block) => block.t !== 'Null'),
-                proof_text: inlineText(content.blocks),
-                dependencies: references(content.blocks),
-                blocks: content.blocks,
-                markers: content.markers,
-                marker_index: content.marker_index
+                refutation: classes.includes(DISPROOF_CLASS),
+                abandon,
+                proof_hash: sha256(stableJson(normalizedAst(blocks), 0)),
+                proof_present: inlineText(blocks).length > 0 || blocks.some((block) => block.t !== 'Null'),
+                proof_text: inlineText(blocks),
+                dependencies: references(blocks),
+                blocks
               };
               if (!target) diagnostics.push(diagnostic('error', 'PROOF_TARGET_MISSING', 'A .proof block requires an of attribute', file.relative, line));
-              if (!proof.proof_present) diagnostics.push(diagnostic('error', 'PROOF_EMPTY', `Proof of @${target || '?'} is empty`, file.relative, line, target));
-              if (content.markers.some((marker) => marker.index !== content.marker_index)) diagnostics.push(diagnostic('error', 'PROOF_MARKER_POSITION', `A reserved proof marker must be the first nonempty proof paragraph`, file.relative, line, target));
+              // An abandoned proof is detached memory: never linked, never checked, so it need not be complete.
+              if (!abandon && !proof.proof_present) diagnostics.push(diagnostic('error', 'PROOF_EMPTY', `Proof of @${target || '?'} is empty`, file.relative, line, target));
               return { proof, diagnostics };
             })();
             fileProofs.push(parsedProof.proof);
@@ -260,12 +223,10 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
             const kind = entry.kind ?? 'unknown';
             const title = String(values.name ?? '');
             const date = String(values.date ?? '');
-            const content = kind === 'definition'
-              ? definitionContent(entry.blocks)
-              : { marker: null, marker_index: null, markers: entry.blocks.map((block, index) => ({ marker: markerParagraph(block), index })).filter((item) => item.marker), blocks: entry.blocks };
-            const statementText = inlineText(content.blocks);
-            const statementHash = sha256(stableJson(normalizedAst(content.blocks), 0));
-            const constructionDependencies = kind === 'definition' ? references(content.blocks) : [];
+            const blocks = entry.blocks;
+            const statementText = inlineText(blocks);
+            const statementHash = sha256(stableJson(normalizedAst(blocks), 0));
+            const constructionDependencies = kind === 'definition' ? references(blocks) : [];
             const result: SemanticResult = {
               id, file: file.relative, line, kind, classes: [...classes].sort(), title, date,
               origin: id.startsWith(config.goals['id-prefix']) ? 'user' : 'agent',
@@ -277,10 +238,8 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
               proof_hash: sha256(stableJson(normalizedAst([]), 0)),
               proof_present: false,
               proof_text: '',
-              marker: kind === 'definition' ? content.marker : null,
-              marker_valid: kind === 'definition'
-                ? content.markers.length <= 1 && content.markers.every((marker) => marker.index === content.marker_index)
-                : content.markers.length === 0,
+              refutation: false,
+              abandon: classes.includes(ABANDON_CLASS),
               construction_dependencies: constructionDependencies,
               dependencies: constructionDependencies
             };
@@ -294,13 +253,11 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
             if (!date) diagnostics.push(diagnostic('error', 'RESULT_DATE_MISSING', `${id} requires an ISO introduction date attribute in YYYY-MM-DD form`, file.relative, line, id));
             else if (!validIntroductionDate(date)) diagnostics.push(diagnostic('error', 'RESULT_DATE_INVALID', `${id} introduction date must be a real date in YYYY-MM-DD form`, file.relative, line, id));
             if (result.export !== null && result.export !== id) diagnostics.push(diagnostic('error', 'EXPORT_ID_MISMATCH', `${id} must set export="${id}" when it is imported by another file`, file.relative, line, id));
-            if (statementText.length === 0 && content.blocks.every((block) => block.t === 'Null')) diagnostics.push(diagnostic('error', 'STATEMENT_MISSING', `${id} requires a nonempty statement body`, file.relative, line, id));
-            if (kind === 'definition') {
-              if (content.markers.length > 1) diagnostics.push(diagnostic('error', 'DEFINITION_MARKER_MULTIPLE', `${id} has more than one reserved control marker`, file.relative, line, id));
-              if (content.markers.some((marker) => marker.index !== content.marker_index)) diagnostics.push(diagnostic('error', 'DEFINITION_MARKER_POSITION', `${id} must put its reserved marker in the last nonempty paragraph of the definition block`, file.relative, line, id));
-              if (content.marker === 'DISPROVED') diagnostics.push(diagnostic('error', 'DEFINITION_DISPROVED_FORBIDDEN', `${id} is a definition and cannot be marked DISPROVED; state a theorem-like well-definedness claim and refute that claim instead`, file.relative, line, id));
-            } else if (content.markers.length > 0) diagnostics.push(diagnostic('error', 'RESULT_MARKER_LOCATION', `${id} must put its reserved marker in the first nonempty paragraph of its linked proof`, file.relative, line, id));
-            const legacyHeaders = content.blocks.filter((block) => block.t === 'Header' && ['statement', 'uses', 'proof'].includes(inlineText(asArray(block.c)[2]).toLowerCase()));
+            if (statementText.length === 0 && blocks.every((block) => block.t === 'Null')) diagnostics.push(diagnostic('error', 'STATEMENT_MISSING', `${id} requires a nonempty statement body`, file.relative, line, id));
+            // The refutation flag belongs on a linked .proof block, never on a result body; a
+            // definition cannot be refuted at all (challenge a theorem-like claim about it instead).
+            if (classes.includes(DISPROOF_CLASS)) diagnostics.push(diagnostic('error', 'RESULT_DISPROOF_FORBIDDEN', `${id} must not carry .disproof on its result body; put .disproof on its linked .proof block`, file.relative, line, id));
+            const legacyHeaders = blocks.filter((block) => block.t === 'Header' && ['statement', 'uses', 'proof'].includes(inlineText(asArray(block.c)[2]).toLowerCase()));
             if (legacyHeaders.length) diagnostics.push(diagnostic('error', 'LEGACY_RESULT_SECTIONS', `${id} must use a result body and a separate linked .proof block, not Statement/Uses/Proof headings`, file.relative, line, id));
             return { result, diagnostics };
           })();
@@ -350,12 +307,17 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
     // Overlay each single, resolvable linked proof onto its canonical result.
     const overlay = (() => {
       const diagnostics: Diagnostic[] = [];
-      for (const [target, proofs] of proofsByTarget) {
+      for (const [target, allProofs] of proofsByTarget) {
         const result = byId.get(target);
         if (!result) {
-          for (const proof of proofs) diagnostics.push(diagnostic('error', 'PROOF_TARGET_UNKNOWN', `Proof target @${target} does not exist`, proof.file, proof.line, target));
+          for (const proof of allProofs) diagnostics.push(diagnostic('error', 'PROOF_TARGET_UNKNOWN', `Proof target @${target} does not exist`, proof.file, proof.line, target));
           continue;
         }
+        // An abandoned proof is detached memory: it never links to its result and never
+        // competes with an active proof, so a target may keep one active proof beside any
+        // number of abandoned attempts.
+        const proofs = allProofs.filter((proof) => !proof.abandon);
+        if (proofs.length === 0) continue;
         if (proofs.length > 1) {
           for (const proof of proofs) diagnostics.push(diagnostic('error', 'PROOF_MULTIPLE', `@${target} has more than one associated proof`, proof.file, proof.line, target));
           continue;
@@ -364,14 +326,11 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
         if (!proof) continue;
         // A protected main goal keeps its statement in user notes; its linked proof may live in any project file.
         if (proof.file !== result.file && !target.startsWith(config.goals['id-prefix'])) diagnostics.push(diagnostic('error', 'PROOF_DIFFERENT_FILE', `Proof of @${target} must be in the result's source file`, proof.file, proof.line, target));
-        if (result.kind === 'definition' && proof.markers.length > 0) diagnostics.push(diagnostic('error', 'DEFINITION_PROOF_MARKER', `@${target} must put its reserved marker at the end of the definition block, not in its linked proof`, proof.file, proof.line, target));
-        result.marker_valid = result.marker_valid
-          && proof.markers.every((marker) => marker.index === proof.marker_index)
-          && (result.kind !== 'definition' || proof.markers.length === 0);
+        if (result.kind === 'definition' && proof.refutation) diagnostics.push(diagnostic('error', 'DEFINITION_DISPROOF_FORBIDDEN', `@${target} is a definition and cannot carry a .disproof proof; refute a theorem-like claim about it instead`, proof.file, proof.line, target));
         result.proof_hash = proof.proof_hash;
         result.proof_present = proof.proof_present;
         result.proof_text = proof.proof_text;
-        if (result.kind !== 'definition') result.marker = proof.marker;
+        if (result.kind !== 'definition') result.refutation = proof.refutation;
         result.dependencies = uniqueSorted([...result.construction_dependencies, ...proof.dependencies]);
         result.proof_file = proof.file;
         result.proof_line = proof.line;
@@ -464,21 +423,15 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
       return { dependencyCycles, cycleEdges, diagnostics };
     })();
 
-    // Final marker-derived status and cycle flags, over every result (duplicates included).
+    // Final attribute-derived status and cycle flags, over every result (duplicates included).
     const statuses = (() => {
-      const diagnostics: Diagnostic[] = [];
       for (const result of parsed.results) {
         result.status = factStatus(result);
-        if (result.marker === 'VERIFIED' || result.marker === 'REVOKED') diagnostics.push(diagnostic(
-          'error', 'PROTECTED_MARKER_FORBIDDEN',
-          `${result.id} must not carry the reserved ${result.marker} marker; verification state is recorded by inspection, never in QMD`,
-          result.file, result.proof_line ?? result.line, result.id
-        ));
         for (const check of result.reference_checks ?? []) {
           check.cycle = cycles.cycleEdges.has(`${result.id}\0${check.dependency}`) ? 'fail' : 'pass';
         }
       }
-      return { diagnostics };
+      return { diagnostics: [] as Diagnostic[] };
     })();
 
     return {
@@ -560,7 +513,7 @@ export async function compileProject(root = process.cwd(), options: CompilerOpti
     })();
     const manifest: Manifest = {
       schema_version: SCHEMA_VERSION, snapshot_id: graph.snapshot_id, files, results,
-      proofs: parsed.proofs.map(({ blocks, markers, marker_index, ...proof }) => proof)
+      proofs: parsed.proofs.map(({ blocks, ...proof }) => proof)
     };
     const goals = results.filter((result) => result.origin === 'user');
     const goalIds = new Set(goals.map((goal) => goal.id));

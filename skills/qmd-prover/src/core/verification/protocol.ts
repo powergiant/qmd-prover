@@ -78,13 +78,24 @@ export function checkerContract(config: QmdProverConfig | JsonObject = {}): Json
     // require-zero-gaps: true. Both default to `standard`.
     citations: String(verification.citations ?? 'standard'),
     rigor: String(verification.rigor ?? 'standard'),
+    // A separate rigor axis for proposed refutations: how strongly a disproof must be argued, and
+    // whether its gaps block (only `strict` does). `lenient` accepts strong refuting evidence,
+    // `standard` a genuine refutation, `strict` a fully rigorous one. Defaults to `standard`.
+    rigor_disprove: String(verification['rigor-disprove'] ?? 'standard'),
     protocol: { name: PROTOCOL_NAME, version: VERIFIER_PROTOCOL_VERSION }
   };
 }
 
-/** True when the configured rigor makes reported gaps block acceptance (i.e. rigor === "strict"). */
-export function requireZeroGaps(contract: JsonObject): boolean {
-  return String(contract.rigor ?? 'strict') === 'strict';
+/** The rigor axis in force for a mode: a refutation uses `rigor-disprove`, every other mode uses `rigor`. */
+function effectiveRigor(contract: JsonObject, mode: VerificationMode): string {
+  return mode === 'refutation'
+    ? String(contract.rigor_disprove ?? contract.rigor ?? 'standard')
+    : String(contract.rigor ?? 'standard');
+}
+
+/** True when the rigor in force for `mode` makes reported gaps block acceptance (i.e. it is "strict"). */
+export function requireZeroGaps(contract: JsonObject, mode: VerificationMode = 'proof'): boolean {
+  return effectiveRigor(contract, mode) === 'strict';
 }
 
 /**
@@ -371,7 +382,7 @@ function reviewPrompt(mode: VerificationMode, contract: JsonObject): string {
 
     citationRule(String(contract.citations ?? 'lenient')),
 
-    rigorRule(String(contract.rigor ?? 'strict')),
+    rigorRule(effectiveRigor(contract, mode)),
 
     [
       'Return exactly one JSON object matching output_schema, and nothing else — no prose, no markdown, no code fences.',
@@ -494,9 +505,10 @@ export function verificationOutcome(
   const mode = typeof packetOrMode === 'string'
     ? packetOrMode
     : targetMode(asRecord(packetOrMode.target));
-  // Only rigor "strict" makes reported gaps block acceptance; at lenient/standard a correct
-  // argument with formality gaps still verifies (the gaps stay recorded as advisories).
-  const gapsBlock = typeof packetOrMode === 'string' ? true : requireZeroGaps(asRecord(packetOrMode.checker_contract));
+  // Only "strict" rigor makes reported gaps block acceptance; at lenient/standard a correct
+  // argument with formality gaps still verifies (the gaps stay recorded as advisories). A
+  // refutation is judged against the `rigor-disprove` axis, every other mode against `rigor`.
+  const gapsBlock = typeof packetOrMode === 'string' ? true : requireZeroGaps(asRecord(packetOrMode.checker_contract), mode);
   if (mode === 'refutation') return disproved(report, gapsBlock) ? 'disproved' : 'rejected';
   if (accepted(report, gapsBlock)) return 'verified';
   if (mode === 'proof' && disproved(report, gapsBlock)) return 'disproved';

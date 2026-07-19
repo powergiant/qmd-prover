@@ -92,6 +92,8 @@ const CONFIG_TEMPLATE = [
   `  citations: standard`,
   `  # rigor: how completely a valid step must be spelled out (strict also makes gaps block): lenient | standard | strict.`,
   `  rigor: standard`,
+  `  # rigor-disprove: how strongly a proposed refutation must be argued (strict also makes its gaps block): lenient | standard | strict.`,
+  `  rigor-disprove: standard`,
   `  # tools: capabilities the verifier is TOLD (in the prompt) it may use; any of [file-read, web-search, code].`,
   `  tools: []`,
   ``,

@@ -56,7 +56,8 @@ test('project inspection verifies a dependency chain and reuses exact caches', a
     assert.equal(first.ok, true, JSON.stringify(first.diagnostics));
     assert.equal(first.verification.verifier_calls, 3);
     assert.deepEqual(first.facts.map((fact) => fact.status), ['verified', 'verified', 'verified']);
-    assert.doesNotMatch(await readFile(route, 'utf8'), /VERIFIED/);
+    // The engine projects the local verdict back as a display-only status attribute on each proof div.
+    assert.match(await readFile(route, 'utf8'), /status="verified"/);
     const firstSnapshot = first.snapshot_id;
     const firstPointer = await readJson<{ snapshot_id: string; file: string }>(path.join(root, '.qmd-prover', 'graphs', 'latest.json'));
     assert.equal(firstPointer.snapshot_id, firstSnapshot);
@@ -83,7 +84,7 @@ test('an unconfigured verifier exposes machine state but does not reuse AI label
   const root = await project();
   await writeFile(path.join(root, 'goal.qmd'), result('thm-main-no-verifier-labels', 'Every integer is even.'));
   await mkdir(path.join(root, 'workspace'), { recursive: true });
-  await writeFile(path.join(root, 'workspace', 'main-proof.qmd'), proof('thm-main-no-verifier-labels', 'DISPROVED\n\nThe integer 1 is not even.'));
+  await writeFile(path.join(root, 'workspace', 'main-proof.qmd'), proof('thm-main-no-verifier-labels', 'The integer 1 is not even.', { disproof: true }));
   process.env.QMD_PROVER_VERIFIER = verifier;
   try {
     const checked = await inspectProject(root, options);
@@ -179,7 +180,7 @@ test('machine cycles invalidate global results without suppressing local conditi
   }
 });
 
-test('DISPROVED refutations are independently verified, exposed, cached, and unusable as premises', async () => {
+test('disproof-flagged refutations are independently verified, exposed, cached, and unusable as premises', async () => {
   const root = await project();
   const countFile = path.join(root, 'disproof-verifier-calls.txt');
   process.env.QMD_PROVER_VERIFIER = verifier;
@@ -191,14 +192,14 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
     await writeFile(route, [
       result('def-parity-witness', 'The integer 1 is an admissible parity witness.'),
       result('lem-false-premise', 'Every integer is even.', {
-        proofText: 'DISPROVED\n\nBy @def-parity-witness, the integer 1 satisfies the domain hypothesis and is not even.'
+        proofText: 'By @def-parity-witness, the integer 1 satisfies the domain hypothesis and is not even.', disproof: true
       }),
       proof('thm-main-disproof', 'Apply @lem-false-premise.')
     ].join('\n'));
 
     const refutation = await inspectFact(root, '@lem-false-premise', options);
     assert.equal(refutation.ok, true, JSON.stringify(refutation.diagnostics));
-    assert.equal(refutation.fact.marker, 'DISPROVED');
+    assert.equal(refutation.fact.refutation, true);
     assert.equal(refutation.fact.status, 'disproved');
     assert.equal(refutation.fact.disproof?.status, 'global');
     assert.match(refutation.fact.disproof?.refutation ?? '', /integer 1/);
@@ -211,7 +212,8 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
     assert.match(refutationNode.disproof?.refutation ?? '', /integer 1/);
     assert.match(printReport(refutation), /global=disproved/);
     assert.match(printReport(refutation), /refutation:.*integer 1/);
-    assert.match(await readFile(route, 'utf8'), /DISPROVED/);
+    // The author's .disproof attribute is retained; the engine only adds a display status attribute.
+    assert.match(await readFile(route, 'utf8'), /\.disproof\b/);
     const impact = await analyzeDependencies(root, 'impact', ['@def-parity-witness'], options);
     assert.equal(impact.ok, true, JSON.stringify(impact.diagnostics));
     const affected = impact.affected ?? [];
@@ -255,7 +257,7 @@ test('DISPROVED refutations are independently verified, exposed, cached, and unu
   }
 });
 
-test('a verifier-discovered counterexample produces disproved without editing QMD', async () => {
+test('a verifier-discovered counterexample produces disproved without editing the proof body', async () => {
   const root = await project();
   process.env.QMD_PROVER_VERIFIER = verifier;
   try {
@@ -266,12 +268,13 @@ test('a verifier-discovered counterexample produces disproved without editing QM
 
     const inspected = await inspectFact(root, '@thm-main-verifier-disproof', options);
     assert.equal(inspected.ok, true, JSON.stringify(inspected.diagnostics));
-    assert.equal(inspected.fact.marker, null);
+    assert.equal(inspected.fact.refutation, false);
     assert.equal(inspected.fact.status, 'disproved');
     assert.equal(inspected.check.local_verification.outcome, 'disproved');
     assert.match(inspected.fact.disproof?.refutation ?? '', /verifier-discovered counterexample/);
     assert.equal(inspected.graph.nodes.find((node) => node.id === 'thm-main-verifier-disproof')?.disproof?.status, 'global');
-    assert.doesNotMatch(await readFile(candidate, 'utf8'), /DISPROVED/);
+    // The mathematical proof body is untouched; the submitted proof was not confirmed, so its div gains status="rejected".
+    assert.match(await readFile(candidate, 'utf8'), /DISCOVER_COUNTEREXAMPLE/);
 
     const cached = await inspectFact(root, '@thm-main-verifier-disproof', options);
     assert.equal(cached.fact.status, 'disproved');
@@ -315,7 +318,7 @@ test('staleness auditing rejects a cache whose recorded disproof outcome is inco
     await mkdir(path.join(root, 'workspace'), { recursive: true });
     await writeFile(
       path.join(root, 'workspace', 'main-proof.qmd'),
-      proof('thm-main-stale-disproof', 'DISPROVED\n\nThe integer 1 is not even.')
+      proof('thm-main-stale-disproof', 'The integer 1 is not even.', { disproof: true })
     );
     assert.equal((await inspectFact(root, '@thm-main-stale-disproof', options)).fact.status, 'disproved');
 
@@ -387,11 +390,36 @@ test('rigor gates whether reported gaps block acceptance; strict blocks, standar
   }
 });
 
+test('rigor-disprove gates whether a refutation gap blocks; strict blocks, standard does not', async () => {
+  const root = await project();
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  try {
+    await writeFile(path.join(root, 'goal.qmd'), result('lem-refute-gap', 'Every integer is even.', { proofText: 'REFUTE_LOOSE', disproof: true }));
+
+    // rigor-disprove: standard — the reported gap is advisory, so the refutation still lands as disproved.
+    await writeFile(path.join(root, '.qmd-prover', 'config.yml'), 'verification:\n  rigor-disprove: standard\n');
+    const standard = await inspectFact(root, '@lem-refute-gap', options);
+    assert.equal(standard.check.local_verification.report?.gaps.length, 1);
+    assert.equal(standard.check.local_verification.outcome, 'disproved');
+    assert.equal(standard.check.global_verification.status, 'disproved');
+
+    // rigor-disprove: strict — the identical refutation now blocks, because its gaps must be empty.
+    await writeFile(path.join(root, '.qmd-prover', 'config.yml'), 'verification:\n  rigor-disprove: strict\n');
+    const strict = await inspectFact(root, '@lem-refute-gap', options);
+    assert.equal(strict.check.local_verification.status, 'fail');
+    assert.equal(strict.check.global_verification.status, 'rejected');
+  } finally {
+    delete process.env.QMD_PROVER_VERIFIER;
+  }
+});
+
 test('checker contract carries the citations/rigor axes and verifierCommand forwards effort', () => {
   delete process.env.QMD_PROVER_VERIFIER;
   const contract = checkerContract({ verification: { backend: 'codex', citations: 'strict', rigor: 'lenient', effort: 'xhigh' } });
   assert.equal(contract.citations, 'strict');
   assert.equal(contract.rigor, 'lenient');
+  assert.equal(contract.rigor_disprove, 'standard');
+  assert.equal(checkerContract({ verification: { 'rigor-disprove': 'strict' } }).rigor_disprove, 'strict');
   assert.equal(contract.effort, 'xhigh');
   assert.equal('require_zero_gaps' in contract, false);
   assert.equal('definition_strictness' in contract, false);

@@ -1,30 +1,18 @@
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { compileProject, factStatus } from '../semantic/compiler.js';
 import { externalPolicyHash } from '../infrastructure/external.js';
-import { atomicJson, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
+import { atomicJson, atomicWrite, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
 import { auxLayout } from '../infrastructure/aux.js';
-import { readLocatedBlock, readLocatedProof } from '../semantic/source.js';
+import { locateDiv, locateProofs, readLocatedBlock, readLocatedProof, setStatusAttribute } from '../semantic/source.js';
 import { buildVerifierPacket, checkerContract, configured, invokeVerifier, verificationContext, verificationKey, verificationOutcome } from '../verification/protocol.js';
 import { cachedDecision, verifierFailure } from '../verification/cache.js';
-import { asErrorLike, CONTROL_MARKER_SET, SCHEMA_VERSION } from '../shared/core.js';
+import { asErrorLike, SCHEMA_VERSION } from '../shared/core.js';
 import { projectSourceSignature, readPublishedSnapshot } from './snapshot.js';
-export function cleanVerifierText(value, markerPosition = null) {
-    const lines = String(value ?? '').split(/\r?\n/);
-    if (markerPosition === 'first') {
-        const index = lines.findIndex((line) => line.trim() !== '');
-        if (index >= 0 && CONTROL_MARKER_SET.has(lines[index].trim()))
-            lines.splice(index, 1);
-    }
-    else if (markerPosition === 'last') {
-        for (let index = lines.length - 1; index >= 0; index -= 1) {
-            if (!lines[index].trim())
-                continue;
-            if (CONTROL_MARKER_SET.has(lines[index].trim()))
-                lines.splice(index, 1);
-            break;
-        }
-    }
-    return lines.join('\n').trim();
+/** The trimmed body text of a located block, or '' when absent. Markers no longer live in the body,
+ *  so the verifier packet uses the block text verbatim. */
+function blockText(value) {
+    return String(value ?? '').trim();
 }
 function references(result) {
     return [...(result.reference_checks ?? [])].sort((left, right) => left.dependency.localeCompare(right.dependency));
@@ -210,12 +198,8 @@ export async function verifyFacts(compilation, context, options = {}) {
             const eligibility = (() => {
                 if (!compilation.complete)
                     return { ready: false, reason: 'semantic-parse-incomplete' };
-                if (result.marker === 'OPEN')
-                    return { ready: false, reason: 'explicitly-open' };
-                if (result.marker === 'REJECTED')
-                    return { ready: false, reason: 'explicitly-rejected' };
-                if (result.marker === 'VERIFIED' || result.marker === 'REVOKED')
-                    return { ready: false, reason: 'protected-marker-forbidden' };
+                if (result.abandon)
+                    return { ready: false, reason: 'abandoned' };
                 if (result.kind !== 'definition' && !result.proof_present)
                     return { ready: false, reason: 'proof-missing' };
                 if (references(result).some((check) => check.existence !== 'pass')) {
@@ -233,11 +217,9 @@ export async function verifyFacts(compilation, context, options = {}) {
                     status: 'not-run',
                     reason: eligibility.reason === 'proof-missing'
                         ? 'No complete proof is present.'
-                        : eligibility.reason === 'explicitly-open'
-                            ? 'The active attempt is explicitly OPEN.'
-                            : eligibility.reason === 'explicitly-rejected'
-                                ? 'The active attempt is explicitly REJECTED.'
-                                : `Local conditional verification did not run because ${eligibility.reason}.`
+                        : eligibility.reason === 'abandoned'
+                            ? 'The proof is abandoned: detached from its result and kept only for memory.'
+                            : `Local conditional verification did not run because ${eligibility.reason}.`
                 });
                 continue;
             }
@@ -253,15 +235,15 @@ export async function verifyFacts(compilation, context, options = {}) {
             try {
                 packet = await (async () => {
                     const block = await located(result);
-                    const statement = cleanVerifierText(block.statement?.text, result.kind === 'definition' ? 'last' : null);
+                    const statement = blockText(block.statement?.text);
                     const proof = await (async () => {
                         if (result.proof_file && result.proof_file !== result.file) {
                             const proofBlock = await readLocatedProof(path.join(root, result.proof_file), result.id);
                             if (!proofBlock)
                                 throw Object.assign(new Error(`Linked proof of @${result.id} disappeared during inspection`), { code: 'SOURCE_STALE' });
-                            return cleanVerifierText(proofBlock.proof?.text, 'first');
+                            return blockText(proofBlock.proof?.text);
                         }
-                        return cleanVerifierText(block.proof?.text, 'first');
+                        return blockText(block.proof?.text);
                     })();
                     const dependencies = await (async () => {
                         const collected = [];
@@ -272,7 +254,7 @@ export async function verifyFacts(compilation, context, options = {}) {
                             if (!dependencyResult)
                                 continue;
                             const dependencyBlock = await located(dependencyResult);
-                            const dependencyStatement = cleanVerifierText(dependencyBlock.statement?.text, dependencyResult.kind === 'definition' ? 'last' : null);
+                            const dependencyStatement = blockText(dependencyBlock.statement?.text);
                             collected.push({
                                 id: dependency,
                                 kind: dependencyResult.kind,
@@ -303,7 +285,7 @@ export async function verifyFacts(compilation, context, options = {}) {
                             proof,
                             identity: { statement_hash: result.statement_hash, proof_hash: result.proof_hash },
                             source: { file: result.file },
-                            verification_mode: result.marker === 'DISPROVED' ? 'refutation' : result.kind === 'definition' ? 'definition-construction' : 'proof'
+                            verification_mode: result.refutation ? 'refutation' : result.kind === 'definition' ? 'definition-construction' : 'proof'
                         },
                         dependencies,
                         externalBasis,
@@ -464,8 +446,8 @@ export async function verifyFacts(compilation, context, options = {}) {
                 throw new Error(`Verification outcome for @${result.id} was not recorded`);
             if (outcome.status === 'fail')
                 items.push({
-                    severity: 'warning', code: result.marker === 'DISPROVED' ? 'AI_DISPROOF_REJECTED' : 'AI_CHECK_REJECTED',
-                    message: result.marker === 'DISPROVED'
+                    severity: 'warning', code: result.refutation ? 'AI_DISPROOF_REJECTED' : 'AI_CHECK_REJECTED',
+                    message: result.refutation
                         ? `Local conditional verification did not confirm the proposed refutation of @${result.id}: ${outcome.report?.summary || 'critical errors or gaps remain'}`
                         : `Local conditional verification rejected the submitted proof of @${result.id}: ${outcome.report?.summary || 'critical errors or gaps remain'}`,
                     file: result.file, line: result.proof_line ?? result.line, id: result.id,
@@ -503,7 +485,7 @@ export async function verifyFacts(compilation, context, options = {}) {
                     status: reason ? 'fail' : 'pass',
                     verification_mode: result.kind === 'definition'
                         ? 'definition-construction'
-                        : result.marker === 'DISPROVED' ? 'refutation' : 'proof',
+                        : result.refutation ? 'refutation' : 'proof',
                     references: checks,
                     diagnostics: errors.map((item) => item.code).sort(),
                     ...(reason ? { reason } : {})
@@ -584,4 +566,71 @@ export async function verifyFacts(compilation, context, options = {}) {
     const diagnostics = [...mechanicalDiagnostics, ...aiDiagnostics]
         .sort((left, right) => `${left.file ?? ''}:${left.line ?? 0}:${left.code}:${left.id ?? ''}`.localeCompare(`${right.file ?? ''}:${right.line ?? 0}:${right.code}:${right.id ?? ''}`));
     return { verification, facts: composition.facts, diagnostics, selected: verificationIds };
+}
+/**
+ * The `status` value a checked fact's local outcome projects to, or null to clear it. A proof claims
+ * "the statement holds", a refutation claims "the statement is false"; `verified` means that claim
+ * was confirmed, `rejected` that it was not. A fact that was not conclusively checked carries no status.
+ */
+function projectedStatus(result, outcome) {
+    if (outcome.status !== 'pass' && outcome.status !== 'fail')
+        return null;
+    const confirmed = result.refutation ? outcome.outcome === 'disproved' : outcome.outcome === 'verified';
+    return confirmed ? 'verified' : 'rejected';
+}
+/**
+ * Project each freshly checked fact's local verdict into a display-only `status` attribute on its
+ * source div — the linked proof div for a theorem-like result, the result div for a definition.
+ * The attribute is excluded from every content hash, the verifier packet, the cache key, and the
+ * snapshot identity, and is never read back, so writing it can never invalidate a cached decision.
+ * Only facts re-checked this run (`run.selected`) are touched; a fact not conclusively checked has
+ * any prior status cleared. A no-op when write mode is off.
+ */
+export async function writeStatusProjection(compilation, run, options = {}) {
+    if (options.write === false)
+        return;
+    const root = compilation.root;
+    const resultById = new Map(compilation.manifest.results.map((result) => [result.id, result]));
+    const factById = new Map(run.facts.map((fact) => [fact.id, fact]));
+    const perFact = [];
+    for (const id of run.selected) {
+        const result = resultById.get(id);
+        const fact = factById.get(id);
+        if (!result || !fact)
+            continue;
+        // A theorem-like carries status on its proof div (wherever it lives); a definition on its own div.
+        const file = result.kind === 'definition' ? result.file : result.proof_file ?? result.file;
+        perFact.push({ file, kind: result.kind, id, proofLine: result.proof_line, status: projectedStatus(result, fact.local_verification) });
+    }
+    for (const file of new Set(perFact.map((entry) => entry.file))) {
+        const absolute = path.join(root, file);
+        let source;
+        try {
+            source = await readFile(absolute, 'utf8');
+        }
+        catch {
+            continue;
+        }
+        const edits = [];
+        for (const entry of perFact.filter((item) => item.file === file)) {
+            if (entry.kind === 'definition') {
+                const div = locateDiv(source, entry.id);
+                if (div)
+                    edits.push({ div, status: entry.status });
+                continue;
+            }
+            // The active proof carries the verdict; any abandoned attempt beside it is cleared.
+            const proofs = locateProofs(source, entry.id);
+            const active = proofs.find((div) => div.startLine === entry.proofLine) ?? proofs[0];
+            for (const div of proofs)
+                edits.push({ div, status: div === active ? entry.status : null });
+        }
+        // Apply from the bottom of the file up so each fence edit leaves earlier offsets valid.
+        let next = source;
+        for (const { div, status } of edits.sort((left, right) => right.div.start - left.div.start)) {
+            next = setStatusAttribute(next, div, status);
+        }
+        if (next !== source)
+            await atomicWrite(absolute, next);
+    }
 }

@@ -144,9 +144,9 @@ Only a configured, available verifier produces verification state. Never declare
 
 Every QMD file in the project is semantic mathematics in one unified dependency graph. qmd-prover registers and protects `thm-main-* .theorem .goal` blocks wherever they appear; their statements are locked and must never be edited. A goal with no proof yet is simply open — proving it needs no setup step.
 
-Write new agent-created definitions, intermediate results, proof attempts, calculations, examples, counterexamples, and progress notes in ordinary project QMD files, by convention under a `workspace/` folder in the project root. Folders are organizational only, never a semantic boundary: organize `workspace/` by theme, by goal, or flat, as the argument demands, and follow any folder principles in local project policy. Edit pre-existing user files cautiously. Put the linked proof of a main goal in a proof overlay file such as `workspace/main-proof.qmd` without repeating the protected theorem, and never copy a proof or marker into a protected statement.
+Write new agent-created definitions, intermediate results, proof attempts, calculations, examples, counterexamples, and progress notes in ordinary project QMD files, by convention under a `workspace/` folder in the project root. Folders are organizational only, never a semantic boundary: organize `workspace/` by theme, by goal, or flat, as the argument demands, and follow any folder principles in local project policy. Edit pre-existing user files cautiously. Put the linked proof of a main goal in a proof overlay file such as `workspace/main-proof.qmd` without repeating the protected theorem, and never copy a proof or the engine-written `status` attribute into a protected statement.
 
-Follow the complete declaration, proof, import, and export rules in the canonical contract. An `@id` citation is a dependency but does not grant cross-file scope. Cite the defining `@def-id` of any non-standard term at its first load-bearing use; the `verification.citations` setting governs how aggressively the verifier flags an uncited non-standard term, and `verification.rigor` sets how completely each step must be justified. Keep every explicit ID globally unique across the project. Any fact may cite any other project fact, including a protected main goal, subject to import scope; global composition keeps dependents blocked until the cited fact is globally verified.
+Follow the complete declaration, proof, import, and export rules in the canonical contract. An `@id` citation is a dependency but does not grant cross-file scope. Cite the defining `@def-id` of any non-standard term at its first load-bearing use; the `verification.citations` setting governs how aggressively the verifier flags an uncited non-standard term, and `verification.rigor` (with `verification.rigor-disprove` for a proposed refutation) sets how completely each step must be justified. Keep every explicit ID globally unique across the project. Any fact may cite any other project fact, including a protected main goal, subject to import scope; global composition keeps dependents blocked until the cited fact is globally verified.
 
 Follow every unproved dependency instead of treating it as established. Read the three separate inspection layers: `mechanical` describes machine structure, `local_verification` says only whether the submitted proof follows conditionally from its direct dependency statements, and `global_verification` composes the whole upstream closure. Use a fact as a premise only when its global status is `verified`. These are informal AI-review states, not formal verification, human review, or permission to weaken protected statements.
 
@@ -170,10 +170,47 @@ Use dependency operations to inspect the project graph, search facts, show paths
 
 ## Status and rendering
 
-- `OPEN` marks an incomplete active proof attempt; `REJECTED` retains an inactive failed attempt. No marker means candidate.
-- `DISPROVED` begins a theorem-like proof body that proposes a precise counterexample or refutation; definitions cannot use it. A local disproof is conditional on its direct dependencies and becomes globally disproved only when the complete upstream closure is globally verified. A verifier may also discover a refutation without changing QMD.
-- `VERIFIED` and `REVOKED` are reserved markers. Never write them; verification state lives in inspection state, not in QMD.
-- These QMD markers are distinct from the inspection `status` field an agent reads back. A fact's `status` is derived (`candidate`, `open`, `rejected`, `stale`, `missing`, and so on) and the separate global verification status (`verified`, `disproved`, `blocked`, `unverified`, `invalid`) is what `dependency search --status` filters on; `help dependency search` lists every accepted value.
+- Workflow state lives in attributes on the `.proof` div, never in body prose. A proof div is a candidate checked by default; add `.disproof` to make it a proposed counterexample or refutation (checked in refutation mode), or `.abandon` to detach it from its result and keep it only for memory (never checked). Definitions cannot carry `.disproof`.
+- A local disproof is conditional on its direct dependencies and becomes globally disproved only when the complete upstream closure is globally verified. A verifier may also discover a refutation while checking an ordinary candidate.
+- After a check, the engine projects the fact's LOCAL verdict into a display-only `status` attribute (`verified` or `rejected`) on its div. It is excluded from every content hash, the verifier packet, the cache key, and the snapshot identity, and is never read back — so it never changes what is checked. Never hand-write it; read global state from a command instead.
+
+### Every status a fact can carry
+
+A fact's `status` field summarizes two families. Before a conclusive check it shows a **machine status** derived from the QMD and the dependency graph; once checked (or once its mechanical layer fails) it shows a **verification outcome**.
+
+| `status` | Family | Applies to | Meaning |
+|---|---|---|---|
+| `candidate` | machine | theorem-like with an active proof; every definition | Has content to check, awaiting a local verdict. |
+| `open` | machine | theorem-like only | No active proof yet — none written, or the only one is `.abandon`ed. |
+| `disproof-candidate` | machine | theorem-like only | Its active proof carries `.disproof`; awaiting a refutation check. |
+| `abandoned` | machine | theorem-like only | The proof is detached with `.abandon`; intentionally not checked. |
+| `missing` | machine | graph node | Cited by some fact but never declared — an unresolved dependency. |
+| `verified` | outcome | any | Mechanically valid, the local proof was accepted, and the entire dependency closure is globally verified. |
+| `disproved` | outcome | theorem-like only | A refutation (authored `.disproof` or verifier-discovered) was locally confirmed and its dependency closure is globally verified. |
+| `blocked` | outcome | any | The local proof or refutation was accepted, but some dependency is not yet globally verified (see its `blockers`). |
+| `rejected` | outcome | any | The verifier rejected the submitted proof or refutation. |
+| `unverified` | outcome | any | Mechanically valid, but no local verdict was produced — no verifier configured, or the fact was outside the checked selection. |
+| `invalid` | outcome | any | The mechanical layer failed: a shape/date/ID error, an unresolved or out-of-scope reference, or a dependency cycle. |
+
+A **definition** always has a construction to check, so it is `candidate` until checked and can only reach `verified`, `rejected`, `blocked`, `unverified`, or `invalid` — never `open`, `abandoned`, `disproof-candidate`, or `disproved`. Only a **theorem-like** result (theorem, lemma, proposition, corollary) uses the other states.
+
+### How to check a fact's status
+
+Run the narrowest inspection that covers what you need:
+
+```bash
+qmd-prover inspect fact @ID      # one fact and its transitive local dependency closure
+qmd-prover inspect path PATH     # every fact declared under a file or folder
+qmd-prover inspect project       # every fact in the project
+```
+
+Each fact reports three independent layers — read all three, because passing one does not imply passing another:
+
+- `mechanical` — machine structure only (shape, IDs, dates, imports, references, cycles, statement locks). Never consults an AI verdict.
+- `local_verification` — the conditional check of the submitted proof or refutation against its direct dependency *statements* (assumed true, their own proofs never inspected): `verified`, `rejected`, `disproved`, `not-run`, or `error`.
+- `global_verification` — composes the whole upstream closure into the final outcome above; its `blockers` name the dependencies that are not yet verified.
+
+The single `status` field is the summary of these. For mathematical truth read `global_verification.status`, never `ok` (which reports only whether the operation and verifier ran without infrastructure errors). Use a fact as an established premise only when its global status is `verified`; a `disproved` fact is evidence about a false statement, not a usable dependency. To survey many facts at once, `dependency search --status STATUS` filters the published graph by any value in the table (`help dependency search` lists them), and `verification list` / `verification show` read the retained local verdict records.
 - Exact local verified, disproved, and rejected outcomes are cached by the target statement, submitted proof or refutation, direct dependency statements, semantic context, external basis, checker contract, and protocol. Dependency proof text and verification state are excluded; changing only an upstream proof triggers global recomposition rather than downstream AI calls.
 - `check staleness` is a read-only audit of verification caches against current sources, the external basis, and the checker contract. It never edits QMD.
 - Use `verification list` and `verification show` to discover and read retained verification records.

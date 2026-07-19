@@ -32,7 +32,8 @@ verification:
   # command: [node, verify.js]    # custom verifier argv, for backend: command
   fresh-context: true             # each check runs in an isolated context
   citations: standard             # lenient | standard | strict — uncited-term scrutiny
-  rigor: standard                 # lenient | standard | strict — how fully steps must be justified
+  rigor: standard                 # lenient | standard | strict — how fully proof steps must be justified
+  rigor-disprove: standard        # lenient | standard | strict — how strongly a refutation must be argued
   tools: []                       # capabilities the verifier is TOLD it may use: [file-read, web-search, code]
 
 render:
@@ -80,7 +81,8 @@ packet protocol and the bundled `claude`/`codex` adapters.
 | `command` | — (unset) | string, or inline array | The custom verifier for `backend: command`. A string is the executable; an array is `[executable, ...args]`. It must speak the JSON packet protocol on stdin/stdout. |
 | `fresh-context` | `true` | boolean | Declares that each check runs in an isolated context (sets `QMD_PROVER_FRESH_CONTEXT=1` for the verifier process) and is recorded in the checker contract. |
 | `citations` | `standard` | `lenient` · `standard` · `strict` | How aggressively the verifier flags a specialized term used **without a cited definition**. `lenient` = assume its evident meaning, never flag a missing citation; `standard` = flag only genuine doubt; `strict` = every load-bearing term must be fixed by a citation. |
-| `rigor` | `standard` | `lenient` · `standard` · `strict` | How completely a **valid** step must be spelled out — i.e. what counts as a `gap`. `lenient` = accept informal/textbook argument; `standard` = ask for material justification but take routine steps as evident; `strict` = every load-bearing step must be explicit **and** any reported gap blocks acceptance. Wrong or misapplied steps (`critical_errors`) always block, at every level. |
+| `rigor` | `standard` | `lenient` · `standard` · `strict` | How completely a **valid** proof step must be spelled out — i.e. what counts as a `gap`. `lenient` = accept informal/textbook argument; `standard` = ask for material justification but take routine steps as evident; `strict` = every load-bearing step must be explicit **and** any reported gap blocks acceptance. Wrong or misapplied steps (`critical_errors`) always block, at every level. |
+| `rigor-disprove` | `standard` | `lenient` · `standard` · `strict` | The refutation-side analogue of `rigor`: how strongly a proposed counterexample or refutation (a `.disproof` proof) must be argued. Applies only in refutation mode; `strict` makes a refutation's reported gaps block, just as `rigor: strict` does for a proof. |
 | `tools` | `[]` | inline list of `file-read` · `web-search` · `code` | Which tool capabilities the verifier is **told, in its prompt,** that it may use — always only to *check* the submission, never to import unsupplied premises. **Prompt-only:** qmd-prover neither provides a tool nor enforces this; whether a permitted tool actually works depends on what the backend agent has (e.g. `web-search` needs network, which the read-only codex sandbox lacks). `file-read` = look up a term's definition/notation in the project (never a dependency's proof); `web-search` = confirm an external result the external basis permits/cites; `code` = run a computation to check a step. Empty = reason from the packet alone. |
 
 **Correctness floor, plus two strictness axes.** No level of either axis ever relaxes correctness:
@@ -89,10 +91,11 @@ a wrong, circular, or misapplied step, or a hole that cannot be routinely filled
 whether it blocks. `citations` controls whether an uncited non-standard term is flagged.
 `rigor` controls how completely a valid step must be spelled out (what counts as a `gap`); only
 `rigor: strict` makes reported gaps block acceptance — at `lenient`/`standard` a correct argument
-with formality gaps still verifies, and the gaps are recorded as advisories.
+with formality gaps still verifies, and the gaps are recorded as advisories. `rigor-disprove` is the
+same axis for a proposed refutation and applies only in refutation mode.
 
-**Checker-contract keys vs. operational keys.** Seven keys — `backend`, `model`, `effort`,
-`fresh-context`, `citations`, `rigor`, `tools` — form the *checker contract* that is hashed into
+**Checker-contract keys vs. operational keys.** Eight keys — `backend`, `model`, `effort`,
+`fresh-context`, `citations`, `rigor`, `rigor-disprove`, `tools` — form the *checker contract* that is hashed into
 every verification cache key. Changing any of them re-verifies every fact, because old cached verdicts no
 longer match the contract. The remaining two — `executable` and `command` — are only *how to spawn*
 the verifier and do not invalidate cached verdicts.
@@ -127,7 +130,7 @@ usage, surfaced per fact as `local_verification.metrics` and summed into the ver
   malformed line — a tab in the indentation, a line that is not `key: value` or `key:`, or an
   unterminated quote or `[` — stops loading with an error naming the line number, rather than being
   silently skipped.
-- Enum values are validated: an invalid `citations`, `rigor`, or `effort` falls back to its default
+- Enum values are validated: an invalid `citations`, `rigor`, `rigor-disprove`, or `effort` falls back to its default
   (`standard`, `standard`, `high`); an unrecognized `backend` is a config error.
 - Run `doctor` to see the resolved Pandoc, Quarto, and verifier commands and whether each is
   available; it also reports a malformed `config.yml` instead of crashing.

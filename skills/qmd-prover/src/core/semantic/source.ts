@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { CONTROL_MARKER_SET } from '../shared/core.js';
-import type { ControlMarker } from '../shared/core.js';
+import type { FactStatusValue } from '../shared/core.js';
 
 interface ParsedAttributes { id: string; classes: string[]; values: Record<string, string> }
 export interface LocatedDiv {
@@ -12,13 +11,12 @@ export interface LocatedDiv {
   end: number;
   endLine: number;
 }
-export interface LocatedBody { bodyStart: number; bodyEnd: number; text: string; marker?: string | null }
+export interface LocatedBody { bodyStart: number; bodyEnd: number; text: string }
 export interface LocatedBlock {
   source: string;
   div: LocatedDiv;
   raw: string;
   statement: LocatedBody | null;
-  marker: string | null;
   proof: LocatedBody | null;
   proofDiv: LocatedDiv | null;
 }
@@ -73,7 +71,13 @@ export function locateDiv(source: string, id: string): LocatedDiv | null {
 }
 
 export function locateProof(source: string, target: string): LocatedDiv | null {
-  return locateDivs(source).find((div) => div.attrs.classes.includes('proof') && div.attrs.values.of?.replace(/^@/, '') === target.replace(/^@/, '')) ?? null;
+  return locateProofs(source, target)[0] ?? null;
+}
+
+/** Every `.proof` div targeting `target`, in document order (an abandoned attempt may sit beside the active proof). */
+export function locateProofs(source: string, target: string): LocatedDiv[] {
+  const id = target.replace(/^@/, '');
+  return locateDivs(source).filter((div) => div.attrs.classes.includes('proof') && div.attrs.values.of?.replace(/^@/, '') === id);
 }
 
 function body(source: string, div: LocatedDiv | null): LocatedBody | null {
@@ -84,36 +88,16 @@ function body(source: string, div: LocatedDiv | null): LocatedBody | null {
   return { bodyStart: div.bodyStart, bodyEnd, text: source.slice(div.bodyStart, bodyEnd).trim() };
 }
 
-function definitionMarkerBody(source: string, div: LocatedDiv): LocatedBody | null {
-  const located = body(source, div);
-  if (!located) return null;
-  const raw = source.slice(located.bodyStart, located.bodyEnd);
-  const normalized = raw.replace(/\r\n/g, '\n');
-  const paragraphs = normalized.split(/\n[ \t]*\n/);
-  const last = paragraphs.findLastIndex((paragraph) => paragraph.trim() !== '');
-  const marker = last >= 0 && CONTROL_MARKER_SET.has(paragraphs[last].trim()) ? paragraphs[last].trim() : null;
-  if (!marker) return { ...located, marker: null };
-
-  const trimmed = raw.replace(/[ \t\r\n]+$/, '');
-  const markerLine = new RegExp(`(?:^|\\r?\\n[ \\t]*\\r?\\n)[ \\t]*${marker}[ \\t]*$`);
-  const match = markerLine.exec(trimmed);
-  if (!match) return { ...located, marker: null };
-  const construction = trimmed.slice(0, match.index).trim();
-  return { ...located, text: construction, marker };
-}
-
 export async function readLocatedBlock(file: string, id: string): Promise<LocatedBlock | null> {
   const source = await readFile(file, 'utf8');
   const div = locateDiv(source, id);
   if (!div) return null;
   const proofDiv = locateProof(source, id);
-  const statement = div.attrs.classes.includes('definition') ? definitionMarkerBody(source, div) : body(source, div);
   return {
     source,
     div,
     raw: source.slice(div.start, div.end),
-    statement,
-    marker: statement?.marker ?? null,
+    statement: body(source, div),
     proof: proofDiv ? body(source, proofDiv) : null,
     proofDiv
   };
@@ -125,70 +109,23 @@ export async function readLocatedProof(file: string, id: string): Promise<Locate
   return proofDiv ? { source, proofDiv, proof: body(source, proofDiv), raw: source.slice(proofDiv.start, proofDiv.end) } : null;
 }
 
-export function mergeProof(canonical: LocatedBlock | null, candidate: LocatedProof | null): string {
-  if (!canonical?.div || !candidate?.proofDiv) throw new Error('Canonical result and linked proposal proof are required');
-  const proofText = candidate.source.slice(candidate.proofDiv.start, candidate.proofDiv.end).trim();
-  if (canonical.proofDiv) {
-    return `${canonical.source.slice(0, canonical.proofDiv.start)}${proofText}${canonical.source.slice(canonical.proofDiv.end)}`;
-  }
-  const before = canonical.source.slice(0, canonical.div.end).replace(/\s*$/, '');
-  const after = canonical.source.slice(canonical.div.end).replace(/^\s*/, '');
-  return `${before}\n\n${proofText}\n${after ? `\n${after}` : ''}`;
+/**
+ * Set or clear the engine-written `status` attribute on a located div's opening fence, leaving the
+ * body — and therefore every content hash — untouched. Returns the source unchanged when the
+ * attribute is already what we want, so a no-op inspection rewrites nothing.
+ */
+export function setStatusAttribute(source: string, div: LocatedDiv, status: FactStatusValue | null): string {
+  const fence = source.slice(div.start, div.bodyStart);
+  const next = fence.replace(/\{([^}]*)\}/, (_, inner: string) => `{${withStatus(inner, status)}}`);
+  return next === fence ? source : `${source.slice(0, div.start)}${next}${source.slice(div.bodyStart)}`;
 }
 
-export function setProofMarker(source: string, target: string, marker: ControlMarker | null = null): string {
-  if (marker != null && !CONTROL_MARKER_SET.has(marker)) throw new Error(`Invalid proof marker: ${marker}`);
-  const proofDiv = locateProof(source, target);
-  if (!proofDiv) throw new Error(`Linked proof of @${target.replace(/^@/, '')} was not found`);
-  const proofBody = body(source, proofDiv);
-  if (!proofBody) throw new Error(`Linked proof of @${target.replace(/^@/, '')} has no readable body`);
-  const newline = source.includes('\r\n') ? '\r\n' : '\n';
-  const lines = source.slice(proofBody.bodyStart, proofBody.bodyEnd).split(/\r?\n/);
-  const firstContent = lines.findIndex((line) => line.trim() !== '');
-  if (firstContent >= 0 && CONTROL_MARKER_SET.has(lines[firstContent].trim())) lines.splice(firstContent, 1);
-  const content = lines.join(newline).trim();
-  const nextBody = marker
-    ? `${marker}${content ? `${newline}${newline}${content}` : ''}${newline}`
-    : `${content}${content ? newline : ''}`;
-  return `${source.slice(0, proofBody.bodyStart)}${nextBody}${source.slice(proofBody.bodyEnd)}`;
-}
-
-export function setDefinitionMarker(source: string, target: string, marker: ControlMarker | null = null): string {
-  if (marker != null && !CONTROL_MARKER_SET.has(marker)) throw new Error(`Invalid definition marker: ${marker}`);
-  if (marker === 'DISPROVED') throw new Error('DISPROVED applies only to theorem-like linked proofs, not definitions');
-  const id = target.replace(/^@/, '');
-  const div = locateDiv(source, id);
-  if (!div || !div.attrs.classes.includes('definition')) throw new Error(`Definition @${id} was not found`);
-  const definitionBody = body(source, div);
-  if (!definitionBody) throw new Error(`Definition @${id} has no readable body`);
-  const raw = source.slice(definitionBody.bodyStart, definitionBody.bodyEnd);
-  const normalized = raw.replace(/\r\n/g, '\n');
-  const paragraphs = normalized.split(/\n[ \t]*\n/);
-  const nonempty = paragraphs.map((paragraph, index) => ({ paragraph: paragraph.trim(), index }))
-    .filter((entry) => entry.paragraph !== '');
-  const markerParagraphs = nonempty.filter((entry) => CONTROL_MARKER_SET.has(entry.paragraph));
-  const last = nonempty.at(-1);
-  const trailingMarker = last && CONTROL_MARKER_SET.has(last.paragraph) ? last.paragraph : null;
-  if (markerParagraphs.some((entry) => entry.index !== last?.index)) {
-    throw new Error(`Definition @${id} has a reserved marker outside its last nonempty paragraph`);
-  }
-
-  let construction = raw.replace(/[ \t\r\n]+$/, '');
-  if (trailingMarker) {
-    const trailing = new RegExp(`(?:^|\\r?\\n[ \\t]*\\r?\\n)[ \\t]*${trailingMarker}[ \\t]*$`);
-    const match = trailing.exec(construction);
-    if (!match) throw new Error(`Definition @${id} has a malformed trailing marker`);
-    construction = construction.slice(0, match.index).replace(/[ \t\r\n]+$/, '');
-  }
-  const newline = source.includes('\r\n') ? '\r\n' : '\n';
-  const nextBody = marker
-    ? `${construction}${construction.trim() ? `${newline}${newline}` : ''}${marker}${newline}`
-    : `${construction}${construction.trim() ? newline : ''}`;
-  return `${source.slice(0, definitionBody.bodyStart)}${nextBody}${source.slice(definitionBody.bodyEnd)}`;
-}
-
-export function setFactMarker(source: string, target: string, kind: string, marker: ControlMarker | null = null): string {
-  return kind === 'definition'
-    ? setDefinitionMarker(source, target, marker)
-    : setProofMarker(source, target, marker);
+/** Rewrite a fence's attribute contents: drop any existing `status=…` token, then append the new one. */
+function withStatus(inner: string, status: FactStatusValue | null): string {
+  const cleaned = inner
+    .replace(/(^|\s)status=(?:"[^"]*"|'[^']*'|[^\s}]+)/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^\s+|\s+$/g, '');
+  if (!status) return cleaned;
+  return `${cleaned}${cleaned ? ' ' : ''}status="${status}"`;
 }

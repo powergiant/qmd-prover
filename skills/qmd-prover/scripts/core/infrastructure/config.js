@@ -8,7 +8,7 @@ const defaults = {
     goals: { 'id-prefix': 'thm-main-', 'protect-statements': true },
     semantic: { 'wildcard-imports': false },
     tools: { pandoc: '', quarto: '' },
-    verification: { backend: 'none', model: '', effort: 'high', 'fresh-context': true, citations: 'standard', rigor: 'standard', tools: [], executable: '' },
+    verification: { backend: 'none', model: '', effort: 'high', 'fresh-context': true, citations: 'standard', rigor: 'standard', 'rigor-disprove': 'standard', tools: [], executable: '' },
     render: { 'graph-engine': 'builtin', 'output-dir': '.qmd-prover/generated' }
 };
 /**
@@ -228,6 +228,7 @@ function normalizedConfig(value) {
             'fresh-context': booleanSetting(verification['fresh-context'], defaults.verification['fresh-context']),
             citations: enumSetting(verification.citations, STRICTNESS_LEVELS, defaults.verification.citations),
             rigor: enumSetting(verification.rigor, STRICTNESS_LEVELS, defaults.verification.rigor),
+            'rigor-disprove': enumSetting(verification['rigor-disprove'], STRICTNESS_LEVELS, defaults.verification['rigor-disprove']),
             // Kept as authored strings; protocol.ts filters to the known tool names for the contract/prompt.
             tools: Array.isArray(verification.tools) ? asStringArray(verification.tools) : defaults.verification.tools
         },

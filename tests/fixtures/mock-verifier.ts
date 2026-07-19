@@ -15,6 +15,7 @@ process.stdin.on('end', () => {
   const discoveredCounterexample = packet.target.proof.includes('DISCOVER_COUNTEREXAMPLE');
   const emptyDisproof = packet.target.proof.includes('DISCOVER_EMPTY_DISPROOF');
   const wrongRefutationVerdict = packet.target.proof.includes('REFUTATION_CORRECT_VERDICT');
+  const disproofWithGap = packet.target.proof.includes('REFUTE_LOOSE');
   process.stdout.write(JSON.stringify(incorrect ? {
     verdict: 'incorrect', summary: 'The argument contains the test sentinel.',
     critical_errors: ['invalid step'], gaps: [], repair_hints: 'Remove the invalid step.'
@@ -27,6 +28,10 @@ process.stdin.on('end', () => {
   } : wrongRefutationVerdict ? {
     verdict: 'correct', summary: 'A proof verdict cannot confirm refutation mode.',
     critical_errors: [], gaps: [], repair_hints: '', refutation: ''
+  } : disproofWithGap ? {
+    verdict: 'disproved', summary: 'The statement is false, with a routine gap in the refutation.',
+    critical_errors: [], gaps: ['spell out the routine step'], repair_hints: '',
+    refutation: 'The integer 1 is a counterexample that satisfies the hypotheses.'
   } : refutation || discoveredCounterexample ? {
     verdict: 'disproved', summary: 'The exact statement is false.',
     critical_errors: [], gaps: [], repair_hints: '',

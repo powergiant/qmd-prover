@@ -6,8 +6,8 @@
 export const KINDS = ['definition', 'lemma', 'theorem', 'proposition', 'corollary', 'unknown'];
 /** Allowed values for the `--status` filter. */
 export const STATUSES = [
-    'candidate', 'open', 'rejected', 'disproof-candidate', 'revoked', 'missing', 'stale',
-    'verified', 'disproved', 'blocked', 'unverified', 'invalid'
+    'candidate', 'open', 'abandoned', 'disproof-candidate', 'missing',
+    'verified', 'disproved', 'blocked', 'unverified', 'rejected', 'invalid'
 ];
 /** Allowed values for the `--origin` filter. */
 export const ORIGINS = ['fact', 'main-goal', 'unresolved'];

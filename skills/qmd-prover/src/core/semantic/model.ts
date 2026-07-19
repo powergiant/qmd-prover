@@ -4,7 +4,7 @@
  * verdicts ({@link AiCheck}, {@link GlobalVerification}, {@link DisproofEvidence})
  * are overlaid onto results by the inspection layer.
  */
-import type { ControlMarker, ResultKind } from '../shared/core.js';
+import type { ResultKind } from '../shared/core.js';
 import type { AiCheck, DisproofEvidence, GlobalVerification } from '../shared/verdicts.js';
 
 /** Whether a result was authored by the user (a protected goal) or by an agent. */
@@ -42,10 +42,10 @@ export interface ProofRecord {
   proof_hash: string;
   proof_present: boolean;
   proof_text: string;
-  marker?: ControlMarker | null;
-  marker_index?: number | null;
-  markers?: Array<{ marker: ControlMarker; index: number }>;
-  blocks?: unknown[];
+  /** Author flag: this proof is a proposed refutation (`.disproof` class on the proof div). */
+  refutation: boolean;
+  /** Author flag: this proof is detached (`.abandon` class) — kept for memory, not linked or checked. */
+  abandon: boolean;
 }
 
 export interface SemanticResult {
@@ -65,13 +65,14 @@ export interface SemanticResult {
   proof_text: string;
   proof_file?: string;
   proof_line?: number;
-  marker?: ControlMarker | null;
-  marker_valid?: boolean;
+  /** Author flag: the active proof is a proposed refutation (checked in refutation mode). */
+  refutation: boolean;
+  /** Author flag: this fact is detached — kept for memory, skipped by inspection. */
+  abandon: boolean;
   export?: string | null;
   construction_dependencies: string[];
   dependencies: string[];
   reference_checks?: ReferenceCheck[];
-  stale_reasons?: string[];
   disproof?: DisproofEvidence;
   local_verification?: AiCheck;
   global_verification?: GlobalVerification;

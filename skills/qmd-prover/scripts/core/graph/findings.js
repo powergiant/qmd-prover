@@ -16,10 +16,6 @@ function findingSelection(options = {}) {
 }
 export function staleFactIds(snapshot) {
     const ids = new Set();
-    for (const result of snapshot.manifest?.results ?? []) {
-        if (result.status === 'stale' || (result.stale_reasons?.length ?? 0) > 0)
-            ids.add(result.id);
-    }
     const evidenceCodes = new Set(['VERIFIED_RECORD_INVALID', 'VERIFIED_MARKER_MISSING', 'VERIFIED_DEPENDENCY_INVALID']);
     for (const item of snapshot.diagnostics ?? [])
         if (item.id && evidenceCodes.has(item.code))

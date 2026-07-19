@@ -27,23 +27,26 @@ export function bareProject() {
   return mkdtemp(path.join(os.tmpdir(), 'qmd-prover-init-'));
 }
 
-export function proof(id: string, text: string): string {
-  return `::: {.proof of="${id}"}\n${text}\n:::\n`;
+export function proof(id: string, text: string, { disproof = false, abandon = false }: { disproof?: boolean; abandon?: boolean } = {}): string {
+  const classes = `.proof${disproof ? ' .disproof' : ''}${abandon ? ' .abandon' : ''}`;
+  return `::: {${classes} of="${id}"}\n${text}\n:::\n`;
 }
 
 export function result(
   id: string,
   statement: string,
-  { proofText, title = id, exported = false, extra = '' }: {
+  { proofText, title = id, exported = false, extra = '', disproof = false, abandon = false }: {
     proofText?: string;
     title?: string;
     exported?: boolean;
     extra?: string;
+    disproof?: boolean;
+    abandon?: boolean;
   } = {}
 ): string {
   const kind = id.startsWith('lem-') ? 'lemma' : id.startsWith('def-') ? 'definition' : id.startsWith('prp-') ? 'proposition' : id.startsWith('cor-') ? 'corollary' : 'theorem';
   const block = `::: {#${id} .${kind}${id.startsWith('thm-main-') ? ' .goal' : ''} name="${title}" date="2026-07-13"${exported ? ` export="${id}"` : ''}${extra}}\n${statement}\n:::\n`;
-  return proofText == null ? block : `${block}\n${proof(id, proofText)}`;
+  return proofText == null ? block : `${block}\n${proof(id, proofText, { disproof, abandon })}`;
 }
 
 export function document(imports: Array<{ from: string; use: string[] }>, body: string): string {
