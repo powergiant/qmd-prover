@@ -399,34 +399,31 @@ qmd-prover has no worker registry, scheduler, or inter-agent message store.
 
 ## Invocation model
 
-The utilities are dependency-free Node programs shipped inside the skill. The
-skill tells the host which operation to run and how to interpret stable JSON. A
-human may run the same command for debugging.
+The engine is the `qmd-prover` command — a dependency-free Node program installed
+once on the host's `PATH`. The skill tells the host which operation to run and how
+to interpret stable JSON. A human may run the same command for debugging.
 
-There is no separately installed binary. The dispatcher and schema are the
-tool protocol.
+The `qmd-prover` command is the separately installed binary; the skill is only
+documentation. The dispatcher and its stable JSON schema are the tool protocol.
 
 ### Example direct invocation
 
 Inspect one candidate and its dependency closure:
 
 ```bash
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" \
-  inspect fact @thm-main-uniform-index
+qmd-prover inspect fact @thm-main-uniform-index
 ```
 
 Inspect the complete project:
 
 ```bash
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" \
-  inspect project
+qmd-prover inspect project
 ```
 
 Inspect one proof file and its closure:
 
 ```bash
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" \
-  inspect path workspace/main-proof.qmd
+qmd-prover inspect path workspace/main-proof.qmd
 ```
 
 The former per-goal initialization, submission, and revocation commands are

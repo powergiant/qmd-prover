@@ -41,7 +41,7 @@ export async function doctorProject(root = process.cwd()) {
     const dependencies = {
         node: {
             required: true, available: major >= 20, command: process.execPath,
-            purpose: 'Run the qmd-prover dispatcher.',
+            purpose: 'Run the qmd-prover command.',
             ...(major >= 20 ? {} : { remediation: 'Install Node.js 20 or later.' })
         },
         pandoc: {

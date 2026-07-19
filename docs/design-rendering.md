@@ -294,7 +294,7 @@ render does not establish mathematical correctness.
 Prepare qmd-prover observability inputs:
 
 ```bash
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" render
+qmd-prover render
 ```
 
 Render every configured format:

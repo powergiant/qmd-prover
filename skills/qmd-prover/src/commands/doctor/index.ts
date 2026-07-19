@@ -50,7 +50,7 @@ export async function doctorProject(root = process.cwd()): Promise<OperationResu
   const dependencies: Record<string, DependencyStatus> = {
     node: {
       required: true, available: major >= 20, command: process.execPath,
-      purpose: 'Run the qmd-prover dispatcher.',
+      purpose: 'Run the qmd-prover command.',
       ...(major >= 20 ? {} : { remediation: 'Install Node.js 20 or later.' })
     },
     pandoc: {

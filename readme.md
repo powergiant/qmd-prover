@@ -102,8 +102,8 @@ Open Codex or Claude Code in any folder and say:
 
 The assistant follows the recipe in
 [For AI assistants: installing from GitHub](#for-ai-assistants-installing-from-github) below. It
-downloads the project, copies the add-on into your assistant's skills folder, checks your tools, and
-records any file locations it needs.
+downloads the project, installs the `qmd-prover` command on your `PATH`, places the skill in your
+assistant's skills folder, checks your tools, and records any file locations it needs.
 
 If you would rather install it by hand, the add-on has two halves that install separately: the
 `qmd-prover` command (the engine, installed once on your `PATH`) and the skill (the instructions your

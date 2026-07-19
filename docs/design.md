@@ -573,7 +573,7 @@ The user normally asks the host to initialize the current project. The host
 runs:
 
 ```bash
-node "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js" init
+qmd-prover init
 ```
 
 The command inventories policy, QMD, Quarto configuration, qmd-prover state,
