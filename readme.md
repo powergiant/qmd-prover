@@ -105,28 +105,28 @@ The assistant follows the recipe in
 downloads the project, copies the add-on into your assistant's skills folder, checks your tools, and
 records any file locations it needs.
 
-If you would rather install it by hand, download the project and run the installer. It installs into
-one project by default, or for every project if you choose the global option, and it works for either
-assistant:
+If you would rather install it by hand, the add-on has two halves that install separately: the
+`qmd-prover` command (the engine, installed once on your `PATH`) and the skill (the instructions your
+assistant reads, placed per project or globally). Download the project and run both:
 
 ```bash
 git clone https://github.com/powergiant/qmd-prover
 cd qmd-prover
 npm install
 
-# Global — available in every project:
+# 1. Install the engine once — puts the `qmd-prover` command on your PATH:
+npm install -g .                     # (developers: use `npm link` instead, backed by this checkout)
+
+# 2. Place the skill, globally (every project) or per project:
 npm run install:skill:global         # Claude Code → ~/.claude/skills/qmd-prover
 npm run install:skill:codex:global   # Codex       → ~/.codex/skills/qmd-prover
-
-# Per-project — placed inside one project (run from it, or pass --dir):
 tsx tooling/install-skill.ts --local --dir /path/to/project           # Claude Code → <project>/.claude/skills/qmd-prover
 tsx tooling/install-skill.ts --local --codex --dir /path/to/project   # Codex       → <project>/.codex/skills/qmd-prover
 ```
 
-The tool has no external dependencies, so copying the `skills/qmd-prover/` folder into any of those
-skills folders is by itself a complete install. Claude Code finds the add-on and locates its own
-paths. Codex looks in `~/.codex/skills/qmd-prover` by default. If you install it somewhere else, the
-single setting `QMD_PROVER_HOME` points the assistant at it; no other setup is needed.
+The engine needs only Node and Pandoc; the skill is documentation, so the two are versioned and
+installed independently. Run `qmd-prover version` to confirm the engine is on your `PATH`. If your
+assistant reports that `qmd-prover` is not found, the engine step above has not been done yet.
 
 ### 2. Start a project and state your first goal
 
@@ -273,44 +273,40 @@ change it rather than editing it yourself.
 > skip the environment checks, and never use a mutation flag or change project policy without explicit
 > user approval.
 
-1. **Get the runtime.** Clone or download `https://github.com/powergiant/qmd-prover`. The installable
-   runtime is the self-contained `skills/qmd-prover/` folder; it has no package dependencies.
+1. **Get the source.** Clone or download `https://github.com/powergiant/qmd-prover`. It has two
+   halves: the `qmd-prover` command (the engine) and the `skills/qmd-prover/` documentation folder.
 
-2. **Install it into the host assistant's skills directory.** Per-project keeps the runtime inside the
-   project; global makes it available everywhere.
+2. **Install the engine once, on the host's `PATH`.** Confirm Node 20+ first; `npm install -g .`
+   builds and installs the `qmd-prover` command.
 
    ```bash
    git clone https://github.com/powergiant/qmd-prover
-
-   # Per-project (recommended when working inside one project) — Claude Code:
-   mkdir -p "$PWD/.claude/skills"
-   cp -R qmd-prover/skills/qmd-prover "$PWD/.claude/skills/qmd-prover"      # use .codex for Codex
-   #   Equivalent: tsx qmd-prover/tooling/install-skill.ts --local [--codex] --dir "$PWD"
-
-   # Global — Codex (default ~/.codex; honors $CODEX_HOME):
-   mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-   cp -R qmd-prover/skills/qmd-prover "${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover"
-   #   Claude Code global → "$HOME/.claude/skills/qmd-prover".
+   cd qmd-prover
+   node --version        # must be >= 20
+   npm install
+   npm install -g .      # installs the `qmd-prover` command (developers: `npm link` instead)
+   qmd-prover version    # confirm it is on PATH; prints tool/schema/protocol/contract versions
    ```
 
-   Under Claude Code the skill is discovered automatically and resolves its own dispatcher. Under
-   Codex, keep the default `~/.codex/skills/qmd-prover`, or set `QMD_PROVER_HOME` to wherever you
-   installed it.
-
-3. **Confirm Node 20+**, then point `QMD_PROVER` at the dispatcher you just installed:
+3. **Install the skill (documentation) into the host assistant's skills directory.** Per-project
+   keeps it inside the project; global makes it available everywhere.
 
    ```bash
-   node --version   # must be >= 20
-   # QMD_PROVER_HOME is the skill directory you installed (any host/scope); e.g. per-project
-   # Claude Code: QMD_PROVER_HOME="$PWD/.claude/skills/qmd-prover"
-   QMD_PROVER="${QMD_PROVER_HOME:-$HOME/.codex/skills/qmd-prover}/scripts/qmd-prover.js"
+   # Per-project (recommended when working inside one project) — Claude Code (use --codex for Codex):
+   tsx qmd-prover/tooling/install-skill.ts --local --dir "$PWD"
+
+   # Global — Claude Code → ~/.claude/skills/qmd-prover, Codex → ~/.codex/skills/qmd-prover:
+   ( cd qmd-prover && npm run install:skill:global )        # add :codex for Codex
    ```
+
+   The skill is discovered automatically by the host; it carries no executable, so it relies on the
+   `qmd-prover` command from step 2 being on the `PATH`.
 
 4. **Check that Pandoc and Quarto are installed, and set up their paths.** Run `doctor`; it reports
    Node, Pandoc, the optional verifier, and Quarto, plus the exact path it resolved for each:
 
    ```bash
-   node "$QMD_PROVER" doctor --print
+   qmd-prover doctor --print
    ```
 
    - **Pandoc is required.** If `doctor` reports it unavailable, locate or install it. It ships
@@ -323,7 +319,7 @@ change it rather than editing it yourself.
 5. **Run `init`** from the project root:
 
    ```bash
-   node "$QMD_PROVER" init
+   qmd-prover init
    ```
 
    Read the returned inventory. If the status is `intent-required` (existing `AGENTS.md`, QMD, or
@@ -336,7 +332,7 @@ change it rather than editing it yourself.
    `.qmd-prover/config.yml` (with `backend: none` defaults) and a `.gitignore`:
 
    ```bash
-   node "$QMD_PROVER" inspect project
+   qmd-prover inspect project
    ```
 
    Open `.qmd-prover/config.yml` and confirm it. Set `tools.pandoc` / `tools.quarto` to the absolute
@@ -374,13 +370,17 @@ change it rather than editing it yourself.
 ## Project layout
 
 ```text
-skills/qmd-prover/       the installable add-on (SKILL.md, references, runtime, dispatcher)
-  scripts/qmd-prover.js  the dependency-free Node dispatcher
+skills/qmd-prover/       the add-on
+  SKILL.md, references/  the skill: instructions the assistant reads (installed as docs)
+  src/, scripts/         the engine: TypeScript source and its compiled `qmd-prover` command
 tests/                   compiler, verification, concurrency, and rendering tests
 tooling/                 development and installation tools
 docs/                    maintainer design and architecture docs
 examples/                a worked example project
 ```
+
+The `bin` in `package.json` maps the `qmd-prover` command to `skills/qmd-prover/scripts/qmd-prover.js`,
+so `npm install -g .` (or `npm link` for development) puts it on the `PATH`.
 
 ## Development
 
@@ -390,9 +390,10 @@ npm run typecheck
 npm test        # AST-producing Pandoc adapter + mock verifiers; no real Pandoc or credentials needed
 ```
 
-`npm run install:skill` (and its `:global` / `:codex` variants) copies `skills/qmd-prover/` into the
-chosen assistant's skills directory via `tsx tooling/install-skill.ts`; the source checkout stays the
-source of truth.
+`npm install -g .` (or `npm link`) installs the `qmd-prover` engine on the `PATH`. `npm run
+install:skill` (and its `:global` / `:codex` variants) copies the docs-only skill into the chosen
+assistant's skills directory via `tsx tooling/install-skill.ts`; the source checkout stays the source
+of truth.
 
 ## License
 

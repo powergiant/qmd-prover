@@ -234,6 +234,11 @@ function parseRender(rest) {
 export function parseCommand(args) {
     if (args.length === 0)
         return { kind: 'usage' };
+    if (args[0] === 'version' || args[0] === '--version' || args[0] === '-v') {
+        if (args.length > 1)
+            throw new Error('version accepts no arguments');
+        return { kind: 'version' };
+    }
     const help = parseHelp(args);
     if (help !== null)
         return help;

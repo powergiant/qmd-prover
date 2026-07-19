@@ -9,6 +9,7 @@ import { checkStaleness } from '../commands/check/index.js';
 import { listVerifications, showVerification } from '../commands/verification/index.js';
 import { printReport } from './output/report.js';
 import { leanView } from './output/lean.js';
+import { collectCompatibilityWarnings, engineVersions } from '../core/infrastructure/compatibility.js';
 import type { LeanViewOptions } from './output/lean.js';
 import type { OperationResult, RuntimeOptions } from '../core/shared/types.js';
 
@@ -26,6 +27,18 @@ function emit(value: OperationResult, print: boolean, view: LeanViewOptions = {}
   if (value.ok === false) process.exitCode = 2;
 }
 
+// Commands that read a project's persisted state. Before they run, surface any
+// version drift between this engine and that state as a soft stderr warning — the
+// gate warns, it never refuses. `doctor` reports the same information in its JSON
+// instead, and `init` owns the contract, so both are handled separately.
+const PROJECT_COMMANDS: ReadonlySet<string> = new Set(['render', 'inspect', 'dependency', 'check', 'verification']);
+
+async function warnCompatibility(root: string): Promise<void> {
+  for (const warning of await collectCompatibilityWarnings(root)) {
+    process.stderr.write(`qmd-prover: warning: ${warning.message}\n`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Dispatch. Pattern-match the parsed command and run it, rebuilding each
 // operation's option bag from the command's explicit fields and merging the
@@ -38,6 +51,7 @@ export async function main(
 ): Promise<void> {
   const command = parseCommand(args);
   const options: RuntimeOptions = pandoc ? { pandoc } : {};
+  if (PROJECT_COMMANDS.has(command.kind)) await warnCompatibility(root);
   switch (command.kind) {
     case 'usage':
       process.stdout.write(`${rootUsage}\n`);
@@ -45,6 +59,17 @@ export async function main(
     case 'help':
       process.stdout.write(`${renderHelp(command.of)}\n`);
       return;
+    case 'version': {
+      const versions = await engineVersions();
+      process.stdout.write(`${JSON.stringify({
+        operation: 'version',
+        tool: versions.tool,
+        schema_version: versions.schema,
+        verifier_protocol_version: versions.verifier_protocol,
+        contract_version: versions.contract
+      }, null, 2)}\n`);
+      return;
+    }
     case 'doctor':
       emit(await doctorProject(root), command.print);
       return;

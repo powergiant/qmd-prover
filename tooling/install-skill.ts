@@ -1,6 +1,11 @@
 #!/usr/bin/env tsx
 
-// Install the self-contained qmd-prover skill into a host agent's skills directory.
+// Install the docs-only qmd-prover skill into a host agent's skills directory.
+//
+// The executable is a separate `qmd-prover` command installed on the host's PATH
+// (`npm install -g .` or `npm link`); this copies only the instructions the agent
+// reads (SKILL.md, references/, agents/) and deliberately omits the src/ and
+// scripts/ engine so the two halves are versioned and installed independently.
 //
 // Usage: install-skill [--local|--global] [--codex|--claude] [--dir <project>]
 //   --local   (default) install into a project, under <project>/.claude or <project>/.codex
@@ -54,13 +59,20 @@ if (scope === 'global') {
 }
 const destination = path.join(base, 'skills', 'qmd-prover');
 
+// The engine (src/ and its compiled scripts/) ships as the separate `qmd-prover`
+// command, not inside the skill; copy only the agent-facing documentation.
+const engineDirs = new Set([
+  path.join(source, 'src'),
+  path.join(source, 'scripts')
+]);
+
 await mkdir(path.dirname(destination), { recursive: true });
 await rm(destination, { recursive: true, force: true });
-await cp(source, destination, { recursive: true });
+await cp(source, destination, {
+  recursive: true,
+  filter: (from) => !engineDirs.has(path.resolve(from))
+});
 
 process.stdout.write(`${destination}\n`);
-if (host === 'claude') {
-  process.stderr.write(`Installed for Claude Code (${scope}). It is discovered automatically; the skill resolves its own dispatcher.\n`);
-} else {
-  process.stderr.write(`Installed for Codex (${scope}). Set QMD_PROVER_HOME="${destination}" if it is not on the default path.\n`);
-}
+process.stderr.write(`Installed the qmd-prover skill (docs only) for ${host === 'claude' ? 'Claude Code' : 'Codex'} (${scope}).\n`);
+process.stderr.write('Ensure the `qmd-prover` command is on PATH (npm install -g . or npm link), then run `qmd-prover version` to confirm.\n');

@@ -2,18 +2,11 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { readExternalPolicy } from '../../core/infrastructure/external.js';
 import { atomicWrite, exists, relativePosix, withWriteLock } from '../../core/infrastructure/files.js';
+import { readCanonicalContract } from '../../core/infrastructure/contract.js';
 import { SCHEMA_VERSION } from '../../core/shared/core.js';
 const START = '<!-- qmd-prover-contract:start version=';
 const END = '<!-- qmd-prover-contract:end -->';
 const BLOCK = /<!-- qmd-prover-contract:start version=(\d+) -->[\s\S]*?<!-- qmd-prover-contract:end -->/g;
-async function canonicalContract() {
-    const file = new URL('../../../references/AGENTS.md', import.meta.url);
-    const source = await readFile(file, 'utf8');
-    const matches = [...source.matchAll(BLOCK)];
-    if (matches.length !== 1)
-        throw new Error('Canonical qmd-prover contract must contain exactly one managed block');
-    return { block: matches[0][0], version: Number(matches[0][1]) };
-}
 function result(root, version, status, extra = {}) {
     return {
         schema_version: SCHEMA_VERSION,
@@ -67,7 +60,7 @@ export async function initializeProject(root, { adoptExisting = false, appendCon
     if (requestedMutations > 1) {
         throw new Error('init accepts only one of --adopt-existing, --append-contract, or --sync-contract');
     }
-    const canonical = await canonicalContract();
+    const canonical = await readCanonicalContract();
     const policyFile = path.join(root, 'AGENTS.md');
     const existing = await inspectExistingProject(root);
     const currentPolicy = existing.agents_md ? await readFile(policyFile, 'utf8') : '';

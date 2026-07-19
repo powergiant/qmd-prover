@@ -1,6 +1,6 @@
 # Mathematical project instructions
 
-<!-- qmd-prover-contract:start version=21 -->
+<!-- qmd-prover-contract:start version=22 -->
 
 ## Contents
 
@@ -13,11 +13,13 @@
 
 ## Project setup
 
-The user normally adds the `qmd-prover` skill and asks the agent in natural language to initialize the current project. Run the bundled dispatcher through `QMD_PROVER_HOME` — the qmd-prover skill directory (Claude Code resolves it from the active skill; Codex defaults to `~/.codex/skills/qmd-prover`, or a `.codex/skills/qmd-prover` in-project install). From the project root, run:
+The user normally adds the `qmd-prover` skill and asks the agent in natural language to initialize the current project. The engine is the `qmd-prover` command, installed once on the host's `PATH`; the skill supplies these instructions. Run it from the project root:
 
 ```bash
-node "${QMD_PROVER_HOME:-$HOME/.codex/skills/qmd-prover}/scripts/qmd-prover.js" init
+qmd-prover init
 ```
+
+If the command is not found, the tool is not installed — install it as described in the skill's `SKILL.md` before continuing.
 
 The command reports any existing `AGENTS.md`, QMD sources, Quarto configuration, `.qmd-prover` state, and external-basis mode. If it returns `intent-required`, summarize what exists and ask whether the user wants to adopt those files in place, inspect them first, or leave them unchanged. Run `--adopt-existing` only after the user chooses adoption.
 
@@ -121,9 +123,9 @@ Any file in any folder of the project is part of the same unified mathematics; f
 After each coherent batch of semantic-QMD changes, run the narrowest useful inspection:
 
 ```bash
-node "${QMD_PROVER_HOME:-$HOME/.codex/skills/qmd-prover}/scripts/qmd-prover.js" inspect fact @ID
-node "${QMD_PROVER_HOME:-$HOME/.codex/skills/qmd-prover}/scripts/qmd-prover.js" inspect path PATH
-node "${QMD_PROVER_HOME:-$HOME/.codex/skills/qmd-prover}/scripts/qmd-prover.js" inspect project
+qmd-prover inspect fact @ID
+qmd-prover inspect path PATH
+qmd-prover inspect project
 ```
 
 Fact and path inspection select the facts needed for the requested global result: the selected facts and their transitive local dependency closure. Every selected fact receives an independent local check when its exact target, proof, and direct dependency statements can be materialized. Reverse dependencies and unrelated facts are not checked. A full project inspection checks every fact.

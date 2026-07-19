@@ -6,16 +6,20 @@
   "bin": {
     "qmd-prover": "skills/qmd-prover/scripts/qmd-prover.js"
   },
+  "files": [
+    "skills/qmd-prover/scripts",
+    "skills/qmd-prover/references"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
-    "build:test-fixtures": "tsc --project tsconfig.fixtures.json",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "npm run build && npm run build:test-fixtures && node --import tsx --test tests/*.test.ts",
-    "inspect": "node skills/qmd-prover/scripts/qmd-prover.js inspect project",
-    "install:skill": "npm run build && tsx tooling/install-skill.ts --local --claude",
-    "install:skill:global": "npm run build && tsx tooling/install-skill.ts --global --claude",
-    "install:skill:codex": "npm run build && tsx tooling/install-skill.ts --local --codex",
-    "install:skill:codex:global": "npm run build && tsx tooling/install-skill.ts --global --codex"
+    "test": "npm run build && tsc --project tsconfig.fixtures.json && node --import tsx --test tests/*.test.ts",
+    "prepare": "npm run build",
+    "install:tool": "npm install --global .",
+    "install:skill": "tsx tooling/install-skill.ts --local --claude",
+    "install:skill:global": "tsx tooling/install-skill.ts --global --claude",
+    "install:skill:codex": "tsx tooling/install-skill.ts --local --codex",
+    "install:skill:codex:global": "tsx tooling/install-skill.ts --global --codex"
   },
   "engines": {
     "node": ">=20"

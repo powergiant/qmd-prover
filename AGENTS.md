@@ -1,6 +1,6 @@
 # qmd-prover repository instructions
 
-This repository implements qmd-prover. Keep the installable skill self-contained under `skills/qmd-prover/`, keep runtime code dependency-free, use Pandoc JSON as the semantic parser, and run `npm test` after changes.
+This repository implements qmd-prover. It ships as two halves under `skills/qmd-prover/`: the engine (`src/` → compiled `scripts/`, exposed as the `qmd-prover` command via `package.json` `bin`) and the docs-only skill (`SKILL.md`, `references/`, `agents/`). Keep the engine dependency-free, keep the skill free of executable code, use Pandoc JSON as the semantic parser, and run `npm test` after changes.
 
 - Keep agent-facing workflow instructions concise in `skills/qmd-prover/SKILL.md`.
 - Keep the canonical mathematical-project contract in `skills/qmd-prover/references/AGENTS.md`; do not duplicate it in this repository instruction file.

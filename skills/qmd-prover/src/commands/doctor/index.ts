@@ -2,6 +2,7 @@ import path from 'node:path';
 import { ConfigError, loadConfig, pandocCommand, quartoCommand } from '../../core/infrastructure/config.js';
 import { executableAvailable } from '../../core/infrastructure/executables.js';
 import { verifierProbe } from '../../core/verification/protocol.js';
+import { collectCompatibilityWarnings, engineVersions } from '../../core/infrastructure/compatibility.js';
 import { SCHEMA_VERSION } from '../../core/shared/core.js';
 import type { OperationResult } from '../../core/shared/types.js';
 
@@ -42,6 +43,10 @@ export async function doctorProject(root = process.cwd()): Promise<OperationResu
     verifier ? executableAvailable(verifier.command) : Promise.resolve(false)
   ]);
   const major = Number(process.versions.node.split('.')[0]);
+  const [versions, compatibility] = await Promise.all([
+    engineVersions(),
+    collectCompatibilityWarnings(root)
+  ]);
   const dependencies: Record<string, DependencyStatus> = {
     node: {
       required: true, available: major >= 20, command: process.execPath,
@@ -70,7 +75,10 @@ export async function doctorProject(root = process.cwd()): Promise<OperationResu
     operation: 'doctor',
     ok: dependencies.node.available && dependencies.pandoc.available,
     root,
+    versions,
     dependencies,
+    // Version drift never fails doctor; it is reported for the agent to act on.
+    compatibility,
     next_actions: Object.entries(dependencies)
       .filter(([, dependency]) => !dependency.available && dependency.remediation)
       .map(([name, dependency]) => ({ dependency: name, remediation: dependency.remediation }))

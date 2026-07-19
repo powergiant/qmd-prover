@@ -2,8 +2,8 @@
 
 The maintainable runtime lives in `skills/qmd-prover/src/`. TypeScript is the
 source of truth; `npm run build` emits the dependency-free JavaScript runtime
-under `skills/qmd-prover/scripts/` so the installed skill remains
-self-contained.
+under `skills/qmd-prover/scripts/`, which `package.json` `bin` installs as the
+`qmd-prover` command. The skill itself carries only documentation.
 
 Production semantic parsing always consumes Pandoc JSON. Tests may substitute
 an AST-producing Pandoc adapter, but neither production nor tests should grow a

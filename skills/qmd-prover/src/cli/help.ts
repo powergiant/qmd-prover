@@ -36,7 +36,7 @@ function node(path: string): HelpNode | undefined {
     case '':
       return {
         usage: ['qmd-prover <command> [arguments]', 'qmd-prover help [COMMAND...]'],
-        children: ['doctor', 'init', 'inspect', 'dependency', 'check', 'verification', 'render'],
+        children: ['doctor', 'version', 'init', 'inspect', 'dependency', 'check', 'verification', 'render'],
         sections: {
           notes: [
             'Requirements: Node.js 20+ and Pandoc (via PATH, tools.pandoc, or QMD_PROVER_PANDOC). A verifier (verification.backend claude|codex) and Quarto are optional.',
@@ -51,7 +51,12 @@ function node(path: string): HelpNode | undefined {
     case 'doctor':
       return {
         usage: ['qmd-prover doctor [--print]'],
-        summary: 'Check Node, Pandoc, verifier, and Quarto availability without changing the project.'
+        summary: 'Check Node, Pandoc, verifier, and Quarto availability, plus engine/project version compatibility, without changing the project.'
+      };
+    case 'version':
+      return {
+        usage: ['qmd-prover version'],
+        summary: 'Print the installed tool version and the schema, verifier-protocol, and contract versions it implements.'
       };
     case 'init':
       return {

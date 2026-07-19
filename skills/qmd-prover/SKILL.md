@@ -5,34 +5,48 @@ description: Initialize and inspect semantic-QMD mathematical projects; formulat
 
 # qmd-prover
 
-## Locating the dispatcher
+## Running the tool
 
-Every command here runs the same dependency-free Node dispatcher bundled with this skill. Resolve
-its path once and reuse it. `QMD_PROVER_HOME` is the unified override — set it to the skill directory
-for any host or install scope; otherwise fall back to your host:
+Every command here runs the `qmd-prover` engine, installed once on the host's `PATH`. This skill
+supplies the instructions; the engine is a separate command. Invoke it directly:
 
 ```bash
-# Unified override (any host, global or in-project install):
-QMD_PROVER="$QMD_PROVER_HOME/scripts/qmd-prover.js"                       # when QMD_PROVER_HOME is set
-
-# Otherwise, by host:
-#   Claude Code — the active skill directory (global ~/.claude or in-project ./.claude):
-QMD_PROVER="${CLAUDE_SKILL_DIR}/scripts/qmd-prover.js"
-#   Codex, global install:
-QMD_PROVER="$HOME/.codex/skills/qmd-prover/scripts/qmd-prover.js"
-#   Codex, in-project install:
-QMD_PROVER=".codex/skills/qmd-prover/scripts/qmd-prover.js"
+qmd-prover <command> [arguments]
 ```
 
-Use this resolved `$QMD_PROVER` path for every dispatcher call below, including the commands the
-project's `AGENTS.md` contract shows with a `${QMD_PROVER_HOME:-...}` path.
+If `qmd-prover` is not found, it is not installed yet. Install it as a tool once per host, then it is
+available in every project:
+
+```bash
+# From a checkout of github.com/powergiant/qmd-prover:
+npm install -g .        # users — installs the `qmd-prover` command globally
+npm link                # developers — same command, backed by your working checkout
+```
+
+Run `qmd-prover version` to confirm the install and see the tool, schema, verifier-protocol, and
+contract versions it implements. `qmd-prover doctor` additionally reports any version drift between
+the engine and the current project (see "Version compatibility" below).
+
+## Version compatibility
+
+The engine and each project carry versions independently: the installed `qmd-prover` implements a
+schema, verifier-protocol, and contract version, while a project's `.qmd-prover/` state and its
+`AGENTS.md` contract block were written by whatever engine last touched them. When they differ, the
+tool prints a `qmd-prover: warning:` line to stderr before running a project command, and
+`qmd-prover doctor` lists the same under a `compatibility` array. These are advisory — the command
+still runs; the tool never refuses on a version mismatch. Relay a warning to the user and resolve it:
+
+- **schema** — a stale snapshot; it is ignored and rebuilt on the next `qmd-prover inspect project`.
+- **verifier-protocol** — affected cached proof decisions are re-verified on the next inspection.
+- **contract** — the project's `AGENTS.md` managed block predates the engine's; review the difference
+  and, only with user approval, run `qmd-prover init --sync-contract` (see "Project setup").
 
 ## Project setup
 
 When the user asks to initialize qmd-prover in the current project, run this from the project root:
 
 ```bash
-node "$QMD_PROVER" init
+qmd-prover init
 ```
 
 Read the returned `existing` inventory. If the status is `intent-required`, summarize the detected `AGENTS.md`, QMD files, Quarto configuration, `.qmd-prover` state, and external-policy mode, then ask whether the user wants to adopt the files in place, inspect them first, or leave them unchanged. Run `init --adopt-existing` only after the user chooses adoption.
@@ -51,10 +65,10 @@ Before drafting mathematics, changing qmd-prover state, or relying on a project 
 4. If policy is missing, different, malformed, or conflicting, stop before mutation and ask whether the user wants to create or synchronize it. Never change project policy without approval.
 5. Reuse a successful comparison only for the same unchanged agent/project context: the project, branch or worktree, contract, and external policy must all remain current. Every independent agent performs its own preflight.
 
-Run the dispatcher from the project root:
+Run the tool from the project root:
 
 ```bash
-node "$QMD_PROVER" <subcommand> [arguments]
+qmd-prover <subcommand> [arguments]
 ```
 
 Requirements: Node.js 20 or later and Pandoc on `PATH` (or `QMD_PROVER_PANDOC`, or `tools.pandoc` in config). Decide the verifier up front: to have proofs independently checked, set `verification.backend` to `claude` or `codex` before your first inspection (see "Environment and verifier setup" below) — with `backend: none` every proof stays unverified. Quarto is optional unless final rendered output is requested. Run `doctor` first when availability is uncertain, and see "Environment and verifier setup" below to configure any missing tool. JSON is the default output; commands marked below accept `--print` for a concise human report. Semantic IDs accept either `@ID` or bare `ID`, and output normalizes them as `@ID`.
@@ -138,9 +152,9 @@ Do not impose a fixed proof loop. A request may concern one theorem, a family of
 After each coherent semantic-QMD edit, use the narrowest relevant operation:
 
 ```bash
-node "$QMD_PROVER" inspect fact @ID
-node "$QMD_PROVER" inspect path PATH
-node "$QMD_PROVER" inspect project
+qmd-prover inspect fact @ID
+qmd-prover inspect path PATH
+qmd-prover inspect project
 ```
 
 Fact and path inspection check only selected facts and their transitive local dependencies. Use `inspect project` for deliberate whole-project audits: it compiles every project QMD into one graph and checks every fact.

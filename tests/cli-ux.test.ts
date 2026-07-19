@@ -33,6 +33,43 @@ test('CLI failures are stable JSON without stack traces and validate options bef
   assert.match(JSON.parse(badKind.stdout).diagnostics[0].message, /--kind must be one of/);
 });
 
+test('version reports engine versions and the compatibility gate warns without refusing on drift', async () => {
+  const root = await project();
+
+  // `version` is a project-independent identity command.
+  const version = await run(root, ['version']);
+  assert.equal(version.error, null);
+  const engine = JSON.parse(version.stdout);
+  assert.equal(engine.operation, 'version');
+  assert.equal(typeof engine.tool, 'string');
+  for (const field of ['schema_version', 'verifier_protocol_version', 'contract_version']) {
+    assert.equal(typeof engine[field], 'number', `${field} is a number`);
+  }
+
+  // A project whose persisted state and contract were written by a different
+  // engine: drift on all three axes.
+  await writeFile(path.join(root, 'AGENTS.md'),
+    'Local policy\n\n<!-- qmd-prover-contract:start version=1 -->\nold\n<!-- qmd-prover-contract:end -->\n');
+  await mkdir(path.join(root, '.qmd-prover', 'graphs'), { recursive: true });
+  await writeFile(path.join(root, '.qmd-prover', 'graphs', 'latest.json'),
+    JSON.stringify({ schema_version: engine.schema_version - 1, snapshot_id: 'x', file: '.qmd-prover/graphs/x.json' }));
+  await mkdir(path.join(root, '.qmd-prover', 'verification', 'checks'), { recursive: true });
+  await writeFile(path.join(root, '.qmd-prover', 'verification', 'checks', 'a.json'),
+    JSON.stringify({ checker_contract: { protocol: { name: 'qmd-prover-verify', version: engine.verifier_protocol_version - 1 } } }));
+
+  // doctor surfaces the drift as data and never fails on it.
+  const doctor = await run(root, ['doctor'], { ...process.env, PATH: path.dirname(process.execPath), QMD_PROVER_PANDOC: fakePandoc });
+  const kinds = JSON.parse(doctor.stdout).compatibility.map((warning: { kind: string }) => warning.kind).sort();
+  assert.deepEqual(kinds, ['contract', 'schema', 'verifier-protocol']);
+
+  // A project command still runs (exit 2 is the domain result, not a refusal) and
+  // prints the same drift as stderr warnings.
+  const inspected = await run(root, ['dependency', 'cycles']);
+  assert.match(inspected.stderr, /qmd-prover: warning: Project snapshot uses data schema v/);
+  assert.match(inspected.stderr, /qmd-prover: warning: Project AGENTS\.md carries contract v1/);
+  assert.match(inspected.stderr, /qmd-prover: warning: Cached verifier decisions use protocol v/);
+});
+
 test('doctor and verification list make prerequisites and submission IDs discoverable', async () => {
   const root = await project();
   const env = { ...process.env, PATH: path.dirname(process.execPath), QMD_PROVER_PANDOC: 'missing-pandoc-for-doctor-test' };

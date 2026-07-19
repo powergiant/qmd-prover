@@ -1,6 +1,6 @@
 # Dispatcher and installation reference
 
-qmd-prover is a self-contained Codex skill with a dependency-free Node dispatcher for mathematical proof workflows in Quarto Markdown. Every QMD file in the project is semantic mathematics compiled into one unified dependency graph. Exact verifier decisions, dependency graphs, and generated Quarto inputs live under `.qmd-prover/`, alongside the authored inputs it version-controls: `config.yml` (every setting is documented in [the configuration reference](config.md)), the `.external.qmd` basis policy, and the `statement-locks.json` protection baseline. On first compile qmd-prover scaffolds a `.qmd-prover/.gitignore` that keeps those three files and ignores everything it regenerates (snapshots, manifest, diagnostics, caches, generated render output); it is written once and never overwritten.
+qmd-prover is a command-line tool (installed on the host's `PATH`) with a dependency-free Node dispatcher for mathematical proof workflows in Quarto Markdown. Every QMD file in the project is semantic mathematics compiled into one unified dependency graph. Exact verifier decisions, dependency graphs, and generated Quarto inputs live under `.qmd-prover/`, alongside the authored inputs it version-controls: `config.yml` (every setting is documented in [the configuration reference](config.md)), the `.external.qmd` basis policy, and the `statement-locks.json` protection baseline. On first compile qmd-prover scaffolds a `.qmd-prover/.gitignore` that keeps those three files and ignores everything it regenerates (snapshots, manifest, diagnostics, caches, generated render output); it is written once and never overwritten.
 
 ## Requirements
 
@@ -33,34 +33,34 @@ The protocol accepts `correct`, `incorrect`, or `disproved`. A locally accepted 
 
 ## Commands
 
-Run the dispatcher from the mathematical project root. `QMD_PROVER_HOME` is the unified path to the skill directory (any host, global or in-project); Claude Code resolves it automatically via `${CLAUDE_SKILL_DIR}` in `SKILL.md`, and Codex defaults to `~/.codex/skills/qmd-prover`:
+Run the `qmd-prover` command from the mathematical project root. It is installed once on the host's `PATH` (see "Install the tool" below); the skill supplies these instructions. Run `qmd-prover version` to see the tool, schema, verifier-protocol, and contract versions it implements.
 
 ```bash
-QMD_PROVER="${QMD_PROVER_HOME:-$HOME/.codex/skills/qmd-prover}/scripts/qmd-prover.js"
-node "$QMD_PROVER" doctor [--print]
-node "$QMD_PROVER" init [--adopt-existing|--append-contract|--sync-contract]
-node "$QMD_PROVER" inspect project [--print] [--graph]
-node "$QMD_PROVER" inspect fact @ID [--print] [--graph]
-node "$QMD_PROVER" inspect path FILE_OR_FOLDER [--print] [--graph]
-node "$QMD_PROVER" dependency dependencies @ID [--print]
-node "$QMD_PROVER" dependency reverse dependencies @ID [--print]
-node "$QMD_PROVER" dependency path @FROM @TO [--print]
-node "$QMD_PROVER" dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]
-node "$QMD_PROVER" dependency cycles [--print]
-node "$QMD_PROVER" dependency impact @ID [--print]
-node "$QMD_PROVER" dependency frontier @ID [--print]
-node "$QMD_PROVER" dependency findings [--print]
-node "$QMD_PROVER" dependency unused imports [--print]
-node "$QMD_PROVER" dependency unused exports [--print]
-node "$QMD_PROVER" dependency isolated [--print]
-node "$QMD_PROVER" dependency unreachable [--print]
-node "$QMD_PROVER" dependency ready for ai [--print]
-node "$QMD_PROVER" dependency reused [--limit N] [--print]
-node "$QMD_PROVER" dependency search QUERY [filters] [--print]
-node "$QMD_PROVER" check staleness [--print]
-node "$QMD_PROVER" verification list
-node "$QMD_PROVER" verification show SUBMISSION_ID
-node "$QMD_PROVER" render [--allow-errors]
+qmd-prover version
+qmd-prover doctor [--print]
+qmd-prover init [--adopt-existing|--append-contract|--sync-contract]
+qmd-prover inspect project [--print] [--graph]
+qmd-prover inspect fact @ID [--print] [--graph]
+qmd-prover inspect path FILE_OR_FOLDER [--print] [--graph]
+qmd-prover dependency dependencies @ID [--print]
+qmd-prover dependency reverse dependencies @ID [--print]
+qmd-prover dependency path @FROM @TO [--print]
+qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]
+qmd-prover dependency cycles [--print]
+qmd-prover dependency impact @ID [--print]
+qmd-prover dependency frontier @ID [--print]
+qmd-prover dependency findings [--print]
+qmd-prover dependency unused imports [--print]
+qmd-prover dependency unused exports [--print]
+qmd-prover dependency isolated [--print]
+qmd-prover dependency unreachable [--print]
+qmd-prover dependency ready for ai [--print]
+qmd-prover dependency reused [--limit N] [--print]
+qmd-prover dependency search QUERY [filters] [--print]
+qmd-prover check staleness [--print]
+qmd-prover verification list
+qmd-prover verification show SUBMISSION_ID
+qmd-prover render [--allow-errors]
 ```
 
 Run `qmd-prover help`, append `help`, `--help`, or `-h` to a command group or leaf command, or use `qmd-prover help COMMAND...` for exact usage.
@@ -164,9 +164,18 @@ by (2). Thus it is a counterexample to the universal conclusion.
 
 `DISPROVED` must be the first nonempty proof paragraph and cannot be used on a definition. A successful local check records conditional disproof evidence. It becomes `disproved` only after global composition verifies every dependency; otherwise the node is blocked. A failed local check records a rejected global state. The verifier never writes the marker or edits QMD, and it may return a disproved outcome for an ordinary candidate when it independently finds a counterexample.
 
-## Install the skill from a source checkout
+## Install the tool and skill from a source checkout
 
-Two scopes — a per-project install (the default) or a global one — for either host:
+The engine and the skill install separately. Install the engine once per host as a `qmd-prover` command on `PATH`, then place the docs-only skill per project (default) or globally.
+
+Install the engine (from a checkout of the repository):
+
+```bash
+npm install -g .   # users — builds and installs the `qmd-prover` command globally
+npm link           # developers — the same command, backed by your working checkout (rebuild with `npm run build`)
+```
+
+Place the skill — two scopes (per-project default or global), for either host:
 
 ```bash
 npm run install:skill                # Claude Code, in-project → ./.claude/skills/qmd-prover  (default)
@@ -175,9 +184,7 @@ npm run install:skill:codex          # Codex, in-project       → ./.codex/skil
 npm run install:skill:codex:global   # Codex, global           → ${CODEX_HOME:-~/.codex}/skills/qmd-prover
 ```
 
-Each command copies the self-contained `skills/qmd-prover/` folder into the chosen skills directory; the source checkout remains the source of truth. The underlying script is `tsx tooling/install-skill.ts [--local|--global] [--codex|--claude] [--dir <project>]` (default `--local --claude`); a per-project install lands under the current directory unless `--dir <project>` names another.
-
-The dispatcher is then resolved through `QMD_PROVER_HOME` — the unified override set to the skill directory — or, when it is unset, per host: Claude Code uses the active skill directory (`${CLAUDE_SKILL_DIR}` in `SKILL.md`, global or in-project), and Codex uses `~/.codex/skills/qmd-prover` (global) or `./.codex/skills/qmd-prover` (in-project). No host needs any other environment variable.
+Each skill command copies the docs (`SKILL.md`, `references/`, `agents/`) into the chosen skills directory; the executable is not bundled — it is the `qmd-prover` command installed above. The underlying script is `tsx tooling/install-skill.ts [--local|--global] [--codex|--claude] [--dir <project>]` (default `--local --claude`); a per-project install lands under the current directory unless `--dir <project>` names another. Confirm both halves with `qmd-prover version`.
 
 ## Test
 

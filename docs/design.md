@@ -538,9 +538,12 @@ states the change and accepts that affected cache keys will miss.
 
 ## Installation and requirements
 
-The skill and runtime are self-contained under `skills/qmd-prover/`. TypeScript
-source under `src/` is authoritative; `npm run build` emits Node-compatible ESM
-under `scripts/`. The generated runtime has no third-party Node dependency.
+The engine and the skill install separately: the engine is the `qmd-prover`
+command (installed on the `PATH` via `npm install -g .`, or `npm link` for
+development), and the skill is the documentation the assistant reads. TypeScript
+source under `skills/qmd-prover/src/` is authoritative; `npm run build` emits
+Node-compatible ESM under `scripts/`, which `package.json` `bin` exposes as
+`qmd-prover`. The generated runtime has no third-party Node dependency.
 
 The environment provides:
 
@@ -616,62 +619,59 @@ external basis itself.
 
 ## Using the Node utilities directly
 
-Let the installed dispatcher be:
-
-```bash
-QMD_PROVER="${CODEX_HOME:-$HOME/.codex}/skills/qmd-prover/scripts/qmd-prover.js"
-```
+The engine is the `qmd-prover` command, installed on the `PATH` (`npm install -g .`, or `npm link`
+for development). Run `qmd-prover version` to confirm the install and see its versions.
 
 Initialize:
 
 ```bash
-node "$QMD_PROVER" init
+qmd-prover init
 ```
 
 Inspect the complete project:
 
 ```bash
-node "$QMD_PROVER" inspect project --print
+qmd-prover inspect project --print
 ```
 
 Inspect one auto-located fact:
 
 ```bash
-node "$QMD_PROVER" inspect fact @def-hilbert-calculus --print
+qmd-prover inspect fact @def-hilbert-calculus --print
 ```
 
 Inspect one project path:
 
 ```bash
-node "$QMD_PROVER" inspect path workspace/foundations.qmd
-node "$QMD_PROVER" inspect path notes.qmd
+qmd-prover inspect path workspace/foundations.qmd
+qmd-prover inspect path notes.qmd
 ```
 
 Verify one protected goal with its transitive dependency closure:
 
 ```bash
-node "$QMD_PROVER" inspect fact @thm-main-even-square --print
+qmd-prover inspect fact @thm-main-even-square --print
 ```
 
 Query the published project graph:
 
 ```bash
-node "$QMD_PROVER" dependency frontier @thm-main-even-square --print
-node "$QMD_PROVER" dependency search "local exponent" --kind lemma --print
-node "$QMD_PROVER" dependency cycles --print
+qmd-prover dependency frontier @thm-main-even-square --print
+qmd-prover dependency search "local exponent" --kind lemma --print
+qmd-prover dependency cycles --print
 ```
 
 Audit staleness without writing:
 
 ```bash
-node "$QMD_PROVER" check staleness --print
+qmd-prover check staleness --print
 ```
 
 List and show retained verification records:
 
 ```bash
-node "$QMD_PROVER" verification list --print
-node "$QMD_PROVER" verification show @thm-main-even-square --print
+qmd-prover verification list --print
+qmd-prover verification show @thm-main-even-square --print
 ```
 
 Both read retained verification state and modify no file.
@@ -684,7 +684,7 @@ JSON plus exit code 2. Syntax errors use exit code 1.
 Prepare generated status and graph inputs:
 
 ```bash
-node "$QMD_PROVER" render
+qmd-prover render
 ```
 
 Render the configured project normally:

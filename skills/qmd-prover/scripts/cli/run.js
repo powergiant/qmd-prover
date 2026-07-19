@@ -9,6 +9,7 @@ import { checkStaleness } from '../commands/check/index.js';
 import { listVerifications, showVerification } from '../commands/verification/index.js';
 import { printReport } from './output/report.js';
 import { leanView } from './output/lean.js';
+import { collectCompatibilityWarnings, engineVersions } from '../core/infrastructure/compatibility.js';
 // ---------------------------------------------------------------------------
 // The CLI runtime. It parses argv into a Command (commands.ts), runs it, and
 // writes output — the only module that touches the process, the disk, and the
@@ -24,6 +25,16 @@ function emit(value, print, view = {}) {
     if (value.ok === false)
         process.exitCode = 2;
 }
+// Commands that read a project's persisted state. Before they run, surface any
+// version drift between this engine and that state as a soft stderr warning — the
+// gate warns, it never refuses. `doctor` reports the same information in its JSON
+// instead, and `init` owns the contract, so both are handled separately.
+const PROJECT_COMMANDS = new Set(['render', 'inspect', 'dependency', 'check', 'verification']);
+async function warnCompatibility(root) {
+    for (const warning of await collectCompatibilityWarnings(root)) {
+        process.stderr.write(`qmd-prover: warning: ${warning.message}\n`);
+    }
+}
 // ---------------------------------------------------------------------------
 // Dispatch. Pattern-match the parsed command and run it, rebuilding each
 // operation's option bag from the command's explicit fields and merging the
@@ -32,6 +43,8 @@ function emit(value, print, view = {}) {
 export async function main(args, { root = process.cwd(), pandoc = process.env.QMD_PROVER_PANDOC } = {}) {
     const command = parseCommand(args);
     const options = pandoc ? { pandoc } : {};
+    if (PROJECT_COMMANDS.has(command.kind))
+        await warnCompatibility(root);
     switch (command.kind) {
         case 'usage':
             process.stdout.write(`${rootUsage}\n`);
@@ -39,6 +52,17 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
         case 'help':
             process.stdout.write(`${renderHelp(command.of)}\n`);
             return;
+        case 'version': {
+            const versions = await engineVersions();
+            process.stdout.write(`${JSON.stringify({
+                operation: 'version',
+                tool: versions.tool,
+                schema_version: versions.schema,
+                verifier_protocol_version: versions.verifier_protocol,
+                contract_version: versions.contract
+            }, null, 2)}\n`);
+            return;
+        }
         case 'doctor':
             emit(await doctorProject(root), command.print);
             return;

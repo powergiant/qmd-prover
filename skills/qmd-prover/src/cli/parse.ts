@@ -40,6 +40,7 @@ export interface SearchFilters {
 export type Command =
   | { kind: 'usage' }
   | { kind: 'help'; of: string }
+  | { kind: 'version' }
   | { kind: 'doctor'; print: boolean }
   | { kind: 'init'; adoptExisting: boolean; appendContract: boolean; syncContract: boolean }
   | { kind: 'render'; allowErrors: boolean }
@@ -290,6 +291,10 @@ function parseRender(rest: string[]): Command {
 /** Pure map from argv to a fully-validated Command. Throws on invalid usage. */
 export function parseCommand(args: string[]): Command {
   if (args.length === 0) return { kind: 'usage' };
+  if (args[0] === 'version' || args[0] === '--version' || args[0] === '-v') {
+    if (args.length > 1) throw new Error('version accepts no arguments');
+    return { kind: 'version' };
+  }
   const help = parseHelp(args);
   if (help !== null) return help;
   const [command, ...rest] = args;
