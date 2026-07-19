@@ -105,7 +105,11 @@ cd ~/Documents/Projects/godel-completeness
 claude      # or: codex
 ```
 
-TODO: explain what happens in app (how to switch the working folder)
+If you are on Windows, make sure that you are using PowerShell (search for it in the Start menu),
+
+If you use the Claude Code/Codex desktop or web app instead of a terminal, there is nothing to type: when
+the app asks which folder to work in (or offers an *Open folder* button), pick the folder you just
+made. Everything below then happens in that same window.
 
 From here on you only talk to it. You do not type any more commands.
 
@@ -114,64 +118,64 @@ From here on you only talk to it. You do not type any more commands.
 Say to your assistant:
 
 > **"Install the qmd-prover skill from `github.com/powergiant/qmd-prover`. First read its `readme.md`
-> carefully. Then check that Node, Pandoc, and Quarto are set up, and get it ready."**
+> carefully. Then check that Node, Pandoc, and Quarto are set up, and set it up in this folder."**
 
 It downloads the project, installs the `qmd-prover` command, places the skill where it can read it,
-checks your tools, and tells you when everything is ready. (The exact recipe it follows is in
+checks your tools, and sets up the folder. When it finishes, your folder contains a new **`AGENTS.md`**
+file — the rules the assistant follows in this project — and, once it has checked the project the
+first time, a **`.qmd-prover/`** folder holding the settings and saved state. The worked example in
+[`examples/godel-completeness/`](examples/godel-completeness) has exactly these files, and the rest of
+this Quickstart follows that same example. (The exact recipe the assistant runs is in
 [For AI assistants: installing qmd-prover](#for-ai-assistants-installing-qmd-prover) below.)
 
-TODO: explain after this, you should get .qmd-prover and AGENTS.md as ./examples/godel-completeness in 
+### 4. Put your note in
 
-### 4. Put your notes in
+Write down what you want to prove, however rough, in a plain text file inside the folder. One sentence
+is enough. The example project starts from a single-line note, `completeness.md`:
 
-TODO: explain in the precise godel-completeness, remove abstract explanation, you should write a note like ./examples/godel-completeness/completeness.md
+```text
+The godel completeness say that the free first order logic is complete.
+```
 
-If you already have some mathematics — a rough proof sketch, a page of notes, a half-finished
-argument — save it as a plain text file inside your project folder. A `.md`, `.txt`, or `.qmd` file
-is fine; just drag it into the folder. If you are starting from only an idea in your head, skip this
-step.
+Misspellings and vague wording are fine — the assistant turns the note into a precise statement in the
+next step. (If you would rather just say it out loud to the assistant, you can skip the file.)
 
-### 5. State the goal you want proved
+### 5. Turn your note into a precise goal
 
+Ask the assistant to turn the rough note into a proper, locked goal:
 
-TODO: explain in the precise godel-completeness, remove abstract explanation, then ask ai do xxx, then you should obtain ./examples/godel-completeness/completeness.qmd
+> **"Read my note `completeness.md` and formulate the main theorem it describes as a qmd-prover
+> goal."**
 
-Tell the assistant the main result you are after, and ask it to write that goal down in the
-qmd-prover discipline. Starting from your notes:
+The assistant writes a new file — in the example, `completeness.qmd` — holding that theorem as a
+labeled block. For the Gödel example the block is:
 
-> **"My notes are in `notes.txt`. Formulate the main theorem I am after as a protected qmd-prover
-> goal, then set up the project here."**
+```markdown
+::: {#thm-main-godel-completeness .theorem .goal name="Gödel completeness theorem"}
+For every first-order signature $L$, every set $\Gamma$ of $L$-sentences, and
+every $L$-sentence $\varphi$, if every $L$-structure satisfying $\Gamma$ also
+satisfies $\varphi$, then $\Gamma \vdash \varphi$ in the proof calculus
+developed in this project.
+:::
+```
 
-Or starting from nothing:
-
-> **"Set up qmd-prover here and record my main goal: _every finite integral domain is a field_."**
-
-The assistant writes your goal as a *protected* result — a labeled block whose wording is locked, so
-the assistant can prove it but cannot quietly change or weaken it. A goal with no proof yet is simply
-*open*.
+The `.goal` marks it as your main goal: its wording is now locked, so the assistant can prove it and
+build on it but cannot quietly change or weaken it. It has no proof yet, so its state is simply *open*.
 
 ### 6. Ask it to prove
-
-TODO: after this, you get files like ./examples/godel-completeness/workspace/
 
 > **"Prove the main goal. Add whatever lemmas you need, then check the project and tell me what is
 > proved and what is still blocked."**
 
-It writes the definitions, lemmas, and proofs, checks its own work as it goes, fixes whatever the
-checks flag, and reports back in plain words: what is verified, what is still open, and what is
-blocked.
+It writes the definitions, lemmas, and proofs into a `workspace/` folder, checks its own work as it
+goes, fixes whatever the checks flag, and reports back in plain words: what is verified, what is still
+open, and what is blocked. In the example this fills `workspace/` with files like `foundations.qmd`,
+`semantics.qmd`, `henkin.qmd`, and `main-proof.qmd`, each holding one part of the argument.
 
 ### 7. Check the progress while it works (optional)
 
 A real proof can take a while. To look in on it *without interrupting* the session that is working,
-open a **second** assistant session in the same folder:
-
-```bash
-cd ~/Documents/Projects/my-proofs
-claude      # a second, separate session in the same folder
-```
-
-Then ask:
+open a **second** assistant session in the same folder. Then ask:
 
 > **"What is proved, what is open, and what is blocked right now?"**
 
@@ -189,23 +193,16 @@ This last step needs Quarto installed (see [Requirements](#requirements)). -->
 ---
 
 
-## Requirements
-
-- **Node.js version 20 or later** — the program that runs the tool.
-- **Pandoc** — required. It is the reader that parses every `.qmd` file. It must be available on your
-  system (either on your `PATH`, or its location recorded in the settings — see below). If you
-  already have Quarto installed, a copy of Pandoc comes bundled inside it, so you may not need a
-  separate one.
-- **Quarto** — optional. Only needed for the final step of producing a rendered HTML page or PDF.
-- **An AI verifier** — optional. This is the `claude` or `codex` command-line program, installed and
-  logged in. Without one, all the mechanical checks still run; the proofs simply stay unverified.
-
 ## Advanced: install and run it yourself
 
 If you are comfortable with a terminal, you can install qmd-prover and run its commands directly,
 instead of asking the assistant to.
 
 ### Install by hand
+
+**What you need:** Node.js 20+ and Pandoc are required (Pandoc comes bundled inside Quarto, so Quarto
+alone covers it). Quarto itself is optional, needed only to render to HTML or PDF. An AI verifier —
+the `claude` or `codex` CLI, logged in — is optional; without it, proofs stay unverified.
 
 qmd-prover has two halves that install separately: the `qmd-prover` command (the engine, installed
 once on your `PATH`) and the skill (the documentation your assistant reads). Download the project and
@@ -267,6 +264,7 @@ setting is explained in the [settings reference](skills/qmd-prover/references/co
 
 ## For AI assistants: installing qmd-prover
 
+
 > **If you are an AI assistant asked to install qmd-prover from GitHub, follow these steps.** Do not
 > skip the environment checks, and never use a mutation flag or change project policy without explicit
 > user approval.
@@ -274,24 +272,28 @@ setting is explained in the [settings reference](skills/qmd-prover/references/co
 **1. Get the source.** Clone or download `https://github.com/powergiant/qmd-prover`. It has two
 halves: the `qmd-prover` command (the engine) and the `skills/qmd-prover/` documentation folder.
 
-**2. Install the engine once, on the host's `PATH`.** Confirm Node 20+ first; `npm install -g .`
-builds and installs the `qmd-prover` command.
+**2. Install the engine once, on the host's `PATH`.** First check whether it is already there: run
+`qmd-prover version`. If it prints version numbers, the engine is installed — skip to step 3.
+Otherwise confirm Node 20+ and install it:
 
 ```bash
+qmd-prover version    # already prints versions? the engine is installed — skip to step 3
 git clone https://github.com/powergiant/qmd-prover
 cd qmd-prover
 node --version        # must be >= 20
 npm install
 npm install -g .      # installs the `qmd-prover` command (developers: `npm link` instead)
-qmd-prover version    # confirm it is on PATH; prints tool/schema/protocol/contract versions
+qmd-prover version    # confirm it is now on PATH; prints tool/schema/protocol/contract versions
 ```
 
-**3. Install the skill (documentation).** A bare `qmd-prover install` targets the current project;
-`--global` targets every project. Add `--codex` for Codex.
+**3. Install the skill (documentation).** Prefer the per-project (local) install: a bare
+`qmd-prover install` places the skill under `./.claude/skills/qmd-prover`, so its version stays matched
+to this project. Use `--global` only when the user wants one shared copy across every project. Add
+`--codex` for Codex.
 
 ```bash
+qmd-prover install            # recommended: this project → ./.claude/skills/qmd-prover
 qmd-prover install --global   # every project → ~/.claude/skills/qmd-prover
-qmd-prover install            # this project → ./.claude/skills/qmd-prover
 ```
 
 The skill carries no executable; it relies on the `qmd-prover` command from step 2 being on `PATH`.
