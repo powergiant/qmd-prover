@@ -8,18 +8,16 @@
   },
   "files": [
     "skills/qmd-prover/scripts",
-    "skills/qmd-prover/references"
+    "skills/qmd-prover/references",
+    "skills/qmd-prover/agents",
+    "skills/qmd-prover/SKILL.md"
   ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "npm run build && tsc --project tsconfig.fixtures.json && node --import tsx --test tests/*.test.ts",
     "prepare": "npm run build",
-    "install:tool": "npm install --global .",
-    "install:skill": "tsx tooling/install-skill.ts --local --claude",
-    "install:skill:global": "tsx tooling/install-skill.ts --global --claude",
-    "install:skill:codex": "tsx tooling/install-skill.ts --local --codex",
-    "install:skill:codex:global": "tsx tooling/install-skill.ts --global --codex"
+    "install:tool": "npm install --global ."
   },
   "engines": {
     "node": ">=20"

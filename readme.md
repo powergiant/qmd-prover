@@ -117,11 +117,10 @@ npm install
 # 1. Install the engine once — puts the `qmd-prover` command on your PATH:
 npm install -g .                     # (developers: use `npm link` instead, backed by this checkout)
 
-# 2. Place the skill, globally (every project) or per project:
-npm run install:skill:global         # Claude Code → ~/.claude/skills/qmd-prover
-npm run install:skill:codex:global   # Codex       → ~/.codex/skills/qmd-prover
-tsx tooling/install-skill.ts --local --dir /path/to/project           # Claude Code → <project>/.claude/skills/qmd-prover
-tsx tooling/install-skill.ts --local --codex --dir /path/to/project   # Codex       → <project>/.codex/skills/qmd-prover
+# 2. Place the skill so your assistant can read it, using the command from step 1:
+qmd-prover install --global          # every project → ~/.claude/skills/qmd-prover
+qmd-prover install --global --codex  # Codex          → ~/.codex/skills/qmd-prover
+qmd-prover install                   # just this project → ./.claude/skills/qmd-prover (run from it)
 ```
 
 The engine needs only Node and Pandoc; the skill is documentation, so the two are versioned and
@@ -288,19 +287,23 @@ change it rather than editing it yourself.
    qmd-prover version    # confirm it is on PATH; prints tool/schema/protocol/contract versions
    ```
 
-3. **Install the skill (documentation) into the host assistant's skills directory.** Per-project
-   keeps it inside the project; global makes it available everywhere.
+3. **Install the skill (documentation) with the command from step 2.** `qmd-prover install` runs in
+   your current directory, so a bare install targets this project and `--global` targets every
+   project. (Add `--codex` for Codex.)
 
    ```bash
-   # Per-project (recommended when working inside one project) — Claude Code (use --codex for Codex):
-   tsx qmd-prover/tooling/install-skill.ts --local --dir "$PWD"
-
-   # Global — Claude Code → ~/.claude/skills/qmd-prover, Codex → ~/.codex/skills/qmd-prover:
-   ( cd qmd-prover && npm run install:skill:global )        # add :codex for Codex
+   qmd-prover install            # this project → ./.claude/skills/qmd-prover
+   qmd-prover install --global   # every project → ~/.claude/skills/qmd-prover
    ```
 
-   The skill is discovered automatically by the host; it carries no executable, so it relies on the
-   `qmd-prover` command from step 2 being on the `PATH`.
+   The skill carries no executable; it relies on the `qmd-prover` command from step 2 being on `PATH`.
+
+   **Activation.** You do not need the host to register the skill before using it. To drive qmd-prover
+   **in this session**, read the installed `SKILL.md` (the path is printed in the install output, e.g.
+   `~/.claude/skills/qmd-prover/SKILL.md`, or use `skills/qmd-prover/SKILL.md` in this checkout) and
+   follow it directly. For the host to discover the skill and invoke it on its own, it must be present
+   at session start — so tell the user to start a new session when convenient; until then the
+   read-the-file path works fully.
 
 4. **Check that Pandoc and Quarto are installed, and set up their paths.** Run `doctor`; it reports
    Node, Pandoc, the optional verifier, and Quarto, plus the exact path it resolved for each:
@@ -390,10 +393,10 @@ npm run typecheck
 npm test        # AST-producing Pandoc adapter + mock verifiers; no real Pandoc or credentials needed
 ```
 
-`npm install -g .` (or `npm link`) installs the `qmd-prover` engine on the `PATH`. `npm run
-install:skill` (and its `:global` / `:codex` variants) copies the docs-only skill into the chosen
-assistant's skills directory via `tsx tooling/install-skill.ts`; the source checkout stays the source
-of truth.
+`npm install -g .` (or `npm link`) installs the `qmd-prover` engine on the `PATH`; `qmd-prover
+install [--global] [--codex]` then copies the docs-only skill into the assistant's skills directory.
+From a checkout without installing the engine, `tsx tooling/install-skill.ts [--local|--global]
+[--codex] [--dir <project>]` does the same copy. The source checkout stays the source of truth.
 
 ## License
 

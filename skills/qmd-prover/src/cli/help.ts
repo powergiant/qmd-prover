@@ -36,7 +36,7 @@ function node(path: string): HelpNode | undefined {
     case '':
       return {
         usage: ['qmd-prover <command> [arguments]', 'qmd-prover help [COMMAND...]'],
-        children: ['doctor', 'version', 'init', 'inspect', 'dependency', 'check', 'verification', 'render'],
+        children: ['doctor', 'version', 'install', 'init', 'inspect', 'dependency', 'check', 'verification', 'render'],
         sections: {
           notes: [
             'Requirements: Node.js 20+ and Pandoc (via PATH, tools.pandoc, or QMD_PROVER_PANDOC). A verifier (verification.backend claude|codex) and Quarto are optional.',
@@ -57,6 +57,27 @@ function node(path: string): HelpNode | undefined {
       return {
         usage: ['qmd-prover version'],
         summary: 'Print the installed tool version and the schema, verifier-protocol, and contract versions it implements.'
+      };
+    case 'install':
+      return {
+        usage: ['qmd-prover install [--global|-g] [--codex|--claude] [--dir <project>]'],
+        summary: 'Install the qmd-prover skill (docs) into a host assistant so it can drive this command.',
+        sections: {
+          description: [
+            'Copies the skill documentation (SKILL.md, references, agents) into the host\'s skills directory.',
+            'This is the skill half; the engine is this `qmd-prover` command itself, already on PATH.'
+          ],
+          options: [
+            '--global, -g   Install for every project, into the host home (~/.claude or ~/.codex).',
+            '--local        (default) Install into the current project (./.claude or ./.codex).',
+            '--claude       (default) Target Claude Code.',
+            '--codex        Target Codex.',
+            '--dir <project>   Local install target other than the current directory.'
+          ],
+          notes: [
+            'A skill installed now is not auto-activated in the running session; read the installed SKILL.md to use qmd-prover immediately, and start a new session for the host to discover it automatically.'
+          ]
+        }
       };
     case 'init':
       return {

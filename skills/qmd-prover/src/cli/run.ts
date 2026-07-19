@@ -4,6 +4,7 @@ import { inspectFact, inspectPath, inspectProject } from '../commands/inspect/in
 import { analyzeDependencies } from '../commands/dependency/index.js';
 import { renderProject } from '../commands/render/index.js';
 import { doctorProject } from '../commands/doctor/index.js';
+import { installSkillCommand } from '../commands/install/index.js';
 import { initializeProject } from '../commands/init/index.js';
 import { checkStaleness } from '../commands/check/index.js';
 import { listVerifications, showVerification } from '../commands/verification/index.js';
@@ -72,6 +73,9 @@ export async function main(
     }
     case 'doctor':
       emit(await doctorProject(root), command.print);
+      return;
+    case 'install':
+      emit(await installSkillCommand(root, { scope: command.scope, host: command.host, dir: command.dir }), false);
       return;
     case 'init':
       emit(await initializeProject(root, {

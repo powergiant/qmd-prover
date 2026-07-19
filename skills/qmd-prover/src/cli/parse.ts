@@ -41,6 +41,7 @@ export type Command =
   | { kind: 'usage' }
   | { kind: 'help'; of: string }
   | { kind: 'version' }
+  | { kind: 'install'; scope: 'local' | 'global'; host: 'codex' | 'claude'; dir?: string }
   | { kind: 'doctor'; print: boolean }
   | { kind: 'init'; adoptExisting: boolean; appendContract: boolean; syncContract: boolean }
   | { kind: 'render'; allowErrors: boolean }
@@ -179,6 +180,29 @@ function parseInit(rest: string[]): Command {
   };
 }
 
+function parseInstall(rest: string[]): Command {
+  let scope: 'local' | 'global' = 'local';
+  let host: 'codex' | 'claude' = 'claude';
+  let dir: string | undefined;
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    if (arg === '--global' || arg === '-g') scope = 'global';
+    else if (arg === '--local') scope = 'local';
+    else if (arg === '--codex') host = 'codex';
+    else if (arg === '--claude') host = 'claude';
+    else if (arg === '--dir') {
+      const value = rest[index + 1];
+      if (!value || value.startsWith('--')) throw new Error('--dir requires a path');
+      dir = value;
+      index += 1;
+    } else {
+      throw new Error(`Unknown install option: ${arg}. Run qmd-prover help install.`);
+    }
+  }
+  if (dir !== undefined && scope === 'global') throw new Error('--dir applies only to a local (per-project) install; drop --global/-g');
+  return { kind: 'install', scope, host, dir };
+}
+
 function parseInspect(rest: string[]): Command {
   const graphFlag = extractFlag(rest, '--graph');
   const { print, args } = presentation(graphFlag.args);
@@ -300,6 +324,7 @@ export function parseCommand(args: string[]): Command {
   const [command, ...rest] = args;
   switch (command) {
     case 'doctor': return parseDoctor(rest);
+    case 'install': return parseInstall(rest);
     case 'init': return parseInit(rest);
     case 'inspect': return parseInspect(rest);
     case 'dependency': return parseDependency(rest);

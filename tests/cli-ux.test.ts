@@ -70,6 +70,31 @@ test('version reports engine versions and the compatibility gate warns without r
   assert.match(inspected.stderr, /qmd-prover: warning: Cached verifier decisions use protocol v/);
 });
 
+test('install places the docs-only skill in the cwd project and reports activation guidance', async () => {
+  const root = await project();
+  const installed = await run(root, ['install']);
+  assert.equal(installed.error, null);
+  const outcome = JSON.parse(installed.stdout);
+  assert.equal(outcome.operation, 'install-skill');
+  assert.equal(outcome.scope, 'local');
+  // Runs in the cwd, so a bare (local) install targets that project — not the qmd-prover repo.
+  // realpath resolves the macOS /var -> /private/var symlink that process.cwd() reports.
+  const realRoot = await import('node:fs/promises').then((fs) => fs.realpath(root));
+  assert.equal(outcome.destination, path.join(realRoot, '.claude', 'skills', 'qmd-prover'));
+
+  const entries = await import('node:fs/promises').then((fs) => fs.readdir(outcome.destination));
+  assert.ok(entries.includes('SKILL.md'), 'skill docs copied');
+  assert.ok(!entries.includes('scripts') && !entries.includes('src'), 'engine is not bundled into the skill');
+
+  // The activation gotcha is surfaced, not silently assumed away.
+  const actions = (outcome.next_actions as Array<{ action: string }>).map((entry) => entry.action);
+  assert.deepEqual(actions, ['use-now', 'activate-later']);
+
+  // --dir requires a path, and --dir is incompatible with a global install.
+  assert.match(JSON.parse((await run(root, ['install', '--dir'])).stdout).diagnostics[0].message, /--dir requires a path/);
+  assert.match(JSON.parse((await run(root, ['install', '--global', '--dir', root])).stdout).diagnostics[0].message, /--dir applies only to a local/);
+});
+
 test('doctor and verification list make prerequisites and submission IDs discoverable', async () => {
   const root = await project();
   const env = { ...process.env, PATH: path.dirname(process.execPath), QMD_PROVER_PANDOC: 'missing-pandoc-for-doctor-test' };

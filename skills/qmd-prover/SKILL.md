@@ -14,14 +14,19 @@ supplies the instructions; the engine is a separate command. Invoke it directly:
 qmd-prover <command> [arguments]
 ```
 
-If `qmd-prover` is not found, it is not installed yet. Install it as a tool once per host, then it is
-available in every project:
+If `qmd-prover` is not found, the engine is not installed yet. Install it as a tool once per host,
+then it is available in every project:
 
 ```bash
 # From a checkout of github.com/powergiant/qmd-prover:
 npm install -g .        # users — installs the `qmd-prover` command globally
 npm link                # developers — same command, backed by your working checkout
 ```
+
+The engine also installs this skill: `qmd-prover install --global` places the skill docs under
+`~/.claude/skills/qmd-prover` (add `--codex` for Codex; a bare `qmd-prover install` scopes it to the
+current project). A skill installed mid-session is not auto-registered by the host — read the printed
+`SKILL.md` path to use qmd-prover now, and start a new session for automatic discovery.
 
 Run `qmd-prover version` to confirm the install and see the tool, schema, verifier-protocol, and
 contract versions it implements. `qmd-prover doctor` additionally reports any version drift between
@@ -82,7 +87,7 @@ inspect project [--print]
 inspect fact @ID [--print]
 inspect path FILE_OR_FOLDER [--print]
 dependency dependencies @ID [--print]
-dependency reverse dependencies @ID [--print]
+dependency reverse dependencies x@ID [--print]
 dependency impact @ID [--print]
 dependency frontier @ID [--print]
 dependency path @FROM @TO [--print]

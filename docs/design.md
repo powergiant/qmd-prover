@@ -553,14 +553,19 @@ The environment provides:
   project configuration; and
 - Quarto only when rendered output is wanted.
 
-From a source checkout:
+From a source checkout, install the two halves — the engine on the `PATH`, then
+the docs-only skill via the engine's own `install` command:
 
 ```bash
-npm run install:skill
+npm install -g .              # the `qmd-prover` command (developers: npm link)
+qmd-prover install --global   # the skill → ~/.claude/skills/qmd-prover (append --codex for Codex)
 ```
 
-This copies the complete installable skill to
-`${CODEX_HOME:-~/.codex}/skills/qmd-prover`.
+The engine carries the executable; the skill carries only documentation. A bare
+`qmd-prover install` scopes the skill to the current project instead of the host
+home. The host registers a skill at session start, so a mid-session install is
+usable immediately by reading its `SKILL.md` but is auto-discovered only in a new
+session.
 
 ## Starting a mathematical project
 

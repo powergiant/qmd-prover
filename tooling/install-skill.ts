@@ -14,25 +14,29 @@
 //   --codex   target Codex (.codex/skills/qmd-prover)
 //   --dir     project directory for a local install (default: current directory)
 
-import { cp, mkdir, rm } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { installSkill } from '../skills/qmd-prover/src/core/infrastructure/skill-install.js';
+import type { SkillHost, SkillScope } from '../skills/qmd-prover/src/core/infrastructure/skill-install.js';
+
+// This dev script is equivalent to the `qmd-prover install` command, but runs
+// straight from a checkout without the engine needing to be on PATH first. Both
+// share the copy logic in core/infrastructure/skill-install.ts.
 
 const repository = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const source = path.join(repository, 'skills', 'qmd-prover');
 
 const argv = process.argv.slice(2);
-let scope: 'local' | 'global' = 'local';
-let host: 'codex' | 'claude' = 'claude';
+let scope: SkillScope = 'local';
+let host: SkillHost = 'claude';
 let projectDir = process.cwd();
 
 for (let index = 0; index < argv.length; index += 1) {
   const arg = argv[index];
   if (arg === '--local' || arg === '--global') {
-    scope = arg.slice(2) as 'local' | 'global';
+    scope = arg.slice(2) as SkillScope;
   } else if (arg === '--codex' || arg === '--claude') {
-    host = arg.slice(2) as 'codex' | 'claude';
+    host = arg.slice(2) as SkillHost;
   } else if (arg === '--dir') {
     const value = argv[index + 1];
     if (!value) {
@@ -47,31 +51,7 @@ for (let index = 0; index < argv.length; index += 1) {
   }
 }
 
-const home = os.homedir();
-const configDir = host === 'codex' ? '.codex' : '.claude';
-let base: string;
-if (scope === 'global') {
-  base = host === 'codex'
-    ? process.env.CODEX_HOME || path.join(home, '.codex')
-    : process.env.CLAUDE_CONFIG_DIR || path.join(home, '.claude');
-} else {
-  base = path.join(projectDir, configDir);
-}
-const destination = path.join(base, 'skills', 'qmd-prover');
-
-// The engine (src/ and its compiled scripts/) ships as the separate `qmd-prover`
-// command, not inside the skill; copy only the agent-facing documentation.
-const engineDirs = new Set([
-  path.join(source, 'src'),
-  path.join(source, 'scripts')
-]);
-
-await mkdir(path.dirname(destination), { recursive: true });
-await rm(destination, { recursive: true, force: true });
-await cp(source, destination, {
-  recursive: true,
-  filter: (from) => !engineDirs.has(path.resolve(from))
-});
+const destination = await installSkill({ source, scope, host, projectDir });
 
 process.stdout.write(`${destination}\n`);
 process.stderr.write(`Installed the qmd-prover skill (docs only) for ${host === 'claude' ? 'Claude Code' : 'Codex'} (${scope}).\n`);

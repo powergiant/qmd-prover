@@ -166,7 +166,7 @@ by (2). Thus it is a counterexample to the universal conclusion.
 
 ## Install the tool and skill from a source checkout
 
-The engine and the skill install separately. Install the engine once per host as a `qmd-prover` command on `PATH`, then place the docs-only skill per project (default) or globally.
+The engine and the skill install separately. Install the engine once per host as a `qmd-prover` command on `PATH`, then place the docs-only skill globally (every project) or scoped to one project.
 
 Install the engine (from a checkout of the repository):
 
@@ -175,16 +175,18 @@ npm install -g .   # users — builds and installs the `qmd-prover` command glob
 npm link           # developers — the same command, backed by your working checkout (rebuild with `npm run build`)
 ```
 
-Place the skill — two scopes (per-project default or global), for either host:
+Place the skill with the engine's own `install` command. Because `qmd-prover install` runs in your current directory (unlike an `npm run` script, which always executes in this repository), a bare install correctly targets the project you are in, and `--global`/`-g` targets the host home:
 
 ```bash
-npm run install:skill                # Claude Code, in-project → ./.claude/skills/qmd-prover  (default)
-npm run install:skill:global         # Claude Code, global     → ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/qmd-prover
-npm run install:skill:codex          # Codex, in-project       → ./.codex/skills/qmd-prover
-npm run install:skill:codex:global   # Codex, global           → ${CODEX_HOME:-~/.codex}/skills/qmd-prover
+qmd-prover install                     # this project → ./.claude/skills/qmd-prover
+qmd-prover install --global            # every project → ${CLAUDE_CONFIG_DIR:-~/.claude}/skills/qmd-prover
+qmd-prover install --global --codex    # Codex, global → ${CODEX_HOME:-~/.codex}/skills/qmd-prover
+qmd-prover install --dir <project>     # a named project instead of the current directory
 ```
 
-Each skill command copies the docs (`SKILL.md`, `references/`, `agents/`) into the chosen skills directory; the executable is not bundled — it is the `qmd-prover` command installed above. The underlying script is `tsx tooling/install-skill.ts [--local|--global] [--codex|--claude] [--dir <project>]` (default `--local --claude`); a per-project install lands under the current directory unless `--dir <project>` names another. Confirm both halves with `qmd-prover version`.
+The install copies the docs (`SKILL.md`, `references/`, `agents/`) into the chosen skills directory; the executable is not bundled — it is the `qmd-prover` command itself. From a checkout without the engine on `PATH`, the equivalent `tsx tooling/install-skill.ts [--local|--global] [--codex|--claude] [--dir <project>]` performs the same copy. Confirm the install with `qmd-prover version`.
+
+A skill installed mid-session is not auto-registered by the host, which scans skills at session start. Read the installed `SKILL.md` to drive qmd-prover immediately; start a new session for the host to discover it automatically.
 
 ## Test
 
