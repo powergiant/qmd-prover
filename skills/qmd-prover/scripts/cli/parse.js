@@ -50,14 +50,14 @@ function optionValues(args, names, flags = new Set()) {
 }
 // ---------------------------------------------------------------------------
 // Dependency operation resolution. Several operations are multi-word (`reverse
-// dependencies`, `alternative paths`, `unused imports`, `ready for ai`); the
+// dependencies`, `alternative paths`, `unused imports`); the
 // longest matching token sequence wins, and a directly typed hyphenated form
 // (e.g. `reverse-dependencies`) is rejected as retired.
 // ---------------------------------------------------------------------------
 const DEPENDENCY_OPERATIONS = [
     ['dependencies'], ['reverse', 'dependencies'], ['impact'], ['frontier'], ['path'],
     ['alternative', 'paths'], ['cycles'], ['findings'], ['unused', 'imports'], ['unused', 'exports'],
-    ['isolated'], ['unreachable'], ['ready', 'for', 'ai'], ['reused'], ['search']
+    ['isolated'], ['unreachable'], ['ready'], ['reused'], ['search']
 ];
 const OPERATION_NAMES = new Set(DEPENDENCY_OPERATIONS.map((sequence) => sequence.join('-')));
 function resolveOperation(tokens) {

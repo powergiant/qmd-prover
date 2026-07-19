@@ -99,7 +99,7 @@ export async function analyzeDependencies(root, operation, args = [], options = 
     else if (operation === 'frontier') {
         result = { target: requireNode(graph, requested), frontier: frontier(graph, requested) };
     }
-    else if (['findings', 'unused-imports', 'unused-exports', 'isolated', 'unreachable', 'ready', 'ready-for-ai', 'reused'].includes(operation)) {
+    else if (['findings', 'unused-imports', 'unused-exports', 'isolated', 'unreachable', 'ready', 'reused'].includes(operation)) {
         const findings = deriveGraphFindings(snapshot);
         if (operation === 'findings')
             result = { findings };
@@ -111,7 +111,7 @@ export async function analyzeDependencies(root, operation, args = [], options = 
             result = { definition: findings.definitions.isolated, facts: findings.isolated_facts };
         else if (operation === 'unreachable')
             result = { definition: findings.definitions.unreachable, ...findings.unreachable };
-        else if (operation === 'ready' || operation === 'ready-for-ai')
+        else if (operation === 'ready')
             result = { definition: findings.definitions.candidate_ready_for_ai, candidates: findings.candidate_ready_for_ai };
         else {
             const limit = boundedInteger(options.limit, 20, { name: 'limit', min: 1, max: 1000 });

@@ -120,7 +120,7 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
                 case 'unused-exports':
                 case 'isolated':
                 case 'unreachable':
-                case 'ready-for-ai':
+                case 'ready':
                     emit(await analyzeDependencies(root, command.sub, [], options), command.print);
                     return;
                 default:

@@ -60,7 +60,7 @@ export type Command =
   | { kind: 'dependency'; sub: 'unused-exports'; print: boolean }
   | { kind: 'dependency'; sub: 'isolated'; print: boolean }
   | { kind: 'dependency'; sub: 'unreachable'; print: boolean }
-  | { kind: 'dependency'; sub: 'ready-for-ai'; print: boolean }
+  | { kind: 'dependency'; sub: 'ready'; print: boolean }
   | { kind: 'dependency'; sub: 'reused'; limit?: number; print: boolean }
   | { kind: 'dependency'; sub: 'alternative-paths'; from: string; to: string; maxPaths?: number; maxDepth?: number; print: boolean }
   | { kind: 'dependency'; sub: 'search'; query?: string; filters: SearchFilters; print: boolean }
@@ -120,7 +120,7 @@ function optionValues(args: string[], names: Set<string>, flags = new Set<string
 
 // ---------------------------------------------------------------------------
 // Dependency operation resolution. Several operations are multi-word (`reverse
-// dependencies`, `alternative paths`, `unused imports`, `ready for ai`); the
+// dependencies`, `alternative paths`, `unused imports`); the
 // longest matching token sequence wins, and a directly typed hyphenated form
 // (e.g. `reverse-dependencies`) is rejected as retired.
 // ---------------------------------------------------------------------------
@@ -128,7 +128,7 @@ function optionValues(args: string[], names: Set<string>, flags = new Set<string
 const DEPENDENCY_OPERATIONS: readonly (readonly string[])[] = [
   ['dependencies'], ['reverse', 'dependencies'], ['impact'], ['frontier'], ['path'],
   ['alternative', 'paths'], ['cycles'], ['findings'], ['unused', 'imports'], ['unused', 'exports'],
-  ['isolated'], ['unreachable'], ['ready', 'for', 'ai'], ['reused'], ['search']
+  ['isolated'], ['unreachable'], ['ready'], ['reused'], ['search']
 ];
 const OPERATION_NAMES = new Set(DEPENDENCY_OPERATIONS.map((sequence) => sequence.join('-')));
 

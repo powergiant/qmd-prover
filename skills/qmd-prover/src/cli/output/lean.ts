@@ -221,7 +221,7 @@ export function leanView(result: OperationResult, options: LeanViewOptions = {})
       return leanSearch(result);
     case 'dependency-findings':
       return leanFindings(result);
-    case 'dependency-ready-for-ai':
+    case 'dependency-ready':
       return leanReadyForAi(result);
     case 'dependency-reused':
       return leanReused(result);

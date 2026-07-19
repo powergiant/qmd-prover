@@ -144,7 +144,7 @@ test('dispatcher preserves JSON commands over the unified project', async () => 
   assert.equal((await runJson(['dependency', 'alternative', 'paths', '@thm-main-cli', '@thm-main-cli'])).operation, 'dependency-alternative-paths');
   assert.equal((await runJson(['dependency', 'unused', 'imports'])).operation, 'dependency-unused-imports');
   assert.equal((await runJson(['dependency', 'unused', 'exports'])).operation, 'dependency-unused-exports');
-  assert.equal((await runJson(['dependency', 'ready', 'for', 'ai'])).operation, 'dependency-ready-for-ai');
+  assert.equal((await runJson(['dependency', 'ready'])).operation, 'dependency-ready');
   assert.equal((await runJson(['check', 'staleness'])).operation, 'check-staleness');
   const unknown = await new Promise<{ error: CliError | null; output: { ok: boolean; diagnostics: Array<{ code: string }> } }>((resolve) => execFile(process.execPath, [cli, 'inspect', 'fact', '@def-missing-cli'], {
     cwd: root, env: cliEnv
@@ -196,7 +196,7 @@ test('dispatcher provides help for every command group and leaf', async () => {
     'dependency', 'dependency dependencies', 'dependency reverse', 'dependency reverse dependencies',
     'dependency impact', 'dependency frontier', 'dependency path', 'dependency alternative', 'dependency alternative paths',
     'dependency cycles', 'dependency findings', 'dependency unused', 'dependency unused imports', 'dependency unused exports',
-    'dependency isolated', 'dependency unreachable', 'dependency ready', 'dependency ready for', 'dependency ready for ai',
+    'dependency isolated', 'dependency unreachable', 'dependency ready',
     'dependency reused', 'dependency search',
     'check', 'check staleness',
     'verification', 'verification list', 'verification show',
@@ -205,7 +205,7 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const rootHelp = await run(['help']);
   assert.equal(rootHelp.error, null);
   assert.match(rootHelp.stdout, /^Usage:\n/);
-  assert.match(rootHelp.stdout, /Commands:\n  doctor[\s\S]*  init\n    Initialize or safely adopt a qmd-prover project\.\n  inspect\n  dependency/);
+  assert.match(rootHelp.stdout, /Commands:\n  doctor[\s\S]*  init\n    Initialize or safely adopt a qmd-prover project\.\n  inspect\n    Analyze and verify facts[\s\S]*\n  dependency\n    Query the dependency graph/);
   // Every leaf command (one with no further sub-command) documents a purpose under Description;
   // every group instead lists its sub-commands under Commands.
   const leaves = commands.filter((item) => !commands.some((candidate) => candidate.startsWith(`${item} `)));
@@ -234,6 +234,9 @@ test('dispatcher provides help for every command group and leaf', async () => {
   const removedDependency = await run(['dependency', 'alternative-paths', '--help']);
   assert.equal(must(removedDependency.error).code, 1);
   assert.match(removedDependency.stderr, /Unknown command: dependency alternative-paths/);
+  const removedReadyForAi = await run(['dependency', 'ready', 'for', 'ai', '--help']);
+  assert.equal(must(removedReadyForAi.error).code, 1);
+  assert.match(removedReadyForAi.stderr, /Unknown command: dependency ready for ai/);
   const removedInit = await run(['init', 'project', '--help']);
   assert.equal(must(removedInit.error).code, 1);
   assert.match(removedInit.stderr, /Unknown command: init project/);

@@ -86,7 +86,11 @@ function node(path) {
                 }
             };
         case 'inspect':
-            return { usage: ['qmd-prover inspect <command> [arguments]'], children: ['project', 'fact', 'path'] };
+            return {
+                usage: ['qmd-prover inspect <command> [arguments]'],
+                summary: 'Analyze and verify facts across the whole project, one fact, or one file or folder.',
+                children: ['project', 'fact', 'path']
+            };
         case 'inspect project':
             return {
                 usage: ['qmd-prover inspect project [--print] [--graph]'],
@@ -130,6 +134,7 @@ function node(path) {
         case 'dependency':
             return {
                 usage: ['qmd-prover dependency <command> [arguments]'],
+                summary: 'Query the dependency graph: relationships, paths, hygiene findings, and graph-aware search.',
                 children: [
                     'dependencies', 'reverse', 'impact', 'frontier', 'path', 'alternative', 'cycles',
                     'findings', 'unused', 'isolated', 'unreachable', 'ready', 'reused', 'search'
@@ -138,7 +143,7 @@ function node(path) {
         case 'dependency dependencies':
             return { usage: ['qmd-prover dependency dependencies @ID [--print]'], summary: 'Show direct and transitive dependencies of one fact.', positional: true };
         case 'dependency reverse':
-            return { usage: ['qmd-prover dependency reverse <command> [arguments]'], children: ['dependencies'] };
+            return { usage: ['qmd-prover dependency reverse <command> [arguments]'], summary: 'Reverse-direction dependency queries.', children: ['dependencies'] };
         case 'dependency reverse dependencies':
             return { usage: ['qmd-prover dependency reverse dependencies @ID [--print]'], summary: 'Show facts that directly or transitively depend on one fact.', positional: true };
         case 'dependency impact':
@@ -148,7 +153,7 @@ function node(path) {
         case 'dependency path':
             return { usage: ['qmd-prover dependency path @FROM @TO [--print]'], summary: 'Show the shortest dependency path; FROM=TO returns the one-node path.', positional: true };
         case 'dependency alternative':
-            return { usage: ['qmd-prover dependency alternative <command> [arguments]'], children: ['paths'] };
+            return { usage: ['qmd-prover dependency alternative <command> [arguments]'], summary: 'Enumerate alternative dependency paths between two facts.', children: ['paths'] };
         case 'dependency alternative paths':
             return {
                 usage: ['qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]'],
@@ -165,12 +170,12 @@ function node(path) {
                 sections: {
                     notes: [
                         'JSON returns per-category counts plus compact fact references. Categories: unused_imports/exports, isolated_facts (no dependency edges), unreachable (outside every goal closure), invalid_evidence_dependents, candidate_ready_for_ai, and heavily_reused.',
-                        'The large itemized lists also have dedicated commands: `dependency ready for ai`, `dependency reused`, `dependency isolated`, `dependency unreachable`.'
+                        'The large itemized lists also have dedicated commands: `dependency ready`, `dependency reused`, `dependency isolated`, `dependency unreachable`.'
                     ]
                 }
             };
         case 'dependency unused':
-            return { usage: ['qmd-prover dependency unused <command> [arguments]'], children: ['imports', 'exports'] };
+            return { usage: ['qmd-prover dependency unused <command> [arguments]'], summary: 'List imports or exports that are never used.', children: ['imports', 'exports'] };
         case 'dependency unused imports':
             return { usage: ['qmd-prover dependency unused imports [--print]'], summary: 'List imported fact IDs not referenced by their consumer file.' };
         case 'dependency unused exports':
@@ -180,11 +185,7 @@ function node(path) {
         case 'dependency unreachable':
             return { usage: ['qmd-prover dependency unreachable [--print]'], summary: 'List facts outside every protected main-goal dependency closure.' };
         case 'dependency ready':
-            return { usage: ['qmd-prover dependency ready <command> [arguments]'], children: ['for'] };
-        case 'dependency ready for':
-            return { usage: ['qmd-prover dependency ready for <command> [arguments]'], children: ['ai'] };
-        case 'dependency ready for ai':
-            return { usage: ['qmd-prover dependency ready for ai [--print]'], summary: 'List candidates whose machine checks and direct dependency edges pass.' };
+            return { usage: ['qmd-prover dependency ready [--print]'], summary: 'List candidates whose machine checks and direct dependency edges pass.' };
         case 'dependency reused':
             return {
                 usage: ['qmd-prover dependency reused [--limit N] [--print]'],
@@ -221,11 +222,11 @@ function node(path) {
                 }
             };
         case 'check':
-            return { usage: ['qmd-prover check <command> [arguments]'], children: ['staleness'] };
+            return { usage: ['qmd-prover check <command> [arguments]'], summary: 'Run read-only project audits that report without modifying QMD.', children: ['staleness'] };
         case 'check staleness':
             return { usage: ['qmd-prover check staleness [--print]'], summary: 'Audit verification cache freshness without modifying QMD.' };
         case 'verification':
-            return { usage: ['qmd-prover verification <command> [arguments]'], children: ['list', 'show'] };
+            return { usage: ['qmd-prover verification <command> [arguments]'], summary: 'List and read retained verification records.', children: ['list', 'show'] };
         case 'verification list':
             return { usage: ['qmd-prover verification list'], summary: 'List retained verification records and discover submission IDs.' };
         case 'verification show':
