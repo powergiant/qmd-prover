@@ -19,6 +19,7 @@ function bare(digest) {
 export function auxLayout(root) {
     const graphs = auxPath(root, 'graphs');
     const checks = auxPath(root, 'verification', 'checks');
+    const failures = auxPath(root, 'verification', 'failures');
     return {
         /** The `.qmd-prover/` directory itself. */
         dir: auxPath(root),
@@ -41,7 +42,9 @@ export function auxLayout(root) {
         snapshot: (snapshotId) => path.join(graphs, `${bare(snapshotId)}.json`),
         verification: auxPath(root, 'verification'),
         checks,
-        check: (verificationKey) => path.join(checks, `${bare(verificationKey)}.json`)
+        check: (verificationKey) => path.join(checks, `${bare(verificationKey)}.json`),
+        failures,
+        failure: (verificationKey, stamp) => path.join(failures, bare(verificationKey), `${stamp}.json`)
     };
 }
 const CONFIG_TEMPLATE = [

@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+import { auxLayout } from './aux.js';
 import { asRecord, asStringArray, hasErrorCode } from '../shared/core.js';
 /** The verifier backends a config may name. An unrecognized value is a ConfigError. */
 export const VERIFIER_BACKENDS = ['none', 'claude', 'codex', 'command'];
@@ -238,7 +238,7 @@ function normalizedConfig(value) {
     };
 }
 export async function loadConfig(root) {
-    const file = path.join(root, '.qmd-prover', 'config.yml');
+    const file = auxLayout(root).config;
     let source;
     try {
         source = await readFile(file, 'utf8');

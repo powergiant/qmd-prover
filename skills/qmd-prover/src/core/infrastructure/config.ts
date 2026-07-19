@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+import { auxLayout } from './aux.js';
 import { asRecord, asStringArray, hasErrorCode } from '../shared/core.js';
 import type { JsonObject, JsonValue } from '../shared/types.js';
 
@@ -269,7 +269,7 @@ function normalizedConfig(value: JsonObject): QmdProverConfig {
 }
 
 export async function loadConfig(root: string): Promise<QmdProverConfig> {
-  const file = path.join(root, '.qmd-prover', 'config.yml');
+  const file = auxLayout(root).config;
   let source: string;
   try {
     source = await readFile(file, 'utf8');

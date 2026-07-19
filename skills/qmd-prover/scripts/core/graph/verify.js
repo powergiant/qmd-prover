@@ -2,6 +2,7 @@ import path from 'node:path';
 import { compileProject, factStatus } from '../semantic/compiler.js';
 import { externalPolicyHash } from '../infrastructure/external.js';
 import { atomicJson, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
+import { auxLayout } from '../infrastructure/aux.js';
 import { readLocatedBlock, readLocatedProof } from '../semantic/source.js';
 import { buildVerifierPacket, checkerContract, configured, invokeVerifier, verificationContext, verificationKey, verificationOutcome } from '../verification/protocol.js';
 import { cachedDecision, verifierFailure } from '../verification/cache.js';
@@ -334,8 +335,7 @@ export async function verifyFacts(compilation, context, options = {}) {
                 const failure = verifierFailure(error, result.id);
                 failure.failed_target = result.id;
                 const now = new Date().toISOString();
-                const digest = key.replace(/^sha256:/, '');
-                const failureFile = path.join(root, '.qmd-prover', 'verification', 'failures', digest, `${now.replace(/[-:.TZ]/g, '')}.json`);
+                const failureFile = auxLayout(root).failure(key, now.replace(/[-:.TZ]/g, ''));
                 try {
                     await atomicJson(failureFile, {
                         schema_version: 1,

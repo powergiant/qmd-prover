@@ -2,7 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { readExternalPolicy } from '../../core/infrastructure/external.js';
 import { atomicWrite, exists, relativePosix } from '../../core/infrastructure/files.js';
-import { scaffoldAux, withWriteLock } from '../../core/infrastructure/aux.js';
+import { auxLayout, scaffoldAux, withWriteLock } from '../../core/infrastructure/aux.js';
 import { readCanonicalContract } from '../../core/infrastructure/contract.js';
 import { SCHEMA_VERSION } from '../../core/shared/core.js';
 const START = '<!-- qmd-prover-contract:start version=';
@@ -47,7 +47,7 @@ async function inspectExistingProject(root) {
     return {
         agents_md: await exists(path.join(root, 'AGENTS.md')),
         external_policy: { path: externalPolicy.path, mode: externalPolicy.mode },
-        qmd_prover_state: await exists(path.join(root, '.qmd-prover')),
+        qmd_prover_state: await exists(auxLayout(root).dir),
         quarto_configs: quartoConfigs,
         qmd_file_count: qmdFiles.length,
         qmd_files: qmdFiles
