@@ -38,6 +38,14 @@ export interface OperationResult {
   [key: string]: unknown;
 }
 
+/**
+ * The options each pipeline stage consumes are split by responsibility rather than
+ * pooled in one bag: a function's signature names exactly the cluster it reads, and
+ * a caller composes the clusters it needs with `&`. Only the CLI boundary (parse.ts,
+ * run.ts) handles the full `CliOptions` union.
+ */
+
+/** Inputs to compilation: which sources to read and how to emit. */
 export interface CompilerOptions {
   pandoc?: string;
   write?: boolean;
@@ -46,15 +54,27 @@ export interface CompilerOptions {
   protectStatements?: boolean;
 }
 
-/** The option bag threaded through compilation, inspection, and dependency analysis. */
-export interface RuntimeOptions extends CompilerOptions {
-  destination?: string;
+/** Bounds for dependency-graph path search. */
+export interface PathSearchOptions {
   maxPaths?: number | string;
   maxDepth?: number | string;
   maxExplored?: number | string;
-  limit?: number | string;
+}
+
+/** Narrows an operation to a subset of facts/files, resolved from the CLI query. */
+export interface SelectionOptions {
   selectedIds?: Iterable<string>;
   selectedFiles?: Iterable<string>;
+}
+
+/** Tolerate a failed compile instead of aborting — render only. */
+export interface RenderOptions {
+  allowErrors?: boolean;
+}
+
+/** Raw CLI query for the dependency command: attribute facets plus graph traversals. */
+export interface DependencyQuery {
+  limit?: number | string;
   kind?: string;
   status?: string;
   origin?: string;
@@ -68,5 +88,7 @@ export interface RuntimeOptions extends CompilerOptions {
   direct?: boolean;
   reverse?: boolean;
   cycleParticipant?: boolean;
-  allowErrors?: boolean;
 }
+
+/** The full option surface the CLI parser can produce; only the CLI layer sees this. */
+export type CliOptions = CompilerOptions & PathSearchOptions & SelectionOptions & RenderOptions & DependencyQuery;

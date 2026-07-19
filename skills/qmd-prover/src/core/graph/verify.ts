@@ -9,7 +9,7 @@ import { buildVerifierPacket, checkerContract, configured, invokeVerifier, verif
 import { cachedDecision, verifierFailure } from '../verification/cache.js';
 import type { LocalOutcome } from '../verification/cache.js';
 import { asErrorLike, CONTROL_MARKER_SET, SCHEMA_VERSION } from '../shared/core.js';
-import type { Diagnostic, JsonObject, RuntimeOptions } from '../shared/types.js';
+import type { Diagnostic, JsonObject, SelectionOptions } from '../shared/types.js';
 import type { ResultKind } from '../shared/core.js';
 import type { VerificationContext, VerifierPacket } from '../verification/protocol.js';
 import type {
@@ -142,7 +142,7 @@ export function topologicalOrder(results: SemanticResult[]): SemanticResult[] {
  * whole project (or the dependency closure of the selected facts). Mutates the
  * indexed results' status, local_verification, global_verification, and disproof.
  */
-export async function verifyFacts(compilation: Compilation, context: VerificationContext, options: RuntimeOptions = {}): Promise<VerificationRun> {
+export async function verifyFacts(compilation: Compilation, context: VerificationContext, options: SelectionOptions = {}): Promise<VerificationRun> {
   const root = compilation.root;
   const config = compilation.config;
   const results = compilation.manifest.results;

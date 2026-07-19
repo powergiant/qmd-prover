@@ -10,7 +10,7 @@ import { compileProject } from '../../core/semantic/compiler.js';
 import { verificationContext } from '../../core/verification/protocol.js';
 import { verifyFacts } from '../../core/graph/verify.js';
 import type { FactInspectionCheck, InspectionVerificationSummary, VerifiedFact } from '../../core/graph/verify.js';
-import type { Diagnostic, JsonObject, OperationResult, RuntimeOptions } from '../../core/shared/types.js';
+import type { Diagnostic, JsonObject, OperationResult, CompilerOptions, SelectionOptions } from '../../core/shared/types.js';
 import type { DependencyGraph } from '../../core/semantic/dependency-graph.js';
 import type { SemanticResult } from '../../core/semantic/model.js';
 import type { StalenessReport } from '../../core/shared/results.js';
@@ -120,7 +120,7 @@ async function history(root: string, id: string): Promise<JsonObject[]> {
   }
 }
 
-export async function inspectProject(root = process.cwd(), options: RuntimeOptions = {}): Promise<InspectProjectResult> {
+export async function inspectProject(root = process.cwd(), options: CompilerOptions & SelectionOptions = {}): Promise<InspectProjectResult> {
   root = path.resolve(root);
   const compilation = await compileProject(root, options);
   const context = await verificationContext(compilation);
@@ -180,7 +180,7 @@ function factFailure(id: string, diagnostics: Diagnostic[]): InspectFactResult {
   };
 }
 
-export async function inspectFact(root: string, requested: string, options: RuntimeOptions = {}): Promise<InspectFactResult> {
+export async function inspectFact(root: string, requested: string, options: CompilerOptions & SelectionOptions = {}): Promise<InspectFactResult> {
   root = path.resolve(root);
   const id = cleanId(requested);
   const compilation = await compileProject(root, options);
@@ -244,7 +244,7 @@ function isWithinPath(file: string, selected: string, isDirectory: boolean): boo
   return isDirectory ? file === selected || file.startsWith(`${selected}/`) : file === selected;
 }
 
-export async function inspectPath(root: string, requestedPath: string, options: RuntimeOptions = {}): Promise<InspectPathResult> {
+export async function inspectPath(root: string, requestedPath: string, options: CompilerOptions & SelectionOptions = {}): Promise<InspectPathResult> {
   root = path.resolve(root);
   const absolute = path.resolve(root, requestedPath);
   const relative = relativePosix(root, absolute);

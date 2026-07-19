@@ -1,6 +1,6 @@
 import { cleanId } from '../infrastructure/files.js';
 import { indexBy } from '../shared/core.js';
-import type { RuntimeOptions } from '../shared/types.js';
+import type { PathSearchOptions } from '../shared/types.js';
 import type { DependencyGraph, GraphNode } from '../semantic/dependency-graph.js';
 
 function byId<T extends { id: string }>(items: T[]): Map<string, T> {
@@ -47,7 +47,7 @@ export function boundedInteger(value: unknown, fallback: number, { name, min, ma
   return parsed;
 }
 
-export function allSimplePaths(graph: DependencyGraph, start: string, goal: string, options: RuntimeOptions = {}): PathSearchResult {
+export function allSimplePaths(graph: DependencyGraph, start: string, goal: string, options: PathSearchOptions = {}): PathSearchResult {
   const maxPaths = boundedInteger(options.maxPaths, 5, { name: 'max paths', min: 1, max: 25 });
   const maxDepth = boundedInteger(options.maxDepth, Math.min(Math.max(graph.nodes.length - 1, 1), 64), { name: 'max depth', min: 1, max: 100 });
   const maxExplored = boundedInteger(options.maxExplored, 10000, { name: 'max explored paths', min: 1, max: 100000 });

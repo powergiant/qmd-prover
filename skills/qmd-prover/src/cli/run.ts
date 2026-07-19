@@ -12,7 +12,7 @@ import { printReport } from './output/report.js';
 import { leanView } from './output/lean.js';
 import { collectCompatibilityWarnings, engineVersions } from '../core/infrastructure/compatibility.js';
 import type { LeanViewOptions } from './output/lean.js';
-import type { OperationResult, RuntimeOptions } from '../core/shared/types.js';
+import type { OperationResult, CliOptions } from '../core/shared/types.js';
 
 // ---------------------------------------------------------------------------
 // The CLI runtime. It parses argv into a Command (commands.ts), runs it, and
@@ -51,7 +51,7 @@ export async function main(
   { root = process.cwd(), pandoc = process.env.QMD_PROVER_PANDOC }: { root?: string; pandoc?: string } = {}
 ): Promise<void> {
   const command = parseCommand(args);
-  const options: RuntimeOptions = pandoc ? { pandoc } : {};
+  const options: CliOptions = pandoc ? { pandoc } : {};
   if (PROJECT_COMMANDS.has(command.kind)) await warnCompatibility(root);
   switch (command.kind) {
     case 'usage':

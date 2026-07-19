@@ -2,7 +2,7 @@ import path from 'node:path';
 import { atomicJson, readJson, relativePosix, sha256, stableJson } from '../infrastructure/files.js';
 import { auxLayout, scaffoldAuxGitignore } from '../infrastructure/aux.js';
 import { SCHEMA_VERSION } from '../shared/core.js';
-import type { Diagnostic, RuntimeOptions } from '../shared/types.js';
+import type { Diagnostic, CompilerOptions } from '../shared/types.js';
 import type { Compilation } from '../semantic/compiler.js';
 import type { DependencyGraph, GraphNode } from '../semantic/dependency-graph.js';
 import type { Manifest } from '../semantic/model.js';
@@ -118,7 +118,7 @@ export function buildProjectSnapshot(compilation: Compilation, contextHash: stri
 export async function publishProjectSnapshot(
   compilation: Compilation,
   snapshot: ProjectSnapshot,
-  options: RuntimeOptions = {}
+  options: CompilerOptions = {}
 ): Promise<boolean> {
   if (options.write === false || !compilation.complete) return false;
   const root = compilation.root;
@@ -160,7 +160,7 @@ export async function readPublishedSnapshot(compilation: Compilation, contextHas
 }
 
 /** The valid published snapshot, or a freshly built and published one. */
-export async function resolveProjectSnapshot(compilation: Compilation, contextHash: string, options: RuntimeOptions = {}): Promise<ProjectSnapshot> {
+export async function resolveProjectSnapshot(compilation: Compilation, contextHash: string, options: CompilerOptions = {}): Promise<ProjectSnapshot> {
   const saved = await readPublishedSnapshot(compilation, contextHash);
   if (saved) return saved;
   const current = buildProjectSnapshot(compilation, contextHash);

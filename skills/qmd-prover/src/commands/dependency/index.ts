@@ -6,7 +6,7 @@ import { resolveProjectSnapshot } from '../../core/graph/snapshot.js';
 import type { ProjectSnapshot } from '../../core/graph/snapshot.js';
 import { compileProject } from '../../core/semantic/compiler.js';
 import { verificationContext } from '../../core/verification/protocol.js';
-import type { Diagnostic, OperationResult, RuntimeOptions } from '../../core/shared/types.js';
+import type { Diagnostic, OperationResult, CompilerOptions, PathSearchOptions, DependencyQuery } from '../../core/shared/types.js';
 import type { DependencyGraph, GraphNode } from '../../core/semantic/dependency-graph.js';
 import type { GraphFindings } from '../../core/graph/findings.js';
 
@@ -28,13 +28,13 @@ export interface DependencyAnalysisResult extends OperationResult {
   findings?: GraphFindings;
 }
 
-async function latestSnapshot(root: string, options: RuntimeOptions = {}): Promise<ProjectSnapshot> {
+async function latestSnapshot(root: string, options: CompilerOptions = {}): Promise<ProjectSnapshot> {
   const compilation = await compileProject(root, options);
   const context = await verificationContext(compilation);
   return resolveProjectSnapshot(compilation, context.contextHash, options);
 }
 
-export async function analyzeDependencies(root: string, operation: string, args: string[] = [], options: RuntimeOptions = {}): Promise<DependencyAnalysisResult> {
+export async function analyzeDependencies(root: string, operation: string, args: string[] = [], options: CompilerOptions & PathSearchOptions & DependencyQuery = {}): Promise<DependencyAnalysisResult> {
   // Validate bounded options before any project scan so syntax errors are never hidden by graph failures.
   if (operation === 'alternative-paths') {
     boundedInteger(options.maxPaths, 5, { name: 'max paths', min: 1, max: 25 });

@@ -7,7 +7,7 @@ import { readJson, stableJson } from '../../core/infrastructure/files.js';
 import { auxLayout } from '../../core/infrastructure/aux.js';
 import { SCHEMA_VERSION, hasErrorCode, isRecord } from '../../core/shared/core.js';
 import { checkerContract, verificationContext, verificationOutcome } from '../../core/verification/protocol.js';
-import type { JsonObject, RuntimeOptions } from '../../core/shared/types.js';
+import type { JsonObject, CompilerOptions } from '../../core/shared/types.js';
 import type { VerifierPacket } from '../../core/verification/protocol.js';
 import type { VerifierReport } from '../../core/shared/verdicts.js';
 import type { StalenessChange, StalenessReport } from '../../core/shared/results.js';
@@ -32,7 +32,7 @@ async function jsonFiles(directory: string): Promise<string[]> {
   }
 }
 
-export async function checkStaleness(root = process.cwd(), options: RuntimeOptions = {}): Promise<StalenessReport> {
+export async function checkStaleness(root = process.cwd(), options: CompilerOptions = {}): Promise<StalenessReport> {
   root = path.resolve(root);
   const compilation = await compileProject(root, { ...options, write: false });
   const context = await verificationContext(compilation);

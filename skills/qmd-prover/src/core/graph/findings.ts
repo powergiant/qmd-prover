@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { cleanId } from '../infrastructure/files.js';
 import { indexBy } from '../shared/core.js';
-import type { Diagnostic, RuntimeOptions } from '../shared/types.js';
+import type { Diagnostic, SelectionOptions } from '../shared/types.js';
 import type { DependencyGraph, GraphNode } from '../semantic/dependency-graph.js';
 import type { Manifest, SemanticResult } from '../semantic/model.js';
 import { adjacency, traverse } from './algorithms.js';
@@ -34,7 +34,7 @@ interface FindingSelection {
   result(result: SemanticResult): boolean;
 }
 
-function findingSelection(options: RuntimeOptions = {}): FindingSelection {
+function findingSelection(options: SelectionOptions = {}): FindingSelection {
   const ids = options.selectedIds ? new Set([...options.selectedIds].map(cleanId)) : null;
   const files = options.selectedFiles ? new Set(options.selectedFiles) : null;
   return {
@@ -59,7 +59,7 @@ function importTarget(importer: string, imported: string): string | null {
   return target.startsWith('../') || path.posix.isAbsolute(target) ? null : target;
 }
 
-export function deriveGraphFindings(snapshot: ProjectSnapshot, options: RuntimeOptions = {}): GraphFindings {
+export function deriveGraphFindings(snapshot: ProjectSnapshot, options: SelectionOptions = {}): GraphFindings {
   const graph = snapshot.graph;
   const manifest = snapshot.manifest ?? { files: [], results: [] };
   const diagnostics = snapshot.diagnostics ?? [];
