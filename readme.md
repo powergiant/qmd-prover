@@ -89,22 +89,15 @@ become possible:
 You do everything by talking to your assistant. Here is the whole path, from an empty folder to a
 checked proof.
 
-### 1. Make a folder for your work
+### 1. Make a folder and open your assistant inside it
 
-Make a new, empty folder to hold this project. Put it anywhere you like — for example:
-
-```
-~/Documents/Projects/godel-completeness
-```
-
-Everything for this project — your notes, the proofs, the settings — lives in this one folder.
-
-### 2. Open your assistant inside that folder
-
-Open your AI coding assistant (Claude Code or Codex) so that it is working *inside* the folder you
-just made. In a terminal that is two lines:
+Make a new, empty folder to hold this project — put it anywhere you like — and open your AI coding
+assistant (Claude Code or Codex) so that it is working *inside* that folder. Everything for this
+project — your notes, the proofs, the settings — lives in this one folder. In a terminal that is
+three lines:
 
 ```bash
+mkdir ~/Documents/Projects/godel-completeness
 cd ~/Documents/Projects/godel-completeness
 claude      # or: codex
 ```
@@ -117,7 +110,7 @@ made. Everything below then happens in that same window.
 
 From here on you only talk to it. You do not type any more commands.
 
-### 3. Install the add-on
+### 2. Install the add-on
 
 Say to your assistant:
 
@@ -132,7 +125,7 @@ first time, a **`.qmd-prover/`** folder holding the settings and saved state. Th
 this Quickstart follows that same example. (The exact recipe the assistant runs is in
 [For AI assistants: installing qmd-prover](#for-ai-assistants-installing-qmd-prover) below.)
 
-### 4. Put your note in
+### 3. Put your note in
 
 Write down what you want to prove, however rough, in a plain text file inside the folder. One sentence
 is enough. The example project starts from a single-line note, `completeness.md`:
@@ -144,7 +137,7 @@ The godel completeness say that the free first order logic is complete.
 Misspellings and vague wording are fine — the assistant turns the note into a precise statement in the
 next step. (If you would rather just say it out loud to the assistant, you can skip the file.)
 
-### 5. Turn your note into a precise goal
+### 4. Turn your note into a precise goal
 
 Ask the assistant to turn the rough note into a proper, locked goal:
 
@@ -166,7 +159,7 @@ developed in this project.
 The `.goal` marks it as your main goal: its wording is now locked, so the assistant can prove it and
 build on it but cannot quietly change or weaken it. It has no proof yet, so its state is simply *open*.
 
-### 6. Ask it to prove
+### 5. Ask it to prove
 
 > **"Prove the main goal. Add whatever lemmas you need, then check the project and tell me what is
 > proved and what is still blocked."**
@@ -176,7 +169,7 @@ goes, fixes whatever the checks flag, and reports back in plain words: what is v
 open, and what is blocked. In the example this fills `workspace/` with files like `foundations.qmd`,
 `semantics.qmd`, `henkin.qmd`, and `main-proof.qmd`, each holding one part of the argument.
 
-### 7. Check the progress while it works (optional)
+### 6. Check the progress while it works (optional)
 
 A real proof can take a while. To look in on it *without interrupting* the session that is working,
 open a **second** assistant session in the same folder. Then ask:
