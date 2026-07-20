@@ -362,10 +362,12 @@ configured, available verifier produces verification state.
 
 ## References
 
-- [Command reference](skills/qmd-prover/references/cli.md) — every command, filter, exit code, and
-  the verifier protocol.
+- [Command reference](skills/qmd-prover/references/cli.md) — every command, filter, exit code,
+  diagnostic code, and the verifier protocol.
 - [Settings reference](skills/qmd-prover/references/config.md) — every `.qmd-prover/config.yml`
-  setting.
+  setting, environment variable, and file under `.qmd-prover/`.
+- [Status reference](skills/qmd-prover/references/status.md) — what each state of a result means and
+  what to do about it.
 - [Project contract](skills/qmd-prover/references/AGENTS.md) — the rules the assistant follows inside
   a project (declarations, proofs, imports/exports, verification discipline).
 - [Design docs](docs/design.md) — architecture and internals for maintainers.

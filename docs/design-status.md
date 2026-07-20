@@ -10,6 +10,11 @@ declared, then whether the fact is well formed, then what the verifier said,
 then what follows once dependencies are taken into account. Filters, worked
 cases, and the change history come last.
 
+This is the maintainer document, kept under `docs/` and not installed. The
+agent-facing version of the same model ships with the skill as
+`skills/qmd-prover/references/status.md`; keep the two in step whenever a value,
+reason, rule, or set changes here.
+
 ## Why the model has four fields
 
 The state of a fact answers four separate questions:

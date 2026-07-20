@@ -281,6 +281,19 @@ test('skill requires a once-per-context versioned project contract preflight', a
   assert.match(skill, /An `@id` citation is a dependency but does not grant cross-file scope/);
   assert.match(skill, /global status is `verified`/);
   assert.doesNotMatch(skill, /workspace init|inspect workspace|submit proof/);
+  // The skill outlines every leaf command and routes detail to the four references.
+  for (const reference of ['references/AGENTS.md', 'references/cli.md', 'references/config.md', 'references/status.md']) {
+    assert.match(skill, new RegExp(reference.replace('/', '\\/')), `SKILL.md must point at ${reference}`);
+  }
+  for (const command of [
+    'inspect project', 'inspect fact @ID', 'inspect path FILE_OR_FOLDER', 'dependency dependencies @ID',
+    'dependency reverse dependencies @ID', 'dependency impact @ID', 'dependency frontier @ID',
+    'dependency path @FROM @TO', 'dependency cycles', 'dependency findings', 'dependency unused imports',
+    'dependency unused exports', 'dependency isolated', 'dependency unreachable', 'dependency ready',
+    'dependency reused', 'dependency search', 'check staleness', 'verification show SUBMISSION_ID'
+  ]) {
+    assert.ok(skill.includes(command), `SKILL.md must show the ${command} command`);
+  }
   assert.match(contract, /<!-- qmd-prover-contract:start version=25 -->/);
   assert.match(contract, /\.qmd-prover\/\.external\.qmd/);
   assert.match(contract, /An absent file permits external mathematics/);
@@ -338,7 +351,9 @@ test('maintainer and agent documentation preserves the full design structure', a
     rendering: await readFile(path.join(root, 'docs', 'design-rendering.md'), 'utf8'),
     skill: await readFile(path.join(root, 'skills', 'qmd-prover', 'SKILL.md'), 'utf8'),
     contract: await readFile(path.join(root, 'skills', 'qmd-prover', 'references', 'AGENTS.md'), 'utf8'),
-    cli: await readFile(path.join(root, 'skills', 'qmd-prover', 'references', 'cli.md'), 'utf8')
+    cli: await readFile(path.join(root, 'skills', 'qmd-prover', 'references', 'cli.md'), 'utf8'),
+    config: await readFile(path.join(root, 'skills', 'qmd-prover', 'references', 'config.md'), 'utf8'),
+    status: await readFile(path.join(root, 'skills', 'qmd-prover', 'references', 'status.md'), 'utf8')
   };
 
   const outsideFences = (source: string): string => source
@@ -407,8 +422,12 @@ test('maintainer and agent documentation preserves the full design structure', a
     '## Formats and graceful degradation', '### Example render commands'
   ]);
   requireHeadings(files.skill, [
-    '## Project setup', '## Project contract preflight', '## Proof-development layout',
-    '## Using the infrastructure', '## Status and rendering'
+    '## Introduction', '## Where the documentation lives', '## Running the tool',
+    '### Version compatibility', '## Basic project structure', '## Project setup',
+    '### Environment and verifier setup', '### Project contract preflight',
+    '## Checking your work', '### Read all three layers', '### Every status a fact can carry',
+    '### Acting on what inspection returns', '## Exploring the graph', '## Auditing caches and reading verdicts',
+    '## Rendering', '## Reporting to the user'
   ]);
   requireHeadings(files.contract, [
     '## Contents', '## Project setup', '## External mathematical basis',
@@ -416,20 +435,56 @@ test('maintainer and agent documentation preserves the full design structure', a
     '## Verification discipline', '## Agent workflow', '## Project-specific additions'
   ]);
   requireHeadings(files.cli, [
-    '## Requirements', '## Commands', '### Diagnostic codes', '## Semantic QMD',
-    '## Install the tool and skill from a source checkout', '## Test', '## Current boundary'
+    '## Requirements', '## Output model', '## Commands', '### Diagnostic codes', '## Semantic QMD',
+    '## The verifier protocol', '## Install the tool and skill from a source checkout', '## Test',
+    '## Current boundary'
   ]);
+  // Every leaf command documented in the CLI reference, in dispatcher order.
+  requireHeadings(files.cli, [
+    '### `version`', '### `doctor`', '### `install`', '### `init`', '### `inspect project`',
+    '### `inspect fact @ID`', '### `inspect path FILE_OR_FOLDER`',
+    '### `dependency dependencies @ID` / `dependency reverse dependencies @ID`',
+    '### `dependency impact @ID`', '### `dependency frontier @ID`', '### `dependency path @FROM @TO`',
+    '### `dependency alternative paths @FROM @TO`', '### `dependency cycles`', '### `dependency findings`',
+    '### `dependency unused imports` / `dependency unused exports`', '### `dependency isolated`',
+    '### `dependency unreachable`', '### `dependency ready`', '### `dependency reused`',
+    '### `dependency search [QUERY] [filters]`', '### `check staleness`',
+    '### `verification list` / `verification show SUBMISSION_ID`', '### `render`'
+  ]);
+  requireHeadings(files.config, [
+    '## Where settings come from', '## `project`', '## `goals`', '## `semantic`', '## `tools`',
+    '## `verification`', '## `render`', '## Notes on the file format',
+    '## The other authored input', '## The `.qmd-prover/` state directory', '## Common configurations'
+  ]);
+  requireHeadings(files.status, [
+    '## The four fields', '## `intent`', '## `mechanical`', '## `local_verification`',
+    '### Every `not-run` reason', '### What gets sent to the verifier',
+    '### How a verifier report becomes a verdict', '## `global_verification`',
+    '### The eight global values', '## `missing`', '## The `status` attribute written back to source',
+    '## Filter vocabulary', '## How to ask for each state', '## Worked cases',
+    '## Verification counters', '## Reporting rules'
+  ]);
+  // The status reference must name every value of all four fields.
+  for (const value of [
+    'normal', 'disproof', 'draft', 'abandoned', 'ok', 'broken', 'not-run', 'verified', 'disproved',
+    'rejected', 'open', 'unverified', 'blocked', 'missing', 'nothing-to-check', 'not-eligible',
+    'out-of-scope', 'no-backend', 'verifier-error', 'candidate', 'disproof-candidate', 'ready', 'unbroken'
+  ]) {
+    assert.match(files.status, new RegExp(`\`${value}\``), `status reference must name ${value}`);
+  }
 
   const minimumLines: Record<keyof typeof files, number> = {
     architecture: 80,
     design: 420,
     discipline: 300,
     inspector: 300,
-    proving: 280,
     rendering: 190,
-    skill: 60,
+    proving: 280,
+    skill: 300,
     contract: 150,
-    cli: 95
+    cli: 400,
+    config: 200,
+    status: 250
   };
   for (const [name, source] of Object.entries(files) as [keyof typeof files, string][]) {
     assert.ok(source.split('\n').length >= minimumLines[name], `${name} documentation was unexpectedly compressed`);

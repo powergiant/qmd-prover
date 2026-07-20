@@ -1,11 +1,18 @@
 # Project configuration reference
 
-qmd-prover reads optional project settings from `.qmd-prover/config.yml`. The file is a
-version-controlled authored input (kept alongside `.external.qmd` and
+qmd-prover reads optional project settings from `.qmd-prover/config.yml`. This file documents every
+setting exhaustively. Its companions are [cli.md](cli.md) for every command, [status.md](status.md)
+for the fact status vocabulary, and [AGENTS.md](AGENTS.md) for the project contract.
+
+The file is a version-controlled authored input (kept alongside `.external.qmd` and
 `statement-locks.json`); everything else under `.qmd-prover/` is regenerated tool state. The
 file is **optional**: when it is absent, or when a key is omitted, the built-in defaults below
 apply. Settings are parsed by a dependency-free minimal YAML reader and merged over the
 defaults, so a partial file only overrides the keys it names.
+
+The first `qmd-prover inspect project` (or a successful `qmd-prover init`) scaffolds this file with
+every key at its default, plus a `.qmd-prover/.gitignore`. Neither is ever overwritten, so both are
+safe to edit.
 
 A complete file, with every key at its default, looks like this:
 
@@ -40,6 +47,25 @@ render:
   graph-engine: builtin           # dependency-graph SVG engine
   output-dir: .qmd-prover/generated  # where render writes generated inputs
 ```
+
+## Where settings come from
+
+Three sources feed one run, highest precedence first:
+
+1. **Environment variables** — override everything, per invocation.
+2. **`.qmd-prover/config.yml`** — the project's own settings.
+3. **Built-in defaults** — the table values below.
+
+| Environment variable | Overrides | Notes |
+|---|---|---|
+| `QMD_PROVER_PANDOC` | `tools.pandoc` | Path to a Pandoc executable. |
+| `QMD_PROVER_QUARTO` | `tools.quarto` | Path to Quarto, needed only for final rendering. |
+| `QMD_PROVER_VERIFIER` | `verification.backend` and `verification.command` | An executable speaking the stdin/stdout packet protocol. Wins over both bundled adapters and a custom `command`. |
+| `QMD_PROVER_VERIFIER_DEBUG` | — | A directory; each check dumps its exact prompt, raw model output, and parsed verdict there. |
+| `QMD_PROVER_FRESH_CONTEXT` | — | Set to `1` for the verifier process when `fresh-context` is true. Read by adapters, not by the engine. |
+| `QMD_PROVER_DEBUG` | — | Set to `1` to print a stack trace on stderr instead of a one-line message when a command fails. |
+
+Run `doctor` to see which command each tool resolved to and whether it is available.
 
 ## `project`
 
@@ -134,3 +160,89 @@ usage, surfaced per fact as `local_verification.metrics` and summed into the ver
   (`standard`, `standard`, `high`); an unrecognized `backend` is a config error.
 - Run `doctor` to see the resolved Pandoc, Quarto, and verifier commands and whether each is
   available; it also reports a malformed `config.yml` instead of crashing.
+
+## The other authored input: `.qmd-prover/.external.qmd`
+
+This file is not configuration in YAML, but it is the second setting that changes what the verifier
+accepts. It is ordinary project-owned QMD controlling which results may be taken from **outside** the
+project, and its exact content is hashed into every verification key.
+
+| State | `mode` | Meaning |
+|---|---|---|
+| file absent | `unrestricted` | External results are permitted. Identify each one precisely and check every hypothesis. |
+| present, whitespace only | `none` | Use no external mathematical results; develop everything in the project. |
+| present, nonempty | `declared` | Use only the external results, or classes of results, that its content allows, plus unambiguously elementary reasoning. |
+
+`init` never creates this file. Changing it invalidates the affected verification cache entries, so
+every fact whose check depended on it is verified again. The external basis is the only channel for
+outside mathematical premises: it creates no graph nodes, and every in-project premise remains an
+ordinary `@id` dependency subject to import scope.
+
+## The `.qmd-prover/` state directory
+
+Only three files here are authored inputs; the scaffolded `.gitignore` tracks exactly those and
+ignores the rest.
+
+| Path | Kind | Content |
+|---|---|---|
+| `config.yml` | authored | This file's settings. |
+| `.external.qmd` | authored | The external mathematical basis above. |
+| `statement-locks.json` | authored | The protected-goal statement and title baseline. |
+| `.gitignore` | authored | Written once; customize freely (e.g. to share the verifier cache). |
+| `manifest.json`, `graph.json`, `diagnostics.json` | derived | The last compilation's facts, dependency graph, and diagnostics. |
+| `graphs/` | derived | Published snapshots, plus `latest.json`. |
+| `verification/checks/` | derived | One cached verdict per verification key; read by `verification list`/`show` and audited by `check staleness`. |
+| `verification/failures/` | derived | Retained verifier failures, for debugging a broken backend. |
+| `reports/status.json` | derived | The machine-readable render report. |
+| `generated/` | derived | `render` output: `proof-status.qmd` and `dependencies.svg`. Relocatable via `render.output-dir`. |
+| `events.jsonl`, `write.lock` | derived | Run log and the write lock held during mutating operations. |
+
+Everything derived is safe to delete: the next inspection rebuilds it. Deleting
+`verification/checks/` discards every cached verdict and re-verifies the whole project, which costs
+real tokens.
+
+## Common configurations
+
+**Machine-only (the default).** No verifier is called, no tokens are spent. Every proof passes the
+mechanical checks and stays `unverified`. A deliberate mode — never report its output as verified.
+
+```yaml
+verification:
+  backend: none
+```
+
+**Independent checking, balanced.** The usual working setup once a CLI is installed and logged in.
+
+```yaml
+verification:
+  backend: codex     # or: claude
+  effort: high
+  citations: standard
+  rigor: standard
+```
+
+**Publication rigor.** Every load-bearing step must be explicit, every non-standard term must be
+cited, and any reported gap blocks acceptance. Expect more rejections and more tokens per check.
+
+```yaml
+verification:
+  backend: claude
+  effort: max
+  citations: strict
+  rigor: strict
+  rigor-disprove: strict
+```
+
+**Exploratory drafting.** Accept informal, textbook-level argument while an approach is still being
+found; tighten before relying on the result.
+
+```yaml
+verification:
+  backend: codex
+  effort: medium
+  citations: lenient
+  rigor: lenient
+```
+
+Changing any of these re-keys the cache and re-verifies every fact, so switch deliberately rather
+than per run.
