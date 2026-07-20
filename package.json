@@ -17,8 +17,7 @@
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "npm run build && tsc --project tsconfig.fixtures.json && node --import tsx --test tests/*.test.ts",
     "prepare": "npm run build",
-    "install:tool": "npm install --global .",
-    "install:dev": "npm run build && npm link"
+    "install:tool": "npm install --global ."
   },
   "engines": {
     "node": ">=20"
