@@ -1,11 +1,12 @@
 # Mathematical project instructions
 
-<!-- qmd-prover-contract:start version=25 -->
+<!-- qmd-prover-contract:start version=26 -->
 
 ## Contents
 
 - [Project setup](#project-setup)
 - [External mathematical basis](#external-mathematical-basis)
+- [Verification settings](#verification-settings)
 - [qmd-prover contract](#qmd-prover-contract)
 - [Proof development in the project](#proof-development-in-the-project)
 - [Verification discipline](#verification-discipline)
@@ -42,6 +43,20 @@ Equivalently: An absent file permits external mathematics subject to precise hyp
 The agent may revise this file when the user's request or the developing proof context requires a different external basis, but it must make that change explicit. The exact content is verifier context. Any change invalidates affected verification cache keys and requires the relevant facts to be checked again.
 
 The external basis is the only channel for outside mathematical premises. It does not create semantic graph nodes; every in-project premise is instead an ordinary `@id` dependency subject to import scope.
+
+## Verification settings
+
+Who checks the mathematics, and how strictly, is set in `.qmd-prover/config.yml` under `verification`; the skill's configuration reference defines every key, its accepted values, and its cost. Read the current file before proof work, choose these settings deliberately with the user rather than accepting whatever was scaffolded, and say which backend and which strictness levels were in force whenever you report a result.
+
+Choose the backend from what the host actually has: `qmd-prover doctor` reports which CLI resolves and whether it is available. When both bundled adapters are usable, prefer the one that is *not* the agent developing the proofs, so the referee is a different system from the author.
+
+Then raise strictness in stages as confidence grows, changing the settings only at a stage boundary:
+
+1. **While the route is still being searched**, set `citations`, `rigor`, and `rigor-disprove` to `lenient` and keep `effort` default. A correct but informal argument is then accepted, so the verifier answers the question that matters at this stage — does this approach work at all — instead of returning long formality reports on steps that may be discarded tomorrow.
+2. **Once the route holds end to end** and each proof is believed sound, move all three to `standard` and repair what the stricter pass finds. Do this before treating any result as settled: a `lenient` pass is weak evidence of rigor, and it is the point of the exercise to find the formality failures while they are still cheap to fix.
+3. **When preparing the development for publication or handover**, use `strict` with a high `effort`, and expect more rejections and more tokens per check.
+
+Never quietly walk a level back down to make a rejection disappear. If a proof fails at `standard`, repair the proof; lowering strictness only hides the finding, and re-lowering re-verifies the whole project anyway. `rigor-disprove` matters only once the project actually argues that a statement is false.
 
 ## qmd-prover contract
 
