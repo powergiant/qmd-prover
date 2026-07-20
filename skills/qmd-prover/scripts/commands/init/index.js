@@ -53,6 +53,67 @@ async function inspectExistingProject(root) {
         qmd_files: qmdFiles
     };
 }
+const QUARTO_OUTPUT_DIR = '.qmd-prover/site/book';
+/**
+ * Reading order for the scaffolded chapter list: the book landing page first,
+ * then shallower files before deeper ones, alphabetically within a depth. Root
+ * notes therefore precede `workspace/` material, which is how these projects
+ * read. The list is a starting point only — it is the project's from then on.
+ */
+function chapterOrder(files) {
+    const depth = (file) => file.split('/').length;
+    return [...files].sort((left, right) => {
+        if (left === 'index.qmd')
+            return -1;
+        if (right === 'index.qmd')
+            return 1;
+        return depth(left) - depth(right) || left.localeCompare(right);
+    });
+}
+function quartoConfig(root, files) {
+    const chapters = chapterOrder(files);
+    return [
+        `# Rendering configuration for a qmd-prover project, written once by \`qmd-prover init\`.`,
+        `# The project renders as a Quarto book because a book is the only Quarto layout in which`,
+        `# result numbering runs across the whole project and an @id reference resolves to a`,
+        `# declaration in another file. This file is the project's: qmd-prover never rewrites it.`,
+        ``,
+        `project:`,
+        `  type: book`,
+        `  # All rendered output lands here, inside the already-ignored state directory.`,
+        `  # Quarto's own .quarto/ cache stays in the project root, where its first render`,
+        `  # writes a .gitignore covering it.`,
+        `  output-dir: ${QUARTO_OUTPUT_DIR}`,
+        ``,
+        `book:`,
+        `  title: "${path.basename(root).replace(/"/g, '')}"`,
+        `  # Every QMD file of the project, in reading order. Add each new file as you create it;`,
+        `  # a file left out is still compiled and checked, but is missing from the rendered book`,
+        `  # and every reference into it renders as a question mark. The first chapter is the book`,
+        `  # landing page and must be index.qmd.`,
+        chapters.length ? `  chapters:\n${chapters.map((file) => `    - ${file}`).join('\n')}` : `  chapters: []`,
+        ``,
+        `format:`,
+        `  html:`,
+        `    toc: true`,
+        ``,
+        `crossref:`,
+        `  chapters: true`,
+        ``
+    ].join('\n');
+}
+/**
+ * Write `_quarto.yml` once, when the project has no Quarto configuration at all.
+ * An existing configuration is never touched or merged: the project may already
+ * render as something other than a book, and that is the project's decision.
+ */
+async function scaffoldQuartoConfig(root, existing) {
+    const [configured] = existing.quarto_configs;
+    if (configured)
+        return { path: configured, status: 'preserved' };
+    await atomicWrite(path.join(root, '_quarto.yml'), quartoConfig(root, existing.qmd_files));
+    return { path: '_quarto.yml', status: 'created', output_dir: QUARTO_OUTPUT_DIR };
+}
 function hasMathematicalProject(existing) {
     return existing.qmd_prover_state || existing.quarto_configs.length > 0 || existing.qmd_file_count > 0;
 }
@@ -84,10 +145,13 @@ export async function initializeProject(root, { adoptExisting = false, appendCon
         // synchronized *and* already-initialized, so a project missing config.yml gets
         // it back here even when the contract was already current. The gated -required
         // and malformed outcomes are not ok, so a project awaiting the user's decision
-        // is never mutated.
-        if (outcome.ok)
-            await scaffoldAux(root);
-        return outcome;
+        // is never mutated. The Quarto book configuration is scaffolded on the same
+        // condition, so a project always gets a rendering layout in which numbering and
+        // cross-file references resolve.
+        if (!outcome.ok)
+            return outcome;
+        await scaffoldAux(root);
+        return { ...outcome, quarto_config: await scaffoldQuartoConfig(root, existing) };
     });
     async function resolveContract() {
         const policyExists = await exists(policyFile);

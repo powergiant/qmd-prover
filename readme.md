@@ -119,7 +119,8 @@ Say to your assistant:
 
 It downloads the project, installs the `qmd-prover` command, places the skill where it can read it,
 checks your tools, and sets up the folder. When it finishes, your folder contains a new **`AGENTS.md`**
-file — the rules the assistant follows in this project — and, once it has checked the project the
+file — the rules the assistant follows in this project — a **`_quarto.yml`** file saying how the
+project is turned into a readable book, and, once it has checked the project the
 first time, a **`.qmd-prover/`** folder holding the settings and saved state. The worked example in
 [`examples/godel-completeness/`](examples/godel-completeness) has exactly these files, and the rest of
 this Quickstart follows that same example. (The exact recipe the assistant runs is in

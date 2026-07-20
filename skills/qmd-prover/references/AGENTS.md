@@ -10,6 +10,7 @@ Copy the managed block below into the root `AGENTS.md` of every mathematical pro
 - [External mathematical basis](#external-mathematical-basis)
 - [Verification settings](#verification-settings)
 - [qmd-prover contract](#qmd-prover-contract)
+- [Rendered document](#rendered-document)
 - [Proof development in the project](#proof-development-in-the-project)
 - [Verification discipline](#verification-discipline)
 - [Agent workflow](#agent-workflow)
@@ -27,6 +28,8 @@ If the command is not found, the tool is not installed — install it as describ
 The command reports any existing `AGENTS.md`, QMD sources, Quarto configuration, `.qmd-prover` state, and external-basis mode. If it returns `intent-required`, summarize what exists and ask whether the user wants to adopt those files in place, inspect them first, or leave them unchanged. Run `--adopt-existing` only after the user chooses adoption.
 
 With no existing project content, the command creates a root `AGENTS.md` with the canonical managed block. It is idempotent when the current block is already present. If `AGENTS.md` exists without the block, preserve it and ask before rerunning with `--append-contract`. If it contains an older or different managed block, ask before using `--sync-contract`; synchronization replaces only that block. Put local project rules outside the managed block.
+
+Whenever it writes, the command also scaffolds `.qmd-prover/` and, if the project has no Quarto configuration at all, a `_quarto.yml` that renders the project as a book. An existing Quarto configuration is preserved untouched; the result reports which happened.
 
 Setup requires no QMD scaffold or initial theorem, and proving a goal requires no per-goal setup either: a protected goal with no proof yet is simply open.
 
@@ -126,6 +129,16 @@ When more than one applies, `.abandon` outranks `.draft`, which outranks `.dispr
 A proof carrying `.disproof` must give the actual counterexample or refutation, check the hypotheses, and explain why the stated conclusion fails. The verifier checks it conditionally on the exact direct dependency statements. A locally accepted refutation is conditional evidence; it becomes globally disproved only when machine analysis also establishes that its complete dependency closure is globally verified. A failed refutation is locally rejected. The verifier may also discover and report a counterexample while checking an ordinary candidate, without changing its QMD source.
 
 Verification state lives in the project's exact verification cache and published snapshot as separate mechanical, local conditional, and global fields. Inspection also projects each checked fact's local verdict into a display-only `status` attribute on its div, but that attribute is excluded from every content hash, the verifier packet, the cache key, and the snapshot identity, and is never read back — so writing it can never change what is checked. Read global state from inspection, never from the `status` attribute.
+
+## Rendered document
+
+Every QMD file has two readers: the compiler, which checks the mathematics, and Quarto, which renders the document a person reads. A file can satisfy the first and still render wrongly, so these rules are part of writing the source, not a later formatting pass.
+
+Write inline mathematics as `$…$` and display mathematics as `$$…$$` with the delimiters on their own lines. Never write `\(…\)` or `\[…\]`: the compiler accepts those, so every check still passes, but Quarto does not read single-backslash delimiters and renders the formula as literal parentheses or brackets. Convert any file that still uses them when you next edit it — except a protected main statement, which is the user's text: report the delimiters and let the user decide, since rewriting them changes the statement and breaks its lock.
+
+`init` writes a `_quarto.yml` that renders the project as a Quarto book into `.qmd-prover/site/book`. Keep that layout: a book is the only Quarto layout in which result numbering runs across the whole project and an `@id` reference resolves to a declaration in another file. Rendered as separate documents instead, each file numbers its results from 1 and every cross-file reference renders as a question mark.
+
+That configuration belongs to the project and qmd-prover never rewrites it, so its chapter list is yours to maintain. Add every QMD file you create to `book.chapters` in reading order and remove the entry when you delete the file. The first chapter is the book landing page and must be `index.qmd`; create one when the project has none. A file missing from the list is still compiled, checked, and part of the dependency graph — it is simply absent from the rendered book, and every reference into it renders as a question mark.
 
 ## Proof development in the project
 

@@ -134,8 +134,8 @@ Starting from an open protected goal, the host writes:
 
 ```markdown
 ::: {.proof of="thm-main-even-square"}
-Let \(n\) be even. By @def-even-integer, there is an integer \(k\) such
-that \(n=2k\). Hence \(n^2=(2k)^2=4k^2\), so \(4\mid n^2\).
+Let $n$ be even. By @def-even-integer, there is an integer $k$ such
+that $n=2k$. Hence $n^2=(2k)^2=4k^2$, so $4\mid n^2$.
 :::
 ```
 
@@ -181,7 +181,7 @@ If the proof links to a misspelled target:
 
 ```markdown
 ::: {.proof of="thm-main-even-squares"}
-Let \(n=2k\). Then \(n^2=4k^2\).
+Let $n=2k$. Then $n^2=4k^2$.
 :::
 ```
 
@@ -267,8 +267,8 @@ linked proof explicit:
 
 ```markdown
 ::: {.proof .disproof of="thm-main-primes-odd"}
-The number \(2\) is prime, because its only positive divisors are \(1\) and
-\(2\), but \(2\) is not odd. Hence it falsifies the universal statement.
+The number $2$ is prime, because its only positive divisors are $1$ and
+$2$, but $2$ is not odd. Hence it falsifies the universal statement.
 :::
 ```
 

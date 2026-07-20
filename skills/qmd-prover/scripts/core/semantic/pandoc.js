@@ -20,7 +20,11 @@ function collect(child, input) {
  * The reader format. `tex_math_single_backslash` is what makes `\(…\)` and `\[…\]` parse as math
  * rather than as escaped brackets wrapped around raw TeX — without it every LaTeX delimiter a
  * mathematical source actually uses collapses into loose `Str` fragments and dropped `Raw*` nodes,
- * and the formulas vanish from every text projection. Quarto's own reader enables it too.
+ * and the formulas vanish from every text projection.
+ *
+ * Quarto's own reader does *not* enable it, so `\(…\)` renders as a literal parenthesis while every
+ * check here passes. The reader stays permissive anyway — adopting an existing development must not
+ * fail on notation — and the project contract carries the rule that source is written with `$…$`.
  */
 const READER_FORMAT = 'markdown+fenced_divs+citations+tex_math_single_backslash';
 export async function readAst(file, { pandoc = process.env.QMD_PROVER_PANDOC || 'pandoc' } = {}) {

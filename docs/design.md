@@ -314,22 +314,22 @@ qmd-prover:
 This file develops the local parity facts needed by the protected main goal.
 
 ::: {#lem-square-of-even .lemma name="Square of an even integer" date="2026-07-14" export="lem-square-of-even"}
-For every even integer \(n\), there is an integer \(k\) such that
-\(n^2=4k^2\).
+For every even integer $n$, there is an integer $k$ such that
+$n^2=4k^2$.
 :::
 
 ::: {.proof of="lem-square-of-even"}
-By @def-even-integer, write \(n=2k\) for an integer \(k\). Squaring gives
-\(n^2=(2k)^2=4k^2\).
+By @def-even-integer, write $n=2k$ for an integer $k$. Squaring gives
+$n^2=(2k)^2=4k^2$.
 :::
 
 ::: {#cor-even-square-divisible-by-four .corollary name="Even squares are divisible by four" date="2026-07-14" export="cor-even-square-divisible-by-four"}
-For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
+For every even integer $n$, the integer $n^2$ is divisible by $4$.
 :::
 
 ::: {.proof of="cor-even-square-divisible-by-four"}
-By @lem-square-of-even, write \(n^2=4k^2\) for an integer \(k\). Therefore
-\(4\mid n^2\).
+By @lem-square-of-even, write $n^2=4k^2$ for an integer $k$. Therefore
+$4\mid n^2$.
 :::
 ```
 
@@ -720,6 +720,13 @@ quarto render
 qmd-prover does not render an alternative website. Project QMD remains ordinary
 Quarto input. A project may also render generated pages to expose
 proof progress.
+
+`init` scaffolds the `_quarto.yml` that command reads, unless the project
+already has one. It declares a Quarto book — the only layout in which result
+numbering runs across the whole project and a cross-file `@id` reference
+resolves — rendering into `.qmd-prover/site/book`. The chapter list belongs to
+the project from then on; no qmd-prover command rewrites that file. See
+[Rendering design](design-rendering.md).
 
 Future paper tooling may consume selected verified mathematics and
 produce a separate paper artifact. That workflow does not turn inspection into

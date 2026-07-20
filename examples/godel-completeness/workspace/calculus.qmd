@@ -13,284 +13,284 @@ qmd-prover:
 ---
 
 ::: {#def-hilbert-calculus .definition name="Classical first-order proof calculus" date="2026-07-12" export="def-hilbert-calculus" status="verified"}
-For a signature \(L\) (@def-fol-signature), with \(L\)-terms as in
-@def-fol-terms, an \(L\)-derivation from a set \(\Sigma\) of \(L\)-sentences
-(@def-fol-formulas) is a finite sequence of \(L\)-formulas.  Each line is:
+For a signature $L$ (@def-fol-signature), with $L$-terms as in
+@def-fol-terms, an $L$-derivation from a set $\Sigma$ of $L$-sentences
+(@def-fol-formulas) is a finite sequence of $L$-formulas.  Each line is:
 
-1. a member of \(\Sigma\);
+1. a member of $\Sigma$;
 2. an instance (under uniform formula substitution) of a classical
    propositional tautology;
-3. \(\forall x A\to A[t/x]\), where \(t\) is free for \(x\) in \(A\) as in
+3. $\forall x A\to A[t/x]$, where $t$ is free for $x$ in $A$ as in
    @def-fol-substitution;
-4. \(\forall x(A\to B)\to(A\to\forall xB)\), where \(x\notin\mathrm{FV}(A)\);
-5. \(A[t/x]\to\exists xA\), where \(t\) is free for \(x\) in \(A\), and
-   \(\forall x(A\to B)\to(\exists xA\to B)\), where
-   \(x\notin\mathrm{FV}(B)\);
-6. an equality axiom: \(t=t\), or
-   \(s=t\to(C[s/x]\to C[t/x])\), where the displayed substitutions are
+4. $\forall x(A\to B)\to(A\to\forall xB)$, where $x\notin\mathrm{FV}(A)$;
+5. $A[t/x]\to\exists xA$, where $t$ is free for $x$ in $A$, and
+   $\forall x(A\to B)\to(\exists xA\to B)$, where
+   $x\notin\mathrm{FV}(B)$;
+6. an equality axiom: $t=t$, or
+   $s=t\to(C[s/x]\to C[t/x])$, where the displayed substitutions are
    free (this schema includes symmetry, transitivity, and substitutivity for
    functions and relations);
-7. obtained by modus ponens from earlier \(A\) and \(A\to B\); or
-8. obtained by generalization from an earlier \(A\), yielding \(\forall xA\).
+7. obtained by modus ponens from earlier $A$ and $A\to B$; or
+8. obtained by generalization from an earlier $A$, yielding $\forall xA$.
 
 Because assumptions are sentences by @def-fol-formulas, generalization has no
-free-variable side condition on assumptions.  Write \(\Sigma\vdash_L A\) if
-such a sequence ends in \(A\), and \(\vdash_L A\) when \(\Sigma=\varnothing\).
+free-variable side condition on assumptions.  Write $\Sigma\vdash_L A$ if
+such a sequence ends in $A$, and $\vdash_L A$ when $\Sigma=\varnothing$.
 This is the proof calculus meant by the main goal.
 :::
 
 ::: {#lem-proof-finitary .lemma name="Finitarity of derivability" date="2026-07-12" export="lem-proof-finitary"}
-If \(\Sigma\vdash_L A\), some finite \(\Sigma_0\subseteq\Sigma\) satisfies
-\(\Sigma_0\vdash_L A\).
+If $\Sigma\vdash_L A$, some finite $\Sigma_0\subseteq\Sigma$ satisfies
+$\Sigma_0\vdash_L A$.
 :::
 
 ::: {.proof of="lem-proof-finitary" status="verified"}
-A derivation in @def-hilbert-calculus is finite.  Take \(\Sigma_0\) to be the
+A derivation in @def-hilbert-calculus is finite.  Take $\Sigma_0$ to be the
 set of its lines justified as assumptions.  The same finite sequence is a
-derivation from \(\Sigma_0\).
+derivation from $\Sigma_0$.
 :::
 
 ::: {#lem-deduction .lemma name="Deduction theorem" date="2026-07-12"}
-For a set \(\Sigma\) of sentences and sentences \(A,B\),
-\(\Sigma\cup\{A\}\vdash_L B\) iff \(\Sigma\vdash_L A\to B\).
+For a set $\Sigma$ of sentences and sentences $A,B$,
+$\Sigma\cup\{A\}\vdash_L B$ iff $\Sigma\vdash_L A\to B$.
 :::
 
 ::: {.proof of="lem-deduction" status="verified"}
 For the forward implication, induct on the finite derivation specified in
-@def-hilbert-calculus.  If a line \(C\) is \(A\), use the propositional
-tautology \(A\to A\).  If it is an axiom or belongs to \(\Sigma\), derive
-\(A\to C\) from \(C\) and the tautology \(C\to(A\to C)\).  The modus-ponens
+@def-hilbert-calculus.  If a line $C$ is $A$, use the propositional
+tautology $A\to A$.  If it is an axiom or belongs to $\Sigma$, derive
+$A\to C$ from $C$ and the tautology $C\to(A\to C)$.  The modus-ponens
 step follows from the tautology
-\((A\to(C\to D))\to((A\to C)\to(A\to D))\).
-If \(C\) was generalized to \(\forall xC\), the induction hypothesis gives
-\(A\to C\); generalize to \(\forall x(A\to C)\), and apply quantifier axiom
-4 of @def-hilbert-calculus to obtain \(A\to\forall xC\), since the sentence
-\(A\) has no free variables by @def-fol-formulas.  The reverse implication is
-one modus-ponens step using the added assumption \(A\).
+$(A\to(C\to D))\to((A\to C)\to(A\to D))$.
+If $C$ was generalized to $\forall xC$, the induction hypothesis gives
+$A\to C$; generalize to $\forall x(A\to C)$, and apply quantifier axiom
+4 of @def-hilbert-calculus to obtain $A\to\forall xC$, since the sentence
+$A$ has no free variables by @def-fol-formulas.  The reverse implication is
+one modus-ponens step using the added assumption $A$.
 :::
 
 ::: {#def-consistency .definition name="Syntactic consistency and completeness" date="2026-07-12" export="def-consistency" status="verified"}
-A set \(\Sigma\) of \(L\)-sentences, in the sense of @def-fol-formulas, is
-*consistent* when there is no \(L\)-sentence \(A\) such that both
-\(\Sigma\vdash_L A\) and \(\Sigma\vdash_L\neg A\) in the calculus
+A set $\Sigma$ of $L$-sentences, in the sense of @def-fol-formulas, is
+*consistent* when there is no $L$-sentence $A$ such that both
+$\Sigma\vdash_L A$ and $\Sigma\vdash_L\neg A$ in the calculus
 @def-hilbert-calculus.  It is *negation-complete* when for every
-\(L\)-sentence \(A\), either \(A\in\Sigma\) or \(\neg A\in\Sigma\).  It is
-*deductively closed* when, for every \(L\)-sentence \(A\),
-\(\Sigma\vdash_L A\) implies \(A\in\Sigma\).
+$L$-sentence $A$, either $A\in\Sigma$ or $\neg A\in\Sigma$.  It is
+*deductively closed* when, for every $L$-sentence $A$,
+$\Sigma\vdash_L A$ implies $A\in\Sigma$.
 :::
 
 ::: {#lem-consistency-characterizations .lemma name="Consistency characterizations" date="2026-07-12" export="lem-consistency-characterizations"}
-For a set \(\Sigma\) of sentences and any sentence \(A\), the following are equivalent:
-(i) \(\Sigma\) is inconsistent in the sense of @def-consistency;
-(ii) \(\Sigma\vdash_L\bot\), where \(\bot\) abbreviates the fixed
+For a set $\Sigma$ of sentences and any sentence $A$, the following are equivalent:
+(i) $\Sigma$ is inconsistent in the sense of @def-consistency;
+(ii) $\Sigma\vdash_L\bot$, where $\bot$ abbreviates the fixed
 sentential contradiction
-\((\forall z\,z=z)\wedge\neg(\forall z\,z=z)\);
-(iii) \(\Sigma\vdash_L B\) for every sentence \(B\).
-Moreover, if \(\Sigma\nvdash_L A\), then
-\(\Sigma\cup\{\neg A\}\) is consistent.
+$(\forall z\,z=z)\wedge\neg(\forall z\,z=z)$;
+(iii) $\Sigma\vdash_L B$ for every sentence $B$.
+Moreover, if $\Sigma\nvdash_L A$, then
+$\Sigma\cup\{\neg A\}$ is consistent.
 :::
 
 ::: {.proof of="lem-consistency-characterizations" status="verified"}
-By @def-consistency, inconsistency of \(\Sigma\) means it derives some \(C\)
-and \(\neg C\); a propositional tautology and two
-modus-ponens steps in @def-hilbert-calculus then derive \(\bot\).  From \(\bot\),
-the tautology \(\bot\to B\) derives every \(B\); (iii) plainly implies (i).
+By @def-consistency, inconsistency of $\Sigma$ means it derives some $C$
+and $\neg C$; a propositional tautology and two
+modus-ponens steps in @def-hilbert-calculus then derive $\bot$.  From $\bot$,
+the tautology $\bot\to B$ derives every $B$; (iii) plainly implies (i).
 For the last assertion, inconsistency of
-\(\Sigma\cup\{\neg A\}\) would give a derivation of \(\bot\).  By
-@lem-deduction, \(\Sigma\vdash_L\neg A\to\bot\); classical propositional
-logic proves \((\neg A\to\bot)\to A\), contradicting
-\(\Sigma\nvdash_L A\).
+$\Sigma\cup\{\neg A\}$ would give a derivation of $\bot$.  By
+@lem-deduction, $\Sigma\vdash_L\neg A\to\bot$; classical propositional
+logic proves $(\neg A\to\bot)\to A$, contradicting
+$\Sigma\nvdash_L A$.
 :::
 
 ::: {#lem-chain-union-consistent .lemma name="Unions of consistency chains" date="2026-07-12"}
-If \(\mathcal C\) is a nonempty chain under inclusion of consistent sets of
-\(L\)-sentences, then \(\bigcup\mathcal C\) is consistent.
+If $\mathcal C$ is a nonempty chain under inclusion of consistent sets of
+$L$-sentences, then $\bigcup\mathcal C$ is consistent.
 :::
 
 ::: {.proof of="lem-chain-union-consistent" status="verified"}
 If the union were inconsistent, @lem-consistency-characterizations and
 @lem-proof-finitary would place a finite inconsistent subset in the union.
-Each of its finitely many members belongs to some element of \(\mathcal C\);
-since \(\mathcal C\) is linearly ordered, one element contains them all.  It
+Each of its finitely many members belongs to some element of $\mathcal C$;
+since $\mathcal C$ is linearly ordered, one element contains them all.  It
 would be inconsistent by monotonicity of derivations in
 @def-hilbert-calculus, a contradiction.
 :::
 
 ::: {#lem-maximal-consistent .lemma name="Maximal consistent extension" date="2026-07-12" export="lem-maximal-consistent"}
-Every consistent set \(\Sigma\) of \(L\)-sentences is contained in a
-consistent, deductively closed, negation-complete set \(T\) of
-\(L\)-sentences.
+Every consistent set $\Sigma$ of $L$-sentences is contained in a
+consistent, deductively closed, negation-complete set $T$ of
+$L$-sentences.
 :::
 
 ::: {.proof of="lem-maximal-consistent" status="verified"}
-Consider the partially ordered set of consistent extensions of \(\Sigma\),
+Consider the partially ordered set of consistent extensions of $\Sigma$,
 ordered by inclusion.  It is nonempty, and every chain has an upper bound by
 @lem-chain-union-consistent.  Apply **Zorn's lemma** (the set-theoretic
 principle: if every chain in a nonempty partially ordered set has an upper
 bound, then a maximal element exists) to obtain a maximal consistent
-extension \(T\).  Its hypotheses have just been verified.
+extension $T$.  Its hypotheses have just been verified.
 
-If \(T\vdash_L A\) but \(A\notin T\), then \(T\cup\{A\}\) has exactly the
-same consequences as \(T\) (replace each use of the new assumption by the
+If $T\vdash_L A$ but $A\notin T$, then $T\cup\{A\}$ has exactly the
+same consequences as $T$ (replace each use of the new assumption by the
 given finite derivation), so it is consistent, contradicting maximality.
-Thus \(T\) is deductively closed.  For a sentence \(A\), if \(A\notin T\),
-maximality makes \(T\cup\{A\}\) inconsistent.  By
+Thus $T$ is deductively closed.  For a sentence $A$, if $A\notin T$,
+maximality makes $T\cup\{A\}$ inconsistent.  By
 @lem-consistency-characterizations and @lem-deduction,
-\(T\vdash_L A\to\bot\), hence \(T\vdash_L\neg A\) by propositional logic;
-deductive closure puts \(\neg A\) in \(T\).  Thus @def-consistency gives all
+$T\vdash_L A\to\bot$, hence $T\vdash_L\neg A$ by propositional logic;
+deductive closure puts $\neg A$ in $T$.  Thus @def-consistency gives all
 three claimed properties.
 :::
 
 ::: {#lem-complete-theory-boolean .lemma name="Boolean laws in a complete theory" date="2026-07-12" export="lem-complete-theory-boolean"}
-If \(T\) is consistent, deductively closed, and negation-complete, then for
-sentences \(A,B\):
-\(\neg A\in T\) iff \(A\notin T\), and
-\(A\wedge B\in T\) iff both \(A\in T\) and \(B\in T\).
+If $T$ is consistent, deductively closed, and negation-complete, then for
+sentences $A,B$:
+$\neg A\in T$ iff $A\notin T$, and
+$A\wedge B\in T$ iff both $A\in T$ and $B\in T$.
 :::
 
 ::: {.proof of="lem-complete-theory-boolean" status="verified"}
 Negation-completeness from @def-consistency supplies at least one of
-\(A,\neg A\); consistency forbids both because assumptions are derivable in
+$A,\neg A$; consistency forbids both because assumptions are derivable in
 @def-hilbert-calculus.  The conjunction eliminations and introduction are
 classical propositional tautologies, so deductive closure proves the second
 equivalence.
 :::
 
 ::: {#lem-constant-elimination .lemma name="Elimination of fresh constants" date="2026-07-12" export="lem-constant-elimination"}
-Let \(L'=L\cup\{c_1,\ldots,c_n\}\), where the displayed constants are new.
-If a set \(\Sigma\) of \(L\)-sentences derives an \(L\)-sentence \(A\) in
-\(L'\), then \(\Sigma\vdash_L A\).
-More generally, if distinct variables \(y_i\) are fresh for a finite
-\(L'\)-derivation, replacing every \(c_i\) by \(y_i\) throughout yields a
+Let $L'=L\cup\{c_1,\ldots,c_n\}$, where the displayed constants are new.
+If a set $\Sigma$ of $L$-sentences derives an $L$-sentence $A$ in
+$L'$, then $\Sigma\vdash_L A$.
+More generally, if distinct variables $y_i$ are fresh for a finite
+$L'$-derivation, replacing every $c_i$ by $y_i$ throughout yields a
 valid derivation of the correspondingly translated conclusion from
-\(\Sigma\).
+$\Sigma$.
 :::
 
 ::: {.proof of="lem-constant-elimination" status="verified"}
-Using @lem-fresh-variable, choose distinct variables \(y_1,\ldots,y_n\) that
-occur nowhere in the given finite derivation, and let \(T\) be the translation
-of @def-language-translation replacing each \(c_i\) by \(y_i\).
+Using @lem-fresh-variable, choose distinct variables $y_1,\ldots,y_n$ that
+occur nowhere in the given finite derivation, and let $T$ be the translation
+of @def-language-translation replacing each $c_i$ by $y_i$.
 
-*Commutation.*  Let \(C\) be a formula and \(u\) a term, both containing no
-\(y_i\), and let \(x\) be a variable with \(x\neq y_i\) for every \(i\).  Then
-\(T(C[u/x])=T(C)[T(u)/x]\); and if \(u\) is free for \(x\) in \(C\), then
-\(T(u)\) is free for \(x\) in \(T(C)\).  Indeed \(T\) alters only constants and
+*Commutation.*  Let $C$ be a formula and $u$ a term, both containing no
+$y_i$, and let $x$ be a variable with $x\neq y_i$ for every $i$.  Then
+$T(C[u/x])=T(C)[T(u)/x]$; and if $u$ is free for $x$ in $C$, then
+$T(u)$ is free for $x$ in $T(C)$.  Indeed $T$ alters only constants and
 leaves every binder in place, so by @def-language-translation the free
-occurrences of \(x\) in \(T(C)\) are exactly those of \(x\) in \(C\); an
-induction on \(C\) using @def-fol-substitution then gives the identity, each
-\(c_i\) being a constant that \([u/x]\) leaves alone.  For the side condition,
-\(T\) adds no binder and the only variables it introduces are the \(y_i\), which
-by hypothesis occur in \(C\) nowhere and so are bound by no binder of \(T(C)\);
-hence no new capture arises.  The hypothesis \(x\neq y_i\) is needed: for
-\(C=P(c_i,y_i)\) and \(x=y_i\) the identity fails.
+occurrences of $x$ in $T(C)$ are exactly those of $x$ in $C$; an
+induction on $C$ using @def-fol-substitution then gives the identity, each
+$c_i$ being a constant that $[u/x]$ leaves alone.  For the side condition,
+$T$ adds no binder and the only variables it introduces are the $y_i$, which
+by hypothesis occur in $C$ nowhere and so are bound by no binder of $T(C)$;
+hence no new capture arises.  The hypothesis $x\neq y_i$ is needed: for
+$C=P(c_i,y_i)$ and $x=y_i$ the identity fails.
 
-*Translating the derivation.*  Apply \(T\) to every line and verify each clause
+*Translating the derivation.*  Apply $T$ to every line and verify each clause
 of @def-hilbert-calculus.  Every formula and term displayed in a line contains
-no \(y_i\), since the \(y_i\) occur nowhere in the derivation.  An assumption in
-\(\Sigma\) is an \(L\)-sentence with no \(c_i\), so \(T\) fixes it.  A
-propositional-tautology instance maps to one because \(T\) commutes with
-\(\neg\) and \(\wedge\), hence with uniform formula substitution.  In clauses 3
-and 5 the binder \(\forall x\) or \(\exists x\) is displayed in the line, so
-\(x\) occurs in the derivation and therefore \(x\neq y_i\).  If \(x\) is free in
-\(A\), the schema term \(t\) occurs in the displayed formula \(A[t/x]\) and so
-contains no \(y_i\); commutation applies and preserves the free-for condition,
-giving an instance of the same schema.  If \(x\) is not free in \(A\), then
-\(t\) need not be displayed at all, but \(A[t/x]=A\) and, since \(x\neq y_i\),
-also \(x\notin\mathrm{FV}(T(A))\); the translated line is \(\forall
-x\,T(A)\to T(A)\), respectively \(T(A)\to\exists x\,T(A)\), which is an instance
-of the same schema witnessed by the term \(x\), trivially free for \(x\) in
-\(T(A)\).  The same displayed binder makes \(x\neq y_i\) in clause 4 and in the second form
-of clause 5, so the side condition \(x\notin\mathrm{FV}(A)\), respectively
-\(x\notin\mathrm{FV}(B)\), survives, \(T\) adding free occurrences only of the
-\(y_i\).  An equality axiom \(t=t\) maps to \(T(t)=T(t)\).  Modus ponens is
-preserved because \(T(A\to B)=T(A)\to T(B)\), and a generalization step
-\(\forall z\) survives because \(z\) is displayed, hence differs from every
-\(y_i\), so \(T(\forall z\,C)=\forall z\,T(C)\) is again a generalization.
+no $y_i$, since the $y_i$ occur nowhere in the derivation.  An assumption in
+$\Sigma$ is an $L$-sentence with no $c_i$, so $T$ fixes it.  A
+propositional-tautology instance maps to one because $T$ commutes with
+$\neg$ and $\wedge$, hence with uniform formula substitution.  In clauses 3
+and 5 the binder $\forall x$ or $\exists x$ is displayed in the line, so
+$x$ occurs in the derivation and therefore $x\neq y_i$.  If $x$ is free in
+$A$, the schema term $t$ occurs in the displayed formula $A[t/x]$ and so
+contains no $y_i$; commutation applies and preserves the free-for condition,
+giving an instance of the same schema.  If $x$ is not free in $A$, then
+$t$ need not be displayed at all, but $A[t/x]=A$ and, since $x\neq y_i$,
+also $x\notin\mathrm{FV}(T(A))$; the translated line is $\forall
+x\,T(A)\to T(A)$, respectively $T(A)\to\exists x\,T(A)$, which is an instance
+of the same schema witnessed by the term $x$, trivially free for $x$ in
+$T(A)$.  The same displayed binder makes $x\neq y_i$ in clause 4 and in the second form
+of clause 5, so the side condition $x\notin\mathrm{FV}(A)$, respectively
+$x\notin\mathrm{FV}(B)$, survives, $T$ adding free occurrences only of the
+$y_i$.  An equality axiom $t=t$ maps to $T(t)=T(t)$.  Modus ponens is
+preserved because $T(A\to B)=T(A)\to T(B)$, and a generalization step
+$\forall z$ survives because $z$ is displayed, hence differs from every
+$y_i$, so $T(\forall z\,C)=\forall z\,T(C)$ is again a generalization.
 
-*Substitutivity axioms.*  A line \(s=t\to(C[s/x]\to C[t/x])\) needs a separate
-argument, because the context \(C\) and the placeholder \(x\) are not displayed:
-\(x\) need not occur in the line and may coincide with some \(y_i\), so
-commutation is not directly available.  First, every occurrence of \(y_i\) in
-\(C\) is a free occurrence of the placeholder \(x\), so such occurrences exist
-only when \(x=y_i\).  Indeed a binder on \(y_i\) in \(C\) would survive into
-\(C[s/x]\) and appear in the line, and so would a free occurrence of \(y_i\) at
-a position other than a free occurrence of \(x\); either contradicts the
-freshness of \(y_i\).  Also \(s\) and \(t\) are displayed, so they contain no
-\(y_i\).  Now use
-@lem-fresh-variable to choose a variable \(z\) occurring in none of \(C\),
-\(s\), \(t\) and distinct from every \(y_i\), and put \(D=C[z/x]\).  Then \(D\)
-contains no \(y_i\), because the only possible \(y_i\) occurrences in \(C\) were
-free occurrences of \(x\) and those became \(z\).  Since \(z\) does not occur in
-\(C\), it is free for \(x\) in \(C\), the free occurrences of \(z\) in \(D\) sit
-exactly where the free occurrences of \(x\) sat in \(C\), and
-@def-fol-substitution gives \(D[s/z]=C[s/x]\) and \(D[t/z]=C[t/x]\), both
+*Substitutivity axioms.*  A line $s=t\to(C[s/x]\to C[t/x])$ needs a separate
+argument, because the context $C$ and the placeholder $x$ are not displayed:
+$x$ need not occur in the line and may coincide with some $y_i$, so
+commutation is not directly available.  First, every occurrence of $y_i$ in
+$C$ is a free occurrence of the placeholder $x$, so such occurrences exist
+only when $x=y_i$.  Indeed a binder on $y_i$ in $C$ would survive into
+$C[s/x]$ and appear in the line, and so would a free occurrence of $y_i$ at
+a position other than a free occurrence of $x$; either contradicts the
+freshness of $y_i$.  Also $s$ and $t$ are displayed, so they contain no
+$y_i$.  Now use
+@lem-fresh-variable to choose a variable $z$ occurring in none of $C$,
+$s$, $t$ and distinct from every $y_i$, and put $D=C[z/x]$.  Then $D$
+contains no $y_i$, because the only possible $y_i$ occurrences in $C$ were
+free occurrences of $x$ and those became $z$.  Since $z$ does not occur in
+$C$, it is free for $x$ in $C$, the free occurrences of $z$ in $D$ sit
+exactly where the free occurrences of $x$ sat in $C$, and
+@def-fol-substitution gives $D[s/z]=C[s/x]$ and $D[t/z]=C[t/x]$, both
 substitutions free because the displayed ones are.  Commutation now applies to
-\(D\) with the placeholder \(z\neq y_i\) and yields \(T(C[s/x])=T(D)[T(s)/z]\)
-and \(T(C[t/x])=T(D)[T(t)/z]\), with \(T(s)\) and \(T(t)\) free for \(z\) in
-\(T(D)\).  The translated line is therefore
-\(T(s)=T(t)\to(T(D)[T(s)/z]\to T(D)[T(t)/z])\), an instance of the same equality
-schema with context \(T(D)\) and placeholder \(z\).
+$D$ with the placeholder $z\neq y_i$ and yields $T(C[s/x])=T(D)[T(s)/z]$
+and $T(C[t/x])=T(D)[T(t)/z]$, with $T(s)$ and $T(t)$ free for $z$ in
+$T(D)$.  The translated line is therefore
+$T(s)=T(t)\to(T(D)[T(s)/z]\to T(D)[T(t)/z])$, an instance of the same equality
+schema with context $T(D)$ and placeholder $z$.
 
-The translated sequence is therefore an \(L\)-derivation from \(\Sigma\) of
-\(T\) applied to the conclusion, which is the general assertion.  When the
-conclusion \(A\) is an \(L\)-sentence it contains no \(c_i\), so \(T\) fixes it
-and the sequence derives \(A\) itself; this is the first assertion.
+The translated sequence is therefore an $L$-derivation from $\Sigma$ of
+$T$ applied to the conclusion, which is the general assertion.  When the
+conclusion $A$ is an $L$-sentence it contains no $c_i$, so $T$ fixes it
+and the sequence derives $A$ itself; this is the first assertion.
 :::
 
 ::: {#lem-alpha-rename-provable .lemma name="Provable renaming of a bound variable" date="2026-07-12"}
-Let \(A\) be a formula and let \(y\) be a variable that does not occur in
-\(A\).  Then \(y\) is free for \(x\) in \(A\), the variable \(x\) is free for
-\(y\) in \(A[y/x]\), \((A[y/x])[x/y]=A\), and
-\[
+Let $A$ be a formula and let $y$ be a variable that does not occur in
+$A$.  Then $y$ is free for $x$ in $A$, the variable $x$ is free for
+$y$ in $A[y/x]$, $(A[y/x])[x/y]=A$, and
+$$
  \vdash_L \exists x\,A \leftrightarrow \exists y\,A[y/x].
-\]
+$$
 :::
 
 ::: {.proof of="lem-alpha-rename-provable" status="verified"}
-Since \(y\) does not occur in \(A\), no binder of \(A\) is \(\exists y\), so by
-@def-fol-substitution \(y\) is free for \(x\) in \(A\) and \(A[y/x]\) merely
-relabels the free occurrences of \(x\) as \(y\).  Those are the only
-occurrences of \(y\) in \(A[y/x]\), and each lies where \(x\) was free in
-\(A\), hence under no binder \(\exists x\); therefore \(x\) is free for \(y\) in
-\(A[y/x]\) and substituting \(x\) back gives \((A[y/x])[x/y]=A\).  For the
+Since $y$ does not occur in $A$, no binder of $A$ is $\exists y$, so by
+@def-fol-substitution $y$ is free for $x$ in $A$ and $A[y/x]$ merely
+relabels the free occurrences of $x$ as $y$.  Those are the only
+occurrences of $y$ in $A[y/x]$, and each lies where $x$ was free in
+$A$, hence under no binder $\exists x$; therefore $x$ is free for $y$ in
+$A[y/x]$ and substituting $x$ back gives $(A[y/x])[x/y]=A$.  For the
 biconditional, quantifier axiom 5 of @def-hilbert-calculus in its first form
-gives \((A[y/x])[x/y]\to\exists y\,A[y/x]\), that is
-\(A\to\exists y\,A[y/x]\); generalizing over \(x\) and applying the
-\(\exists\)-elimination form \(\forall x(A\to B)\to(\exists xA\to B)\) with
-\(B=\exists y\,A[y/x]\) — where \(x\notin\mathrm{FV}(B)\) because
-\(\mathrm{FV}(\exists y\,A[y/x])=\mathrm{FV}(A)\setminus\{x\}\) by
-@def-fol-formulas — yields \(\exists x\,A\to\exists y\,A[y/x]\).  Symmetrically,
-axiom 5 gives \(A[y/x]\to\exists x\,A\) since \(A=(A[y/x])[x/y]\); generalizing
-over \(y\) and using \(\exists\)-elimination with \(y\notin\mathrm{FV}(\exists
-x\,A)\) (as \(y\) does not occur in \(A\)) yields
-\(\exists y\,A[y/x]\to\exists x\,A\).  A propositional tautology combines the
+gives $(A[y/x])[x/y]\to\exists y\,A[y/x]$, that is
+$A\to\exists y\,A[y/x]$; generalizing over $x$ and applying the
+$\exists$-elimination form $\forall x(A\to B)\to(\exists xA\to B)$ with
+$B=\exists y\,A[y/x]$ — where $x\notin\mathrm{FV}(B)$ because
+$\mathrm{FV}(\exists y\,A[y/x])=\mathrm{FV}(A)\setminus\{x\}$ by
+@def-fol-formulas — yields $\exists x\,A\to\exists y\,A[y/x]$.  Symmetrically,
+axiom 5 gives $A[y/x]\to\exists x\,A$ since $A=(A[y/x])[x/y]$; generalizing
+over $y$ and using $\exists$-elimination with $y\notin\mathrm{FV}(\exists
+x\,A)$ (as $y$ does not occur in $A$) yields
+$\exists y\,A[y/x]\to\exists x\,A$.  A propositional tautology combines the
 two implications into the stated equivalence.
 :::
 
 ::: {#lem-henkin-witness-consistency .lemma name="Fresh witness preserves consistency" date="2026-07-12" export="lem-henkin-witness-consistency"}
-Let \(\Sigma\) be a consistent set of \(L\)-sentences, let
-\(\exists x A(x)\) be an \(L\)-sentence, and let \(c\) be a new constant.
-Then \(\Sigma\cup\{\exists xA(x)\to A(c)\}\) is consistent in
-\(L\cup\{c\}\).
+Let $\Sigma$ be a consistent set of $L$-sentences, let
+$\exists x A(x)$ be an $L$-sentence, and let $c$ be a new constant.
+Then $\Sigma\cup\{\exists xA(x)\to A(c)\}$ is consistent in
+$L\cup\{c\}$.
 :::
 
 ::: {.proof of="lem-henkin-witness-consistency" status="verified"}
-Write \(A(x)\) for the body, so that \(A(c)=A(x)[c/x]\).  Suppose the extension
+Write $A(x)$ for the body, so that $A(c)=A(x)[c/x]$.  Suppose the extension
 is inconsistent.  By @lem-consistency-characterizations and @lem-deduction it
-derives from \(\Sigma\), in \(L\cup\{c\}\), the negation of
-\(\exists xA(x)\to A(c)\); propositional logic then yields derivations of both
-\(\exists xA(x)\) and \(\neg A(x)[c/x]\).  Using @lem-fresh-variable, choose a
-variable \(y\) occurring nowhere in this finite derivation, so in particular
-\(y\) does not occur in \(A(x)\).  Replacing \(c\) by \(y\) throughout — the
+derives from $\Sigma$, in $L\cup\{c\}$, the negation of
+$\exists xA(x)\to A(c)$; propositional logic then yields derivations of both
+$\exists xA(x)$ and $\neg A(x)[c/x]$.  Using @lem-fresh-variable, choose a
+variable $y$ occurring nowhere in this finite derivation, so in particular
+$y$ does not occur in $A(x)$.  Replacing $c$ by $y$ throughout — the
 one-constant case of @lem-constant-elimination — turns the derivation of
-\(\neg A(x)[c/x]\) into a derivation from \(\Sigma\) of \(\neg A(x)[y/x]\).
-Propositional logic gives \(A(x)[y/x]\to\bot\); generalization yields
-\(\forall y(A(x)[y/x]\to\bot)\), and the \(\exists\)-elimination form of
-quantifier axiom 5 in @def-hilbert-calculus (with \(y\notin\mathrm{FV}(\bot)\))
-gives \(\exists y\,A(x)[y/x]\to\bot\), hence \(\neg\exists y\,A(x)[y/x]\).
-Because \(y\) does not occur in \(A(x)\), @lem-alpha-rename-provable gives
-\(\vdash_L\exists xA(x)\leftrightarrow\exists y\,A(x)[y/x]\), so
-\(\Sigma\vdash_L\neg\exists xA(x)\).  This contradicts the derived
-\(\exists xA(x)\), so \(\Sigma\) would be inconsistent, against the hypothesis.
+$\neg A(x)[c/x]$ into a derivation from $\Sigma$ of $\neg A(x)[y/x]$.
+Propositional logic gives $A(x)[y/x]\to\bot$; generalization yields
+$\forall y(A(x)[y/x]\to\bot)$, and the $\exists$-elimination form of
+quantifier axiom 5 in @def-hilbert-calculus (with $y\notin\mathrm{FV}(\bot)$)
+gives $\exists y\,A(x)[y/x]\to\bot$, hence $\neg\exists y\,A(x)[y/x]$.
+Because $y$ does not occur in $A(x)$, @lem-alpha-rename-provable gives
+$\vdash_L\exists xA(x)\leftrightarrow\exists y\,A(x)[y/x]$, so
+$\Sigma\vdash_L\neg\exists xA(x)$.  This contradicts the derived
+$\exists xA(x)$, so $\Sigma$ would be inconsistent, against the hypothesis.
 Hence the extension is consistent.
 :::

@@ -1,0 +1,12 @@
+---
+title: "Gödel completeness"
+---
+
+This project develops a full proof of the Gödel completeness theorem for
+first-order logic, from the note in `completeness.md` to the finished argument in
+`workspace/main-proof.qmd`.
+
+The book landing page carries no mathematics of its own. The protected main goal
+is stated in the next chapter; the chapters after it develop the syntax, the
+semantics, and the Henkin construction the proof rests on, and the last chapter
+records the state of the development.

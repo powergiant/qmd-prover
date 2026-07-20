@@ -3,46 +3,46 @@ title: "First-order syntax and substitution"
 ---
 
 ::: {#def-fol-signature .definition name="First-order signature" date="2026-07-12" export="def-fol-signature"}
-A first-order signature \(L\) consists of sets \(\mathcal F_n\) of \(n\)-ary
-function symbols and sets \(\mathcal R_n\) of \(n\)-ary relation symbols for
-each \(n\in\mathbb N\).  Constants are the members of \(\mathcal F_0\).
+A first-order signature $L$ consists of sets $\mathcal F_n$ of $n$-ary
+function symbols and sets $\mathcal R_n$ of $n$-ary relation symbols for
+each $n\in\mathbb N$.  Constants are the members of $\mathcal F_0$.
 Equality is a distinguished logical binary predicate, not a member of
-\(\mathcal R_2\).  A language extension keeps the old symbols with their
+$\mathcal R_2$.  A language extension keeps the old symbols with their
 arities and adds new ones.
 :::
 
 ::: {#def-fol-terms .definition name="Terms and variables" date="2026-07-12" export="def-fol-terms"}
-Fix a countably infinite set \(\mathrm{Var}\) of variables.  For a signature
-\(L\) as in @def-fol-signature, the \(L\)-terms are the least set containing
+Fix a countably infinite set $\mathrm{Var}$ of variables.  For a signature
+$L$ as in @def-fol-signature, the $L$-terms are the least set containing
 every variable and every constant and closed under
-\(f(t_1,\ldots,t_n)\) for \(f\in\mathcal F_n\).  A term is *closed* when it
-has no variable.  The finite set of variables occurring in \(t\) is
-\(\mathrm{Var}(t)\).
+$f(t_1,\ldots,t_n)$ for $f\in\mathcal F_n$.  A term is *closed* when it
+has no variable.  The finite set of variables occurring in $t$ is
+$\mathrm{Var}(t)$.
 :::
 
 ::: {#def-fol-formulas .definition name="Formulas and sentences" date="2026-07-12" export="def-fol-formulas"}
 For @def-fol-signature and @def-fol-terms, atomic formulas are
-\(R(t_1,\ldots,t_n)\) and \(t=u\).  Formulas are generated from atomic
-formulas using \(\neg\), \(\wedge\), and \(\exists x\).  Write the other
-Boolean connectives and \(\forall x\,A:=\neg\exists x\neg A\) as
+$R(t_1,\ldots,t_n)$ and $t=u$.  Formulas are generated from atomic
+formulas using $\neg$, $\wedge$, and $\exists x$.  Write the other
+Boolean connectives and $\forall x\,A:=\neg\exists x\neg A$ as
 abbreviations.  Every variable occurrence in a term is free.  In an atomic
 formula all occurrences are free; negation preserves free occurrences,
-conjunction takes their union, and \(\exists x A\) binds exactly the free
-occurrences of \(x\) in \(A\).  Thus
-\(\mathrm{FV}(\exists x A)=\mathrm{FV}(A)\setminus\{x\}\), with the evident
+conjunction takes their union, and $\exists x A$ binds exactly the free
+occurrences of $x$ in $A$.  Thus
+$\mathrm{FV}(\exists x A)=\mathrm{FV}(A)\setminus\{x\}$, with the evident
 recursive clauses for atomic formulas, negation, and conjunction.  A sentence
 has no free variables.  Alpha-equivalence is the least congruence identifying
-\(\exists x A\) with \(\exists y\,A[y/x]\) whenever \(y\) is fresh for
-\(A\); formulas are considered modulo this congruence.
+$\exists x A$ with $\exists y\,A[y/x]$ whenever $y$ is fresh for
+$A$; formulas are considered modulo this congruence.
 :::
 
 ::: {#def-fol-substitution .definition name="Capture-avoiding substitution" date="2026-07-12" export="def-fol-substitution"}
-For a term \(t\), variable \(x\), and formula \(A\) from @def-fol-formulas,
-\(A[t/x]\) is simultaneous replacement of the free occurrences of \(x\) by
-\(t\), after renaming bound variables when necessary so that no variable of
-\(t\) becomes bound.  The notation
-\(A[t_1/x_1,\ldots,t_k/x_k]\) means simultaneous capture-avoiding
-substitution.  A term \(t\) is *free for* \(x\) in \(A\) when the direct
+For a term $t$, variable $x$, and formula $A$ from @def-fol-formulas,
+$A[t/x]$ is simultaneous replacement of the free occurrences of $x$ by
+$t$, after renaming bound variables when necessary so that no variable of
+$t$ becomes bound.  The notation
+$A[t_1/x_1,\ldots,t_k/x_k]$ means simultaneous capture-avoiding
+substitution.  A term $t$ is *free for* $x$ in $A$ when the direct
 replacement causes no capture.
 :::
 
@@ -54,36 +54,36 @@ does not occur in any member of the collection.
 ::: {.proof of="lem-fresh-variable"}
 Every term and formula has a finite parse tree by @def-fol-terms and
 @def-fol-formulas, hence contains finitely many variables.  A finite union of
-finite sets is finite, while \(\mathrm{Var}\) in @def-fol-terms is infinite.
+finite sets is finite, while $\mathrm{Var}$ in @def-fol-terms is infinite.
 Choose a variable outside that union.
 :::
 
 ::: {#lem-substitution-composition .lemma name="Substitution composition" date="2026-07-12" export="lem-substitution-composition"}
-Let \(A\) be a formula, let \(x\ne y\), and suppose the displayed
-substitutions are capture-free and \(y\notin\mathrm{Var}(t)\).  Then
-\[
+Let $A$ be a formula, let $x\ne y$, and suppose the displayed
+substitutions are capture-free and $y\notin\mathrm{Var}(t)$.  Then
+$$
  (A[u/y])[t/x]= (A[t/x])[u[t/x]/y]
-\]
+$$
 up to alpha-equivalence.  The analogous identity holds for terms.
 :::
 
 ::: {.proof of="lem-substitution-composition"}
-Use @lem-fresh-variable to rename every binder of \(A\) away from all
-variables occurring in \(t,u\).  For variables and constants the term identity
+Use @lem-fresh-variable to rename every binder of $A$ away from all
+variables occurring in $t,u$.  For variables and constants the term identity
 follows directly from substitution; the function-term case follows by applying
 the induction hypothesis to every argument.  For formulas, atomic cases follow
 from the term identity, while negation and conjunction follow by applying the
 induction hypothesis to their immediate subformulas.
-For \(\exists z B\), the chosen renaming makes \(z\) distinct from
-\(x,y\) and absent from \(t,u\), so both sides are obtained by applying the
-induction hypothesis inside the unchanged binder \(\exists z\).  This proves
+For $\exists z B$, the chosen renaming makes $z$ distinct from
+$x,y$ and absent from $t,u$, so both sides are obtained by applying the
+induction hypothesis inside the unchanged binder $\exists z$.  This proves
 the identity specified by @def-fol-substitution.
 :::
 
 ::: {#def-language-translation .definition name="Reduct translation" date="2026-07-12" export="def-language-translation"}
-If \(L\subseteq L'\) and \(A\) is an \(L'\)-formula, replacing selected new
+If $L\subseteq L'$ and $A$ is an $L'$-formula, replacing selected new
 constants by distinct variables means the capture-avoiding simultaneous
 substitution of those variables for the constants, after bound-variable
-renaming as in @def-fol-substitution.  It fixes every \(L\)-symbol and
+renaming as in @def-fol-substitution.  It fixes every $L$-symbol and
 commutes with the logical constructors of @def-fol-formulas.
 :::

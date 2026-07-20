@@ -32,11 +32,23 @@ test('project initialization inventories external policy, adopts, preserves, app
   assert.equal((await stat(path.join(fresh, '.qmd-prover', 'config.yml'))).isFile(), true);
   assert.equal((await stat(path.join(fresh, '.qmd-prover', '.gitignore'))).isFile(), true);
   await assert.rejects(stat(path.join(fresh, '.qmd-prover', 'graphs')), { code: 'ENOENT' });
+  // A project with no Quarto configuration gets a book scaffold whose chapter list is
+  // empty until the project has files, and whose output stays inside the state directory.
+  assert.deepEqual(created.quarto_config, { path: '_quarto.yml', status: 'created', output_dir: '.qmd-prover/site/book' });
+  const scaffoldedQuarto = await readFile(path.join(fresh, '_quarto.yml'), 'utf8');
+  assert.match(scaffoldedQuarto, /^project:\n {2}type: book$/m);
+  assert.match(scaffoldedQuarto, /^ {2}output-dir: \.qmd-prover\/site\/book$/m);
+  assert.match(scaffoldedQuarto, /^ {2}chapters: \[\]$/m);
+  assert.match(scaffoldedQuarto, /^crossref:\n {2}chapters: true$/m);
   // Re-initialization is idempotent, and self-heals a config.yml deleted from an
   // already-initialized project even though AGENTS.md needs no change.
   await rm(path.join(fresh, '.qmd-prover', 'config.yml'));
-  assert.equal((await initializeProject(fresh)).status, 'already-initialized');
+  const reinitialized = await initializeProject(fresh);
+  assert.equal(reinitialized.status, 'already-initialized');
   assert.equal((await stat(path.join(fresh, '.qmd-prover', 'config.yml'))).isFile(), true);
+  // The scaffold it wrote a moment ago is now the project's own configuration.
+  assert.deepEqual(reinitialized.quarto_config, { path: '_quarto.yml', status: 'preserved' });
+  assert.equal(await readFile(path.join(fresh, '_quarto.yml'), 'utf8'), scaffoldedQuarto);
 
   const emptyPolicy = await bareProject();
   await writeFile(path.join(emptyPolicy, 'AGENTS.md'), '  \n');
@@ -57,7 +69,10 @@ test('project initialization inventories external policy, adopts, preserves, app
   const blankIntent = await initializeProject(blankPolicyProject);
   assert.equal(blankIntent.status, 'intent-required');
   assert.equal(await readFile(path.join(blankPolicyProject, 'AGENTS.md'), 'utf8'), '\n');
-  assert.equal((await initializeProject(blankPolicyProject, { adoptExisting: true })).status, 'adopted');
+  const blankAdopted = await initializeProject(blankPolicyProject, { adoptExisting: true });
+  assert.equal(blankAdopted.status, 'adopted');
+  // Adoption seeds the chapter list from the QMD files that were already there.
+  assert.match(await readFile(path.join(blankPolicyProject, '_quarto.yml'), 'utf8'), /^ {2}chapters:\n {4}- existing\.qmd$/m);
 
   const partial = await bareProject();
   await mkdir(path.join(partial, 'theory'));
@@ -69,8 +84,12 @@ test('project initialization inventories external policy, adopts, preserves, app
   assert.deepEqual(must(intentRequired.existing).qmd_files, ['theory/existing.qmd']);
   await assert.rejects(readFile(path.join(partial, 'AGENTS.md')), { code: 'ENOENT' });
   await assert.rejects(stat(path.join(partial, '.qmd-prover')), { code: 'ENOENT' });
-  assert.equal((await initializeProject(partial, { adoptExisting: true })).status, 'adopted');
+  const partialAdopted = await initializeProject(partial, { adoptExisting: true });
+  assert.equal(partialAdopted.status, 'adopted');
   assert.equal(await readFile(path.join(partial, 'theory', 'existing.qmd'), 'utf8'), '# Existing mathematics\n');
+  // An existing Quarto configuration is reported and left byte-for-byte alone.
+  assert.deepEqual(partialAdopted.quarto_config, { path: '_quarto.yml', status: 'preserved' });
+  assert.equal(await readFile(path.join(partial, '_quarto.yml'), 'utf8'), 'project:\n  type: website\n');
 
   const existing = await bareProject();
   const localPolicy = '# Existing project policy\n\n- Preserve this rule.\n';
@@ -79,6 +98,9 @@ test('project initialization inventories external policy, adopts, preserves, app
   assert.equal(appendRequired.status, 'append-required');
   assert.equal(appendRequired.ok, false);
   assert.equal(await readFile(path.join(existing, 'AGENTS.md'), 'utf8'), localPolicy);
+  // A gated outcome writes nothing at all, the Quarto scaffold included.
+  assert.equal(appendRequired.quarto_config, undefined);
+  await assert.rejects(stat(path.join(existing, '_quarto.yml')), { code: 'ENOENT' });
   assert.equal((await initializeProject(existing, { appendContract: true })).status, 'appended');
   const appended = await readFile(path.join(existing, 'AGENTS.md'), 'utf8');
   assert.ok(appended.startsWith(localPolicy));
@@ -415,7 +437,7 @@ test('maintainer and agent documentation preserves the full design structure', a
     '### Example direct invocation'
   ]);
   requireHeadings(files.rendering, [
-    '## Role', '### Example Quarto project', '## User-note rendering input',
+    '## Role', '### Scaffolded Quarto project', '### Mathematics delimiters', '## User-note rendering input',
     '### Example user page', '## Observability', '### Example generated status page',
     '## Proof-development observability', '## Dependency navigation',
     '### Example graph inclusion', '## Separation of concerns', '## Generated material',
@@ -431,7 +453,8 @@ test('maintainer and agent documentation preserves the full design structure', a
   ]);
   requireHeadings(files.contract, [
     '## Contents', '## Project setup', '## External mathematical basis',
-    '## qmd-prover contract', '## Proof development in the project',
+    '## Verification settings', '## qmd-prover contract', '## Rendered document',
+    '## Proof development in the project',
     '## Verification discipline', '## Agent workflow', '## Project-specific additions'
   ]);
   requireHeadings(files.cli, [

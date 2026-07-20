@@ -268,6 +268,19 @@ positional arguments, creates no theorem QMD, and never edits mathematics. On an
 also materializes `.qmd-prover/` with a default `config.yml` and `.gitignore` (each written only when
 absent), so a project that lost its config gets it back even when the contract was already current.
 
+The same `ok` outcomes scaffold the project's Quarto configuration and report it as `quarto_config`:
+
+```json
+{ "path": "_quarto.yml", "status": "created", "output_dir": ".qmd-prover/site/book" }
+```
+
+`status` is `created` when the project had neither `_quarto.yml` nor `_quarto.yaml`, and `preserved`
+(with no `output_dir`) when one already existed — an existing Quarto configuration is never rewritten
+or merged. A created file declares `project.type: book`, renders into `.qmd-prover/site/book`, and
+lists every QMD file found at initialization under `book.chapters`, landing page first. The book
+layout is what makes result numbering run across the whole project and cross-file `@id` references
+resolve; the chapter list is the project's from then on, and no qmd-prover command rewrites it.
+
 **Never use a mutation flag without explicit user approval.**
 
 ### `inspect project`
@@ -593,7 +606,7 @@ mathematics. It writes into `.qmd-prover/generated/` (configurable via `render.o
 The result also carries `output`, `graph_svg`, `report`, `summary`, `diagnostics`, and a `quarto`
 block reporting availability. `render_command` (`<quarto> render`) is suggested **only** when Quarto
 is available. qmd-prover never runs Quarto itself; use ordinary `quarto render` for final HTML, PDF,
-or other output.
+or other output, which the scaffolded `_quarto.yml` writes to `.qmd-prover/site/book`.
 
 ### Diagnostic codes
 

@@ -191,6 +191,8 @@ A qmd-prover project is one folder. Everything in it is one unified dependency g
 ```text
 my-project/
   AGENTS.md              the project contract (managed block) + local project rules
+  _quarto.yml            the book layout: chapter list and render output directory
+  index.qmd              the book landing page
   completeness.md        the user's rough note, if any
   completeness.qmd       the user's protected main goal(s)
   workspace/             agent-created mathematics, by convention
@@ -261,6 +263,12 @@ Read the returned `existing` inventory and act on the `status`:
 
 Stop and ask before creating, appending, or synchronizing project policy. Never use a mutation flag
 without explicit approval. No QMD scaffold or initial theorem is required.
+
+Every outcome that writes also scaffolds `.qmd-prover/` and, when the project has no Quarto
+configuration at all, a `_quarto.yml` rendering the project as a book into `.qmd-prover/site/book`.
+`quarto_config.status` reports `created` or `preserved`; an existing Quarto configuration is never
+touched or merged. The chapter list in that file is the project's to maintain — see
+[Rendering](#rendering).
 
 ### Environment and verifier setup
 
@@ -556,6 +564,19 @@ project's semantic mathematics, under `.qmd-prover/generated/`. Project errors b
 is written unless `--allow-errors` is explicit — and artifacts written that way are flagged
 `artifacts_trustworthy: false`. qmd-prover never runs Quarto itself; use ordinary `quarto render` for
 final HTML, PDF, or other output, and only when Quarto is available.
+
+The `_quarto.yml` that `init` scaffolds renders the project as a Quarto book into
+`.qmd-prover/site/book`. Keep that layout: a book is the only Quarto layout in which result numbering
+runs across the whole project and an `@id` reference resolves to a declaration in another file.
+Rendered as separate documents instead, every file numbers from 1 and every cross-file reference
+renders as a question mark. qmd-prover never rewrites that file, so maintain `book.chapters`
+yourself: add each QMD file you create, in reading order, remove the entry when you delete the file,
+and keep `index.qmd` first as the book landing page. A file missing from the list is still compiled
+and checked; it is only absent from the rendered book.
+
+Write inline mathematics as `$…$` and display mathematics as `$$…$$` on their own lines. The
+compiler also accepts `\(…\)` and `\[…\]`, so such formulas pass every check, but Quarto does not
+read single-backslash delimiters and renders them as literal parentheses or brackets.
 
 ## Reporting to the user
 

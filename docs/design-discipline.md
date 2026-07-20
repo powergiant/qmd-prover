@@ -54,7 +54,7 @@ The managed block is not repeated here. A project can append local policy:
 
 ## Local project policy
 
-- Use \(\mathbb N=\{0,1,2,\ldots\}\).
+- Use $\mathbb N=\{0,1,2,\ldots\}$.
 - Organize new proof files by subject under `workspace/`, for example
   `workspace/geometry/` for geometric lemmas.
 - Put shared foundational definitions in `workspace/foundations.qmd`.
@@ -223,14 +223,14 @@ into a globally valid proof.
 Suppose a candidate contains:
 
 ```markdown
-Since \(ab=ac\), divide by \(a\) to obtain \(b=c\).
+Since $ab=ac$, divide by $a$ to obtain $b=c$.
 ```
 
 The syntax may be valid and there may be no semantic dependencies, but the
-inference is invalid unless the hypotheses give \(a\ne0\). Detecting the
+inference is invalid unless the hypotheses give $a\ne0$. Detecting the
 missing hypothesis belongs to mathematical verification rather than parsing.
 
-Likewise, checking finitely many values of \(n\) does not prove a statement
+Likewise, checking finitely many values of $n$ does not prove a statement
 quantified over all integers. A valid verifier response identifies that as a
 gap and supplies repair guidance; the host retains the rejection and repairs
 the proof.
@@ -273,7 +273,7 @@ Every prime number is odd.
 ```
 
 The agent must not silently change the statement to “Every prime greater than
-\(2\) is odd.” It preserves the goal and puts the counterexample \(2\) in the
+$2$ is odd.” It preserves the goal and puts the counterexample $2$ in the
 goal's linked proof overlay, conventionally `workspace/main-proof.qmd`, on a
 proof block marked `.disproof`. It reports the goal as established false only
 when verification records `disproved`, and may offer the corrected statement as
@@ -318,7 +318,7 @@ justified in a separate linked proof.
 
 ```markdown
 ::: {#def-even-integer .definition name="Even integer" date="2026-07-12" export="def-even-integer"}
-An integer \(n\) is even if \(n=2k\) for some integer \(k\).
+An integer $n$ is even if $n=2k$ for some integer $k$.
 :::
 ```
 
@@ -329,11 +329,11 @@ weaker verification standard.
 
 ```markdown
 ::: {#lem-square-of-double .lemma name="Square of a double" date="2026-07-12"}
-If \(n=2k\), then \(n^2=4k^2\).
+If $n=2k$, then $n^2=4k^2$.
 :::
 
 ::: {.proof of="lem-square-of-double"}
-Expand: \(n^2=(2k)^2=4k^2\).
+Expand: $n^2=(2k)^2=4k^2$.
 :::
 ```
 
@@ -355,7 +355,7 @@ is not a protected main goal merely because it is important.
 
 ```markdown
 ::: {#thm-even-square .theorem name="Squares of even integers" date="2026-07-12"}
-If an integer \(n\) is even, then \(4\mid n^2\).
+If an integer $n$ is even, then $4\mid n^2$.
 :::
 ```
 
@@ -366,7 +366,7 @@ the class itself creates no implicit edge.
 
 ```markdown
 ::: {#cor-even-square-mod-four .corollary name="Even squares modulo four" date="2026-07-12"}
-An even square is congruent to \(0\pmod 4\).
+An even square is congruent to $0\pmod 4$.
 :::
 
 ::: {.proof of="cor-even-square-mod-four"}
@@ -383,7 +383,7 @@ file repeats it.
 
 ```markdown
 ::: {#thm-main-even-product .theorem .goal name="Even product theorem" date="2026-07-12"}
-If \(a\) is even and \(b\) is an integer, then \(ab\) is even.
+If $a$ is even and $b$ is an integer, then $ab$ is even.
 :::
 ```
 
@@ -400,8 +400,8 @@ Every `@id` in the proof is a dependency at its point of use.
 
 ```markdown
 ::: {.proof of="thm-main-even-product"}
-By @def-even-integer, write \(a=2k\). Then \(ab=2(kb)\), so
-@def-even-integer shows that \(ab\) is even.
+By @def-even-integer, write $a=2k$. Then $ab=2(kb)$, so
+@def-even-integer shows that $ab$ is even.
 :::
 ```
 

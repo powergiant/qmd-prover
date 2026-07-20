@@ -16,30 +16,62 @@ qmd-prover must not implement a parallel HTML site generator or replace
 Quarto's document model. Inspection and verification correctness do not depend
 on a successful render.
 
-### Example Quarto project
+### Scaffolded Quarto project
 
-A small website project can use an ordinary `_quarto.yml`:
+The semantic model is global — one dependency graph over every project file —
+while Quarto's cross-reference model is per document. Rendered as separate
+documents, each file numbers its results from 1 and every `@id` reference into
+another file renders as a question mark, so the rendered book contradicts the
+mathematics it displays. A Quarto *book* is the only layout that removes the
+mismatch: numbering runs across the whole project and cross-chapter references
+resolve.
+
+`init` therefore scaffolds one, when and only when the project has no Quarto
+configuration at all:
 
 ```yaml
 project:
-  type: website
+  type: book
+  output-dir: .qmd-prover/site/book
 
-website:
+book:
   title: "Elementary number theory"
-  navbar:
-    left:
-      - main.qmd
-      - .qmd-prover/generated/proof-status.qmd
+  chapters:
+    - index.qmd
+    - main.qmd
+    - workspace/foundations.qmd
 
 format:
   html:
     toc: true
+
+crossref:
+  chapters: true
 ```
 
-The user-authored note and an optional generated status page are ordinary
-Quarto inputs. Proof files under the conventional `workspace/` folder may be
-rendered in a separate preview when the project wants to expose detailed
-proof development.
+Two consequences are deliberate. Output lands under `.qmd-prover/`, whose
+`.gitignore` already ignores everything derived, so rendering leaves no
+artifacts beside the sources and needs no change to the project's own
+`.gitignore`; Quarto's remaining `.quarto/` cache is covered by the `.gitignore`
+Quarto itself writes on its first render. And the file is the project's from the
+moment it is written: qmd-prover
+never rewrites it, so the chapter list is maintained by whoever adds files, and
+an existing Quarto configuration — a website, a manuscript, a differently
+organized book — is preserved untouched.
+
+A file absent from `book.chapters` is still compiled, checked, and part of the
+graph; it is only missing from the rendered book. Chapter membership is a
+presentation decision and never a semantic one.
+
+### Mathematics delimiters
+
+The compiler reads QMD with `tex_math_single_backslash`, so `\(…\)` and `\[…\]`
+parse as mathematics and every check passes. Quarto's own reader does not enable
+that extension, and renders those formulas as literal parentheses or brackets.
+Source is therefore written with `$…$` and `$$…$$`, a rule stated in the project
+contract rather than enforced by a diagnostic: the compiler stays permissive so
+that adopting an existing development never fails on notation, while the
+contract keeps newly written mathematics renderable.
 
 ## User-note rendering input
 
@@ -68,7 +100,7 @@ title: "Main questions"
 We study parity and divisibility.
 
 ::: {#thm-main-even-square .theorem .goal name="Even squares" date="2026-07-12"}
-For every even integer \(n\), the integer \(n^2\) is divisible by \(4\).
+For every even integer $n$, the integer $n^2$ is divisible by $4$.
 :::
 ```
 

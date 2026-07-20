@@ -14,7 +14,7 @@ A candidate proof proceeds by contraposition through a Henkin term model:
 4. `henkin.qmd` constructs witnesses and proves that every consistent theory
    has a model.
 5. `main-proof.qmd` applies model existence to
-   \(\Gamma\cup\{\neg\varphi\}\).
+   $\Gamma\cup\{\neg\varphi\}$.
 
 ## Open dependencies
 

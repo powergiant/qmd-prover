@@ -3,64 +3,64 @@ title: "First-order syntax and substitution"
 ---
 
 ::: {#def-fol-signature .definition name="First-order signature" date="2026-07-12" export="def-fol-signature" status="verified"}
-A first-order signature \(L\) consists of sets \(\mathcal F_n\) of \(n\)-ary
-function symbols and sets \(\mathcal R_n\) of \(n\)-ary relation symbols for
-each \(n\in\mathbb N\).  Constants are the members of \(\mathcal F_0\).
+A first-order signature $L$ consists of sets $\mathcal F_n$ of $n$-ary
+function symbols and sets $\mathcal R_n$ of $n$-ary relation symbols for
+each $n\in\mathbb N$.  Constants are the members of $\mathcal F_0$.
 Equality is a distinguished logical binary predicate, not a member of
-\(\mathcal R_2\).  A language extension keeps the old symbols with their
+$\mathcal R_2$.  A language extension keeps the old symbols with their
 arities and adds new ones.
 :::
 
 ::: {#def-fol-terms .definition name="Terms and variables" date="2026-07-12" export="def-fol-terms" status="verified"}
-Fix a countably infinite set \(\mathrm{Var}\) of variables.  For a signature
-\(L\) as in @def-fol-signature, the \(L\)-terms are the least set containing
+Fix a countably infinite set $\mathrm{Var}$ of variables.  For a signature
+$L$ as in @def-fol-signature, the $L$-terms are the least set containing
 every variable and every constant and closed under
-\(f(t_1,\ldots,t_n)\) for \(f\in\mathcal F_n\).  A term is *closed* when it
-has no variable.  The finite set of variables occurring in \(t\) is
-\(\mathrm{Var}(t)\).
+$f(t_1,\ldots,t_n)$ for $f\in\mathcal F_n$.  A term is *closed* when it
+has no variable.  The finite set of variables occurring in $t$ is
+$\mathrm{Var}(t)$.
 :::
 
 ::: {#def-fol-formulas .definition name="Formulas and sentences" date="2026-07-12" export="def-fol-formulas" status="verified"}
-For @def-fol-signature and @def-fol-terms, the \(L\)-formulas are the finite
+For @def-fol-signature and @def-fol-terms, the $L$-formulas are the finite
 syntax trees generated inductively by two clauses: the atomic formulas are
-\(R(t_1,\ldots,t_n)\) with \(R\in\mathcal R_n\) and each \(t_i\) an \(L\)-term,
-together with \(t=u\) for \(L\)-terms \(t,u\); and from formulas \(A,B\) and a
-variable \(x\) one forms \(\neg A\), \((A\wedge B)\), and \(\exists x\,A\).
+$R(t_1,\ldots,t_n)$ with $R\in\mathcal R_n$ and each $t_i$ an $L$-term,
+together with $t=u$ for $L$-terms $t,u$; and from formulas $A,B$ and a
+variable $x$ one forms $\neg A$, $(A\wedge B)$, and $\exists x\,A$.
 Formulas are these concrete trees, taken literally and not up to any renaming
 of bound variables.  Introduce the remaining connectives as abbreviations for
-specific primitive formulas: \(A\vee B:=\neg(\neg A\wedge\neg B)\),
-\(A\to B:=\neg(A\wedge\neg B)\),
-\(A\leftrightarrow B:=(A\to B)\wedge(B\to A)\), and
-\(\forall x\,A:=\neg\exists x\,\neg A\); each abbreviation denotes exactly the
+specific primitive formulas: $A\vee B:=\neg(\neg A\wedge\neg B)$,
+$A\to B:=\neg(A\wedge\neg B)$,
+$A\leftrightarrow B:=(A\to B)\wedge(B\to A)$, and
+$\forall x\,A:=\neg\exists x\,\neg A$; each abbreviation denotes exactly the
 displayed primitive syntax tree.  The set of free variables is defined by
-recursion: \(\mathrm{FV}\) of an atomic formula is
-the set of variables occurring in its terms; \(\mathrm{FV}(\neg A)=\mathrm{FV}(A)\);
-\(\mathrm{FV}(A\wedge B)=\mathrm{FV}(A)\cup\mathrm{FV}(B)\); and
-\(\mathrm{FV}(\exists x\,A)=\mathrm{FV}(A)\setminus\{x\}\).  An occurrence of a
-variable in a formula is *bound* when it lies inside a subformula \(\exists x\)
-binding that variable, and *free* otherwise, so \(\mathrm{FV}(A)\) is exactly
-the set of variables with a free occurrence.  A *sentence* is a formula \(A\)
-with \(\mathrm{FV}(A)=\varnothing\).
+recursion: $\mathrm{FV}$ of an atomic formula is
+the set of variables occurring in its terms; $\mathrm{FV}(\neg A)=\mathrm{FV}(A)$;
+$\mathrm{FV}(A\wedge B)=\mathrm{FV}(A)\cup\mathrm{FV}(B)$; and
+$\mathrm{FV}(\exists x\,A)=\mathrm{FV}(A)\setminus\{x\}$.  An occurrence of a
+variable in a formula is *bound* when it lies inside a subformula $\exists x$
+binding that variable, and *free* otherwise, so $\mathrm{FV}(A)$ is exactly
+the set of variables with a free occurrence.  A *sentence* is a formula $A$
+with $\mathrm{FV}(A)=\varnothing$.
 :::
 
 ::: {#def-fol-substitution .definition name="Capture-free substitution" date="2026-07-12" export="def-fol-substitution" status="verified"}
-For @def-fol-terms and @def-fol-formulas, term substitution \(t[u/x]\) replaces
-every occurrence of the variable \(x\) in the term \(t\) by the term \(u\), by
-recursion on \(t\): \(x[u/x]=u\); \(y[u/x]=y\) for a variable \(y\ne x\);
-\(c[u/x]=c\) for a constant \(c\); and
-\(f(t_1,\ldots,t_n)[u/x]=f(t_1[u/x],\ldots,t_n[u/x])\).  A term \(u\) is *free
-for* \(x\) in a formula \(A\) when no free occurrence of \(x\) in \(A\) lies
-within the scope of a binder \(\exists y\) with \(y\in\mathrm{Var}(u)\).  When
-\(u\) is free for \(x\) in \(A\), the formula \(A[u/x]\) is defined by recursion
-and replaces the free occurrences of \(x\) by \(u\): on an atomic formula it
-substitutes in the terms; \((\neg A)[u/x]=\neg(A[u/x])\);
-\((A\wedge B)[u/x]=(A[u/x]\wedge B[u/x])\); and, for the quantifier,
-\((\exists y\,A)[u/x]=\exists y\,A\) when \(y=x\), while for \(y\ne x\) — where
-the free-for hypothesis forces \(y\notin\mathrm{Var}(u)\) whenever
-\(x\in\mathrm{FV}(A)\) — one sets \((\exists y\,A)[u/x]=\exists y\,(A[u/x])\).
-Simultaneous substitution \(A[u_1/x_1,\ldots,u_k/x_k]\), with the \(x_i\)
-distinct and each \(u_i\) free for \(x_i\) in \(A\), replaces the free
-occurrences of every \(x_i\) by \(u_i\) at once under the same clauses.  Because
+For @def-fol-terms and @def-fol-formulas, term substitution $t[u/x]$ replaces
+every occurrence of the variable $x$ in the term $t$ by the term $u$, by
+recursion on $t$: $x[u/x]=u$; $y[u/x]=y$ for a variable $y\ne x$;
+$c[u/x]=c$ for a constant $c$; and
+$f(t_1,\ldots,t_n)[u/x]=f(t_1[u/x],\ldots,t_n[u/x])$.  A term $u$ is *free
+for* $x$ in a formula $A$ when no free occurrence of $x$ in $A$ lies
+within the scope of a binder $\exists y$ with $y\in\mathrm{Var}(u)$.  When
+$u$ is free for $x$ in $A$, the formula $A[u/x]$ is defined by recursion
+and replaces the free occurrences of $x$ by $u$: on an atomic formula it
+substitutes in the terms; $(\neg A)[u/x]=\neg(A[u/x])$;
+$(A\wedge B)[u/x]=(A[u/x]\wedge B[u/x])$; and, for the quantifier,
+$(\exists y\,A)[u/x]=\exists y\,A$ when $y=x$, while for $y\ne x$ — where
+the free-for hypothesis forces $y\notin\mathrm{Var}(u)$ whenever
+$x\in\mathrm{FV}(A)$ — one sets $(\exists y\,A)[u/x]=\exists y\,(A[u/x])$.
+Simultaneous substitution $A[u_1/x_1,\ldots,u_k/x_k]$, with the $x_i$
+distinct and each $u_i$ free for $x_i$ in $A$, replaces the free
+occurrences of every $x_i$ by $u_i$ at once under the same clauses.  Because
 a closed term has no variables, it is free for every variable in every formula
 and its substitution never renames a binder.
 :::
@@ -75,59 +75,59 @@ By @def-fol-terms every term is a finite tree and so contains finitely many
 variables; by @def-fol-formulas every formula is a finite syntax tree, so the
 set of variables occurring in it, whether bound or free, is finite.  A finite
 collection therefore determines a finite union of finite variable sets, which
-is finite, whereas \(\mathrm{Var}\) is infinite by @def-fol-terms.  The
+is finite, whereas $\mathrm{Var}$ is infinite by @def-fol-terms.  The
 complement of that finite union is nonempty, and any variable in it occurs in
 no member of the collection.
 :::
 
 ::: {#lem-substitution-composition .lemma name="Composition of closed substitutions" date="2026-07-12" export="lem-substitution-composition"}
-Let \(A\) be a formula, let \(x_1,\ldots,x_k\) be distinct variables, and let
-\(r_1,\ldots,r_k\) be closed terms.  Then the simultaneous substitution
-\(A[r_1/x_1,\ldots,r_k/x_k]\) of @def-fol-substitution replaces exactly the free
-occurrences of each \(x_i\) by \(r_i\) with no renaming, and equals the result
+Let $A$ be a formula, let $x_1,\ldots,x_k$ be distinct variables, and let
+$r_1,\ldots,r_k$ be closed terms.  Then the simultaneous substitution
+$A[r_1/x_1,\ldots,r_k/x_k]$ of @def-fol-substitution replaces exactly the free
+occurrences of each $x_i$ by $r_i$ with no renaming, and equals the result
 of performing the one-variable substitutions in any order.  Consequently, for a
-further closed term \(r\) and a variable \(x\notin\{x_1,\ldots,x_k\}\),
-\[
+further closed term $r$ and a variable $x\notin\{x_1,\ldots,x_k\}$,
+$$
  A[r/x,\,r_1/x_1,\ldots,r_k/x_k]
    =\bigl(A[r_1/x_1,\ldots,r_k/x_k]\bigr)[r/x].
-\]
+$$
 The analogous identity holds for terms.
 :::
 
 ::: {.proof of="lem-substitution-composition" status="verified"}
-By @def-fol-terms the terms \(r,r_1,\ldots,r_k\) are closed, hence contain no
+By @def-fol-terms the terms $r,r_1,\ldots,r_k$ are closed, hence contain no
 variables, so by @def-fol-substitution each is free for every variable in every
 formula, every displayed substitution is defined, and none of them renames a
-binder or alters which occurrences are bound.  Induct on \(A\) using
+binder or alters which occurrences are bound.  Induct on $A$ using
 @def-fol-formulas.  For a term, and hence for an atomic formula, the identities
 are proved by recursion on term structure: distinct variables are replaced
-independently, closedness of the \(r_i\) makes the order of replacement
-irrelevant, and \(x\notin\{x_1,\ldots,x_k\}\) makes the two sides coincide.  The
-cases \(\neg A\) and \(A\wedge B\) follow by applying the induction hypothesis
-to the immediate subformulas.  For \(\exists y\,A\): if \(y\) equals some
-\(x_i\) or equals \(x\), that variable has no free occurrence in
-\(\exists y\,A\), so every substitution simply omits it and both sides discard
+independently, closedness of the $r_i$ makes the order of replacement
+irrelevant, and $x\notin\{x_1,\ldots,x_k\}$ makes the two sides coincide.  The
+cases $\neg A$ and $A\wedge B$ follow by applying the induction hypothesis
+to the immediate subformulas.  For $\exists y\,A$: if $y$ equals some
+$x_i$ or equals $x$, that variable has no free occurrence in
+$\exists y\,A$, so every substitution simply omits it and both sides discard
 it identically; otherwise each displayed substitution passes under the binder
 unchanged by @def-fol-substitution, and the induction hypothesis applies to
-\(A\).  In every case the simultaneous substitution agrees with the iterated
-one, and the displayed identity holds because \(x\) differs from each \(x_i\)
+$A$.  In every case the simultaneous substitution agrees with the iterated
+one, and the displayed identity holds because $x$ differs from each $x_i$
 and all substituted terms are closed.
 :::
 
 ::: {#def-language-translation .definition name="Constant-to-variable translation" date="2026-07-12" export="def-language-translation" status="verified"}
-For @def-fol-terms and @def-fol-formulas, let \(c_1,\ldots,c_n\) be distinct
-constants and \(y_1,\ldots,y_n\) distinct variables.  The *translation*
-replacing each \(c_i\) by \(y_i\) is defined by recursion on syntax: on a term
-it replaces every occurrence of the constant symbol \(c_i\) by the variable
-\(y_i\), fixes every variable and every other function symbol, and sends
-\(f(t_1,\ldots,t_m)\) to \(f\) applied to the translated arguments; on formulas
-it acts inside atomic formulas through their terms and commutes with \(\neg\),
-\(\wedge\), and every binder \(\exists x\) left unchanged, since a binder binds
+For @def-fol-terms and @def-fol-formulas, let $c_1,\ldots,c_n$ be distinct
+constants and $y_1,\ldots,y_n$ distinct variables.  The *translation*
+replacing each $c_i$ by $y_i$ is defined by recursion on syntax: on a term
+it replaces every occurrence of the constant symbol $c_i$ by the variable
+$y_i$, fixes every variable and every other function symbol, and sends
+$f(t_1,\ldots,t_m)$ to $f$ applied to the translated arguments; on formulas
+it acts inside atomic formulas through their terms and commutes with $\neg$,
+$\wedge$, and every binder $\exists x$ left unchanged, since a binder binds
 a variable while the translation alters only constant symbols.  It fixes every
-term and formula that contains none of the \(c_i\).  Because it changes no
-binder, a variable other than \(y_1,\ldots,y_n\) has a free occurrence in the
+term and formula that contains none of the $c_i$.  Because it changes no
+binder, a variable other than $y_1,\ldots,y_n$ has a free occurrence in the
 translated object exactly where it had one in the original.  If moreover none of
-the \(y_i\) occurs in the object being translated, then no binder \(\exists y_i\)
-is present, so each occurrence of the constant \(c_i\) becomes a free occurrence
-of the variable \(y_i\).
+the $y_i$ occurs in the object being translated, then no binder $\exists y_i$
+is present, so each occurrence of the constant $c_i$ becomes a free occurrence
+of the variable $y_i$.
 :::

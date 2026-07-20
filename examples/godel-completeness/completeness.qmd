@@ -3,8 +3,8 @@ title: "Gödel Completeness Theorem"
 ---
 
 ::: {#thm-main-godel-completeness .theorem .goal name="Gödel completeness theorem" date="2026-07-12"}
-For every first-order signature \(L\), every set \(\Gamma\) of \(L\)-sentences,
-and every \(L\)-sentence \(\varphi\), if every \(L\)-structure satisfying
-\(\Gamma\) also satisfies \(\varphi\), then \(\Gamma\vdash\varphi\) in the
+For every first-order signature $L$, every set $\Gamma$ of $L$-sentences,
+and every $L$-sentence $\varphi$, if every $L$-structure satisfying
+$\Gamma$ also satisfies $\varphi$, then $\Gamma\vdash\varphi$ in the
 proof calculus developed in this project.
 :::

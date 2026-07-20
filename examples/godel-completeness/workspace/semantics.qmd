@@ -17,36 +17,36 @@ qmd-prover:
 ---
 
 ::: {#def-fol-structure .definition name="Structures and assignments" date="2026-07-12" status="verified"}
-For a signature \(L\) from @def-fol-signature, an \(L\)-structure
-\(\mathcal M\) has a nonempty domain \(M\), interprets every
-\(f\in\mathcal F_n\) as a function \(M^n\to M\), and every
-\(R\in\mathcal R_n\) as a subset of \(M^n\).  Logical equality is interpreted
-as actual equality on \(M\).  An assignment is a function
-\(s:\mathrm{Var}\to M\) on the variables \(\mathrm{Var}\) of @def-fol-terms;
-for \(x\in\mathrm{Var}\) and \(a\in M\) write \(s[x\mapsto a]\) for the
-assignment agreeing with \(s\) except that it sends \(x\) to \(a\).
+For a signature $L$ from @def-fol-signature, an $L$-structure
+$\mathcal M$ has a nonempty domain $M$, interprets every
+$f\in\mathcal F_n$ as a function $M^n\to M$, and every
+$R\in\mathcal R_n$ as a subset of $M^n$.  Logical equality is interpreted
+as actual equality on $M$.  An assignment is a function
+$s:\mathrm{Var}\to M$ on the variables $\mathrm{Var}$ of @def-fol-terms;
+for $x\in\mathrm{Var}$ and $a\in M$ write $s[x\mapsto a]$ for the
+assignment agreeing with $s$ except that it sends $x$ to $a$.
 :::
 
 ::: {#def-term-value .definition name="Value of a term" date="2026-07-12" status="verified"}
 For @def-fol-structure and the terms of @def-fol-terms, the value
-\(\llbracket t\rrbracket^{\mathcal M}_s\in M\) is defined by recursion on the
-structure of \(t\): \(\llbracket x\rrbracket^{\mathcal M}_s=s(x)\) for a variable
-\(x\); \(\llbracket c\rrbracket^{\mathcal M}_s=c^{\mathcal M}\) for a constant
-\(c\) (the value of the nullary function symbol \(c\)); and
-\[
+$\llbracket t\rrbracket^{\mathcal M}_s\in M$ is defined by recursion on the
+structure of $t$: $\llbracket x\rrbracket^{\mathcal M}_s=s(x)$ for a variable
+$x$; $\llbracket c\rrbracket^{\mathcal M}_s=c^{\mathcal M}$ for a constant
+$c$ (the value of the nullary function symbol $c$); and
+$$
 \llbracket f(t_1,\ldots,t_n)\rrbracket^{\mathcal M}_s
 =f^{\mathcal M}(\llbracket t_1\rrbracket^{\mathcal M}_s,\ldots,
 \llbracket t_n\rrbracket^{\mathcal M}_s).
-\]
+$$
 Since @def-fol-terms presents terms as an inductive structure, this recursion
 assigns a unique value to every term under every assignment.
 :::
 
 ::: {#def-satisfaction .definition name="Satisfaction" date="2026-07-12" export="def-satisfaction" status="verified"}
 For @def-fol-formulas, @def-fol-structure, and @def-term-value, the relation
-\(\mathcal M,s\models A\) between a structure with an assignment and a formula is
-defined by recursion on \(A\):
-\[
+$\mathcal M,s\models A$ between a structure with an assignment and a formula is
+defined by recursion on $A$:
+$$
 \begin{aligned}
 \mathcal M,s\models R(\bar t)&\iff
  (\llbracket\bar t\rrbracket_s^{\mathcal M})\in R^{\mathcal M},\\
@@ -58,103 +58,103 @@ defined by recursion on \(A\):
 \mathcal M,s\models\exists xA&\iff
  \text{some }a\in M\text{ satisfies }\mathcal M,s[x\mapsto a]\models A.
 \end{aligned}
-\]
-For a sentence \(A\), write \(\mathcal M\models A\) to mean that
-\(\mathcal M,s\models A\) holds for every assignment \(s\).  Write
-\(\mathcal M\models\Gamma\) when \(\mathcal M\models B\) for every \(B\in\Gamma\),
-and, for a set \(\Gamma\) of \(L\)-sentences and an \(L\)-sentence \(A\), write
-\(\Gamma\models_L A\) when every \(L\)-structure \(\mathcal M\) with
-\(\mathcal M\models\Gamma\) has \(\mathcal M\models A\).
+$$
+For a sentence $A$, write $\mathcal M\models A$ to mean that
+$\mathcal M,s\models A$ holds for every assignment $s$.  Write
+$\mathcal M\models\Gamma$ when $\mathcal M\models B$ for every $B\in\Gamma$,
+and, for a set $\Gamma$ of $L$-sentences and an $L$-sentence $A$, write
+$\Gamma\models_L A$ when every $L$-structure $\mathcal M$ with
+$\mathcal M\models\Gamma$ has $\mathcal M\models A$.
 :::
 
 ::: {#lem-coincidence .lemma name="Coincidence lemma" date="2026-07-12"}
-For @def-term-value and @def-satisfaction: if assignments \(s,s'\) agree on
-\(\mathrm{Var}(t)\) then \(\llbracket t\rrbracket_s^{\mathcal M}=\llbracket t
-\rrbracket_{s'}^{\mathcal M}\); and if \(s,s'\) agree on \(\mathrm{FV}(A)\) then
-\(\mathcal M,s\models A\) iff \(\mathcal M,s'\models A\).  In particular a closed
+For @def-term-value and @def-satisfaction: if assignments $s,s'$ agree on
+$\mathrm{Var}(t)$ then $\llbracket t\rrbracket_s^{\mathcal M}=\llbracket t
+\rrbracket_{s'}^{\mathcal M}$; and if $s,s'$ agree on $\mathrm{FV}(A)$ then
+$\mathcal M,s\models A$ iff $\mathcal M,s'\models A$.  In particular a closed
 term has the same value under every assignment, and the truth of a sentence is
 the same under every assignment.
 :::
 
 ::: {.proof of="lem-coincidence" status="verified"}
 The term statement is a structural induction on @def-fol-terms using the
-evaluation clauses of @def-term-value: a variable \(x\in\mathrm{Var}(t)\) has
-value \(s(x)=s'(x)\); a constant's value \(c^{\mathcal M}\) does not mention the
-assignment; and for \(f(t_1,\ldots,t_n)\) each
-\(\mathrm{Var}(t_i)\subseteq\mathrm{Var}(t)\), so the induction hypothesis gives
+evaluation clauses of @def-term-value: a variable $x\in\mathrm{Var}(t)$ has
+value $s(x)=s'(x)$; a constant's value $c^{\mathcal M}$ does not mention the
+assignment; and for $f(t_1,\ldots,t_n)$ each
+$\mathrm{Var}(t_i)\subseteq\mathrm{Var}(t)$, so the induction hypothesis gives
 equal argument values, hence equal values by @def-term-value.  The
 formula statement is a structural induction on @def-fol-formulas using the free
 variables fixed there.  An atomic formula depends by @def-satisfaction only on
-the values of its terms, whose variables lie in \(\mathrm{FV}(A)\), so the term
-statement applies; \(\neg A\) and \(A\wedge B\) follow from the induction
-hypothesis since \(\mathrm{FV}(\neg A)=\mathrm{FV}(A)\) and
-\(\mathrm{FV}(A\wedge B)=\mathrm{FV}(A)\cup\mathrm{FV}(B)\).  For \(\exists xB\),
-by @def-satisfaction each side holds iff \(\mathcal M,s[x\mapsto a]\models B\)
-for some \(a\in M\) (respectively with \(s'\)); since \(s,s'\) agree on
-\(\mathrm{FV}(\exists xB)=\mathrm{FV}(B)\setminus\{x\}\), the updated assignments
-\(s[x\mapsto a]\) and \(s'[x\mapsto a]\) agree on \(\mathrm{FV}(B)\), so the
+the values of its terms, whose variables lie in $\mathrm{FV}(A)$, so the term
+statement applies; $\neg A$ and $A\wedge B$ follow from the induction
+hypothesis since $\mathrm{FV}(\neg A)=\mathrm{FV}(A)$ and
+$\mathrm{FV}(A\wedge B)=\mathrm{FV}(A)\cup\mathrm{FV}(B)$.  For $\exists xB$,
+by @def-satisfaction each side holds iff $\mathcal M,s[x\mapsto a]\models B$
+for some $a\in M$ (respectively with $s'$); since $s,s'$ agree on
+$\mathrm{FV}(\exists xB)=\mathrm{FV}(B)\setminus\{x\}$, the updated assignments
+$s[x\mapsto a]$ and $s'[x\mapsto a]$ agree on $\mathrm{FV}(B)$, so the
 induction hypothesis equates the two conditions witness by witness.  A closed
 term and a sentence have empty variable and free-variable sets, on which any two
 assignments trivially agree.
 :::
 
 ::: {#lem-semantic-substitution .lemma name="Semantic substitution lemma" date="2026-07-12"}
-If \(t\) is free for \(x\) in \(A\), then
-\[
+If $t$ is free for $x$ in $A$, then
+$$
  \mathcal M,s\models A[t/x]
  \quad\Longleftrightarrow\quad
  \mathcal M,s[x\mapsto\llbracket t\rrbracket_s^{\mathcal M}]\models A.
-\]
+$$
 The corresponding term-value identity also holds.
 :::
 
 ::: {.proof of="lem-semantic-substitution" status="verified"}
-First the term identity: for every term \(w\),
-\(\llbracket w[t/x]\rrbracket_s^{\mathcal M}=\llbracket w\rrbracket_{s'}^{\mathcal M}\)
-with \(s'=s[x\mapsto\llbracket t\rrbracket_s^{\mathcal M}]\), by induction on
-\(w\) via @def-fol-substitution and @def-term-value: \(x[t/x]=t\) gives
-\(\llbracket t\rrbracket_s\) on both sides, another variable or a constant is
-fixed and has the same value under \(s\) and \(s'\), and a function term reduces
-to its arguments.  Now induct on \(A\) via @def-fol-formulas.  Atomic cases use
-the term identity and @def-satisfaction; \(\neg\) and \(\wedge\) use the
-induction hypothesis.  For \(\exists yB\), with \(t\) free for \(x\) in
-\(\exists yB\): if \(x\notin\mathrm{FV}(\exists yB)\) — in particular when
-\(y=x\), or when \(x\notin\mathrm{FV}(B)\) — then \((\exists yB)[t/x]=\exists yB\)
-by @def-fol-substitution, while \(s\) and \(s'\) differ only at \(x\), which is
-not free in \(\exists yB\); so @lem-coincidence gives them the same truth value
-and the equivalence is immediate.  Otherwise \(y\ne x\) and
-\(x\in\mathrm{FV}(B)\), so the free-for hypothesis forces
-\(y\notin\mathrm{Var}(t)\) and \((\exists yB)[t/x]=\exists y(B[t/x])\).  Fix
-\(a\in M\).  Since
-\(y\notin\mathrm{Var}(t)\), @lem-coincidence gives \(\llbracket t
-\rrbracket_{s[y\mapsto a]}^{\mathcal M}=\llbracket t\rrbracket_s^{\mathcal M}\),
-and as \(x\ne y\) the updates commute:
-\(s[y\mapsto a][x\mapsto\llbracket t\rrbracket_s^{\mathcal M}]=s'[y\mapsto a]\).
-The induction hypothesis for \(B\) at \(s[y\mapsto a]\) then gives
-\(\mathcal M,s[y\mapsto a]\models B[t/x]\) iff \(\mathcal M,s'[y\mapsto a]\models
-B\).  Quantifying over \(a\) and using @def-satisfaction yields the equivalence
-for \(\exists yB\).
+First the term identity: for every term $w$,
+$\llbracket w[t/x]\rrbracket_s^{\mathcal M}=\llbracket w\rrbracket_{s'}^{\mathcal M}$
+with $s'=s[x\mapsto\llbracket t\rrbracket_s^{\mathcal M}]$, by induction on
+$w$ via @def-fol-substitution and @def-term-value: $x[t/x]=t$ gives
+$\llbracket t\rrbracket_s$ on both sides, another variable or a constant is
+fixed and has the same value under $s$ and $s'$, and a function term reduces
+to its arguments.  Now induct on $A$ via @def-fol-formulas.  Atomic cases use
+the term identity and @def-satisfaction; $\neg$ and $\wedge$ use the
+induction hypothesis.  For $\exists yB$, with $t$ free for $x$ in
+$\exists yB$: if $x\notin\mathrm{FV}(\exists yB)$ — in particular when
+$y=x$, or when $x\notin\mathrm{FV}(B)$ — then $(\exists yB)[t/x]=\exists yB$
+by @def-fol-substitution, while $s$ and $s'$ differ only at $x$, which is
+not free in $\exists yB$; so @lem-coincidence gives them the same truth value
+and the equivalence is immediate.  Otherwise $y\ne x$ and
+$x\in\mathrm{FV}(B)$, so the free-for hypothesis forces
+$y\notin\mathrm{Var}(t)$ and $(\exists yB)[t/x]=\exists y(B[t/x])$.  Fix
+$a\in M$.  Since
+$y\notin\mathrm{Var}(t)$, @lem-coincidence gives $\llbracket t
+\rrbracket_{s[y\mapsto a]}^{\mathcal M}=\llbracket t\rrbracket_s^{\mathcal M}$,
+and as $x\ne y$ the updates commute:
+$s[y\mapsto a][x\mapsto\llbracket t\rrbracket_s^{\mathcal M}]=s'[y\mapsto a]$.
+The induction hypothesis for $B$ at $s[y\mapsto a]$ then gives
+$\mathcal M,s[y\mapsto a]\models B[t/x]$ iff $\mathcal M,s'[y\mapsto a]\models
+B$.  Quantifying over $a$ and using @def-satisfaction yields the equivalence
+for $\exists yB$.
 :::
 
 ::: {#def-henkin-theory .definition name="Henkin theory" date="2026-07-12" export="def-henkin-theory" status="verified"}
-A set \(T\) of sentences in a language with at least one constant is a
-*Henkin theory* if, for every sentence \(\exists xA(x)\), there is a closed
-term \(t\) such that
-\(\exists xA(x)\to A(t)\in T\).  Such a \(t\) is a witness term.
+A set $T$ of sentences in a language with at least one constant is a
+*Henkin theory* if, for every sentence $\exists xA(x)$, there is a closed
+term $t$ such that
+$\exists xA(x)\to A(t)\in T$.  Such a $t$ is a witness term.
 :::
 
 ::: {#lem-equality-congruence .lemma name="Provable equality is a congruence" date="2026-07-12"}
-Let \(T\) be deductively closed and consistent.  On closed terms put
-\(t\sim_Tu\) iff \(t=u\in T\).  Then \(\sim_T\) is an equivalence relation,
-is preserved by every function symbol, and replacement of \(\sim_T\)-equal
-arguments preserves membership in \(T\) of every atomic relation formula.
+Let $T$ be deductively closed and consistent.  On closed terms put
+$t\sim_Tu$ iff $t=u\in T$.  Then $\sim_T$ is an equivalence relation,
+is preserved by every function symbol, and replacement of $\sim_T$-equal
+arguments preserves membership in $T$ of every atomic relation formula.
 :::
 
 ::: {.proof of="lem-equality-congruence" status="verified"}
-The equality axioms in @def-hilbert-calculus give \(t=t\) and, by taking
+The equality axioms in @def-hilbert-calculus give $t=t$ and, by taking
 appropriate instances of the replacement schema, symmetry
-\(t=u\to u=t\), transitivity
-\((t=u\wedge u=v)\to t=v\), function congruence, and relation
+$t=u\to u=t$, transitivity
+$(t=u\wedge u=v)\to t=v$, function congruence, and relation
 substitutivity.  Apply modus ponens and deductive closure from
 @def-consistency.  Repeating one coordinate at a time proves the assertions
 for all finite arities.  Thus the relation and interpretations below do not
@@ -162,127 +162,127 @@ depend on representatives.
 :::
 
 ::: {#def-canonical-term-model .definition name="Canonical term model" date="2026-07-12" export="def-canonical-term-model" status="verified"}
-Let \(T\) be a deductively closed consistent theory in a language \(L^*\)
-with a constant.  Its canonical term model \(\mathcal M_T\) has as domain the
-\(\sim_T\)-classes \([t]\) of closed \(L^*\)-terms, using
+Let $T$ be a deductively closed consistent theory in a language $L^*$
+with a constant.  Its canonical term model $\mathcal M_T$ has as domain the
+$\sim_T$-classes $[t]$ of closed $L^*$-terms, using
 @lem-equality-congruence.  Define
-\[
+$$
  f^{\mathcal M_T}([t_1],\ldots,[t_n])=[f(t_1,\ldots,t_n)]
-\]
+$$
 and
-\[
+$$
  ([t_1],\ldots,[t_n])\in R^{\mathcal M_T}
  \quad\Longleftrightarrow\quad R(t_1,\ldots,t_n)\in T.
-\]
+$$
 The domain is nonempty because the language has a constant, and
 @lem-equality-congruence makes all interpretations well-defined.
 :::
 
 ::: {#lem-term-model-evaluation .lemma name="Evaluation by closed representatives" date="2026-07-12"}
-Choose for every variable \(x\) a closed term \(r_x\), and define the
-assignment \(s(x)=[r_x]\) in @def-canonical-term-model.  For every term
-\(t(x_1,\ldots,x_k)\),
-\[
+Choose for every variable $x$ a closed term $r_x$, and define the
+assignment $s(x)=[r_x]$ in @def-canonical-term-model.  For every term
+$t(x_1,\ldots,x_k)$,
+$$
  \llbracket t\rrbracket_s^{\mathcal M_T}
    =[t[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]].
-\]
+$$
 :::
 
 ::: {.proof of="lem-term-model-evaluation" status="verified"}
-Structural induction on @def-fol-terms.  For a variable \(x\), @def-term-value
-gives \(\llbracket x\rrbracket_s^{\mathcal M_T}=s(x)=[r_x]\), which is
-\([x[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]]\) because that substitution sends \(x\) to
-\(r_x\).  For a constant \(c\), @def-term-value gives
-\(\llbracket c\rrbracket_s^{\mathcal M_T}=c^{\mathcal M_T}\), which equals
-\([c]\) by the nullary case of the function interpretation in
-@def-canonical-term-model, while \(c[r_{x_1}/x_1,\ldots]=c\) by
-@def-fol-substitution, so both sides are \([c]\).  For \(f(t_1,\ldots,t_m)\),
+Structural induction on @def-fol-terms.  For a variable $x$, @def-term-value
+gives $\llbracket x\rrbracket_s^{\mathcal M_T}=s(x)=[r_x]$, which is
+$[x[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]]$ because that substitution sends $x$ to
+$r_x$.  For a constant $c$, @def-term-value gives
+$\llbracket c\rrbracket_s^{\mathcal M_T}=c^{\mathcal M_T}$, which equals
+$[c]$ by the nullary case of the function interpretation in
+@def-canonical-term-model, while $c[r_{x_1}/x_1,\ldots]=c$ by
+@def-fol-substitution, so both sides are $[c]$.  For $f(t_1,\ldots,t_m)$,
 the function interpretation in @def-canonical-term-model and the induction
 hypothesis give
-\(\llbracket f(t_1,\ldots,t_m)\rrbracket_s^{\mathcal M_T}
+$\llbracket f(t_1,\ldots,t_m)\rrbracket_s^{\mathcal M_T}
 =f^{\mathcal M_T}([t_1[\vec r/\vec x]],\ldots,[t_m[\vec r/\vec x]])
-=[f(t_1,\ldots,t_m)[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]]\).  Every substituted term
+=[f(t_1,\ldots,t_m)[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]]$.  Every substituted term
 is closed by @def-fol-terms, so @def-fol-substitution performs no renaming.
 :::
 
 ::: {#lem-existential-membership .lemma name="Existential membership in a complete Henkin theory" date="2026-07-12"}
-If \(T\) is consistent, deductively closed, negation-complete, and Henkin,
-then for every formula \(A(x)\) whose free variables are among \(\{x\}\),
-\[
+If $T$ is consistent, deductively closed, negation-complete, and Henkin,
+then for every formula $A(x)$ whose free variables are among $\{x\}$,
+$$
  \exists xA(x)\in T
  \quad\Longleftrightarrow\quad
  A(t)\in T\text{ for some closed term }t.
-\]
+$$
 :::
 
 ::: {.proof of="lem-existential-membership" status="verified"}
 For left-to-right, choose the witness term supplied by @def-henkin-theory and
 use modus ponens plus deductive closure from @def-consistency.  Conversely,
 quantifier axiom 5 in @def-hilbert-calculus directly gives
-\(A(t)\to\exists xA\) (a closed term is free for \(x\)).  Modus ponens and
-deductive closure put the existential in \(T\).
+$A(t)\to\exists xA$ (a closed term is free for $x$).  Modus ponens and
+deductive closure put the existential in $T$.
 :::
 
 ::: {#lem-canonical-truth .lemma name="Canonical truth lemma" date="2026-07-12" export="lem-canonical-truth"}
-Let \(T\) be a consistent, deductively closed, negation-complete Henkin theory.
-Choose closed representatives \(r_x\) and the corresponding assignment \(s\)
-as in @lem-term-model-evaluation.  For every formula \(A\) whose free
-variables are among \(x_1,\ldots,x_k\),
-\[
+Let $T$ be a consistent, deductively closed, negation-complete Henkin theory.
+Choose closed representatives $r_x$ and the corresponding assignment $s$
+as in @lem-term-model-evaluation.  For every formula $A$ whose free
+variables are among $x_1,\ldots,x_k$,
+$$
  \mathcal M_T,s\models A
  \quad\Longleftrightarrow\quad
  A[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]\in T.
-\]
-In particular, for every sentence \(A\),
-\(\mathcal M_T\models A\) iff \(A\in T\).
+$$
+In particular, for every sentence $A$,
+$\mathcal M_T\models A$ iff $A\in T$.
 :::
 
 ::: {.proof of="lem-canonical-truth" status="verified"}
-Induct on the formula \(A\) generated by @def-fol-formulas, proving the
+Induct on the formula $A$ generated by @def-fol-formulas, proving the
 biconditional *uniformly in the closed representatives*: the induction
 hypothesis for a subformula is that the biconditional holds for every family of
 closed representatives and its assignment from @lem-term-model-evaluation, not
-only the fixed family \((r_x)\).  For relation atoms, use
+only the fixed family $(r_x)$.  For relation atoms, use
 @lem-term-model-evaluation and the relation interpretation in
 @def-canonical-term-model; for equality atoms, the two evaluated classes are
-equal exactly when the substituted equality belongs to \(T\), by
+equal exactly when the substituted equality belongs to $T$, by
 @lem-equality-congruence.  Negation and conjunction follow from
 @def-satisfaction and @lem-complete-theory-boolean.
 
-For \(\exists xB\), whose free variables lie among \(x_1,\ldots,x_k\), let
-\(x_{i_1},\ldots,x_{i_m}\) be those \(x_i\) different from \(x\) and set
-\(A(x):=B[r_{x_{i_1}}/x_{i_1},\ldots,r_{x_{i_m}}/x_{i_m}]\), a formula whose only
-possible free variable is \(x\).  The closed representatives leave every binder
-in place, and \(x\) is not free in \(\exists xB\), so by @def-fol-substitution
-\((\exists xB)[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]=\exists x\,A(x)\): substitution for
-an \(x_i\) equal to \(x\) is vacuous and the remaining substitutions pass under
-the binder.  By @def-satisfaction, \(\mathcal M_T,s\models\exists xB\) holds
-exactly when \(\mathcal M_T,s[x\mapsto d]\models B\) for some domain element
-\(d\); every \(d\) is \([t]\) for a closed term \(t\) by
-@def-canonical-term-model, and \(s[x\mapsto[t]]\) is the assignment of the
-representative family agreeing with \((r_x)\) except that it sends \(x\) to
-\(t\).  The induction hypothesis at that family gives \(\mathcal
-M_T,s[x\mapsto[t]]\models B\) iff \(B[t/x,r_{x_{i_1}}/x_{i_1},\ldots,r_{x_{i_m}}
-/x_{i_m}]\in T\), and by @lem-substitution-composition this closed instance is
-\(A(x)[t/x]\).  Hence \(\mathcal M_T,s\models\exists xB\) iff \(A(x)[t/x]\in T\)
-for some closed \(t\), which by @lem-existential-membership is equivalent to
-\(\exists x\,A(x)\in T\), i.e. to
-\((\exists xB)[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]\in T\).  This completes the
-induction.  For a sentence \(A\) (\(k=0\)) the biconditional reads
-\(\mathcal M_T,s\models A\) iff \(A\in T\); by @lem-coincidence the truth of a
-sentence is independent of \(s\), so \(\mathcal M_T\models A\) iff \(A\in T\).
+For $\exists xB$, whose free variables lie among $x_1,\ldots,x_k$, let
+$x_{i_1},\ldots,x_{i_m}$ be those $x_i$ different from $x$ and set
+$A(x):=B[r_{x_{i_1}}/x_{i_1},\ldots,r_{x_{i_m}}/x_{i_m}]$, a formula whose only
+possible free variable is $x$.  The closed representatives leave every binder
+in place, and $x$ is not free in $\exists xB$, so by @def-fol-substitution
+$(\exists xB)[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]=\exists x\,A(x)$: substitution for
+an $x_i$ equal to $x$ is vacuous and the remaining substitutions pass under
+the binder.  By @def-satisfaction, $\mathcal M_T,s\models\exists xB$ holds
+exactly when $\mathcal M_T,s[x\mapsto d]\models B$ for some domain element
+$d$; every $d$ is $[t]$ for a closed term $t$ by
+@def-canonical-term-model, and $s[x\mapsto[t]]$ is the assignment of the
+representative family agreeing with $(r_x)$ except that it sends $x$ to
+$t$.  The induction hypothesis at that family gives $\mathcal
+M_T,s[x\mapsto[t]]\models B$ iff $B[t/x,r_{x_{i_1}}/x_{i_1},\ldots,r_{x_{i_m}}
+/x_{i_m}]\in T$, and by @lem-substitution-composition this closed instance is
+$A(x)[t/x]$.  Hence $\mathcal M_T,s\models\exists xB$ iff $A(x)[t/x]\in T$
+for some closed $t$, which by @lem-existential-membership is equivalent to
+$\exists x\,A(x)\in T$, i.e. to
+$(\exists xB)[r_{x_1}/x_1,\ldots,r_{x_k}/x_k]\in T$.  This completes the
+induction.  For a sentence $A$ ($k=0$) the biconditional reads
+$\mathcal M_T,s\models A$ iff $A\in T$; by @lem-coincidence the truth of a
+sentence is independent of $s$, so $\mathcal M_T\models A$ iff $A\in T$.
 :::
 
 ::: {#lem-reduct-satisfaction .lemma name="Reduct preserves old-language truth" date="2026-07-12" export="lem-reduct-satisfaction"}
-If \(L\subseteq L^*\), \(\mathcal N\) is an \(L^*\)-structure, and
-\(\mathcal N\upharpoonright L\) is obtained by forgetting the new-symbol
-interpretations, then every \(L\)-formula has the same truth value in
-\(\mathcal N\) and in its reduct under the same assignment.
+If $L\subseteq L^*$, $\mathcal N$ is an $L^*$-structure, and
+$\mathcal N\upharpoonright L$ is obtained by forgetting the new-symbol
+interpretations, then every $L$-formula has the same truth value in
+$\mathcal N$ and in its reduct under the same assignment.
 :::
 
 ::: {.proof of="lem-reduct-satisfaction" status="verified"}
 Term induction using @def-term-value shows equal values because all symbols of
-an \(L\)-term retain their interpretations.  Formula induction using
+an $L$-term retain their interpretations.  Formula induction using
 @def-satisfaction then gives the claim: atomic cases use those term values and
 unchanged relations, Boolean cases use the induction hypothesis, and the
 existential case quantifies over the same nonempty domain.
