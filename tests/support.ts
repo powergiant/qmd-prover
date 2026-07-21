@@ -30,28 +30,31 @@ export function bareProject() {
 export function proof(
   id: string,
   text: string,
-  { disproof = false, draft = false, abandon = false }: { disproof?: boolean; draft?: boolean; abandon?: boolean } = {}
+  { disproof = false, draft = false, assumed = false, abandon = false }: { disproof?: boolean; draft?: boolean; assumed?: boolean; abandon?: boolean } = {}
 ): string {
-  const classes = `.proof${disproof ? ' .disproof' : ''}${draft ? ' .draft' : ''}${abandon ? ' .abandon' : ''}`;
+  const classes = `.proof${disproof ? ' .disproof' : ''}${draft ? ' .draft' : ''}${assumed ? ' .assumed' : ''}${abandon ? ' .abandon' : ''}`;
   return `::: {${classes} of="${id}"}\n${text}\n:::\n`;
 }
 
 export function result(
   id: string,
   statement: string,
-  { proofText, title = id, exported = false, extra = '', disproof = false, draft = false, abandon = false }: {
+  { proofText, title = id, exported = false, extra = '', disproof = false, draft = false, assumed = false, abandon = false }: {
     proofText?: string;
     title?: string;
     exported?: boolean;
     extra?: string;
     disproof?: boolean;
     draft?: boolean;
+    assumed?: boolean;
     abandon?: boolean;
   } = {}
 ): string {
   const kind = id.startsWith('lem-') ? 'lemma' : id.startsWith('def-') ? 'definition' : id.startsWith('prp-') ? 'proposition' : id.startsWith('cor-') ? 'corollary' : 'theorem';
-  const block = `::: {#${id} .${kind}${id.startsWith('thm-main-') ? ' .goal' : ''} name="${title}" date="2026-07-13"${exported ? ` export="${id}"` : ''}${extra}}\n${statement}\n:::\n`;
-  return proofText == null ? block : `${block}\n${proof(id, proofText, { disproof, draft, abandon })}`;
+  // A result with no proof text may still carry `.assumed` on its own div (the assumed-statement / axiom case).
+  const bodyAssumed = proofText == null && assumed ? ' .assumed' : '';
+  const block = `::: {#${id} .${kind}${id.startsWith('thm-main-') ? ' .goal' : ''}${bodyAssumed} name="${title}" date="2026-07-13"${exported ? ` export="${id}"` : ''}${extra}}\n${statement}\n:::\n`;
+  return proofText == null ? block : `${block}\n${proof(id, proofText, { disproof, draft, assumed, abandon })}`;
 }
 
 export function document(imports: Array<{ from: string; use: string[] }>, body: string): string {

@@ -180,6 +180,8 @@ export async function verifyFacts(compilation, context, options = {}) {
             return 'not-eligible';
         if (result.draft)
             return 'draft';
+        if (result.assumed)
+            return 'assumed';
         if (!hasCheckableContent(result))
             return 'nothing-to-check';
         return null;
@@ -188,6 +190,7 @@ export async function verifyFacts(compilation, context, options = {}) {
     const NOT_RUN_DETAIL = {
         'nothing-to-check': 'No proof content is present, so there is nothing to check yet.',
         draft: 'The proof is marked .draft: deliberately unfinished, so it is not sent to the verifier.',
+        assumed: 'The fact is marked .assumed: taken as given by the author, so it is not sent to the verifier.',
         'not-eligible': 'The fact is broken or abandoned, so it is not sent to the verifier.',
         'out-of-scope': 'The proof is ready but fell outside the selected fact or path closure.',
         'no-backend': 'No verifier is configured; the machine dependency analysis remains available.',
@@ -484,29 +487,40 @@ export async function verifyFacts(compilation, context, options = {}) {
         for (const result of topologicalOrder(results)) {
             const mechanical = mechanicalOf(result);
             const local = outcomes.get(result.id) ?? notRun('out-of-scope');
+            // The dependency closure's assumptions: every `.assumed` fact reachable from here, plus this
+            // fact when it is itself assumed. Accumulated in the same topological pass as `blockers`, so
+            // each dependency's footprint is already final when this fact reads it.
+            const assumptionsOf = (status) => {
+                const inherited = result.dependencies.flatMap((dependency) => globalById.get(dependency)?.assumptions ?? []);
+                const own = local.status === 'not-run' && local.reason === 'assumed' && status !== 'broken' ? [result.id] : [];
+                return [...new Set([...own, ...inherited])].sort();
+            };
             // The seven rules of docs/designs/design-status.md, in order. First match wins, the values are
-            // disjoint, and rule 2 keeps cycles out of rules 6-7 so this always terminates.
+            // disjoint, and rule 2 keeps cycles out of rules 6-7 so this always terminates. `.assumed` is
+            // a `not-run` fact that composes as `verified`: rule 5 skips it so it falls through to 6-7.
             const global = (() => {
                 if (result.abandon)
-                    return { status: 'abandoned', blockers: [], reason: 'author-abandoned' };
+                    return { status: 'abandoned', blockers: [], reason: 'author-abandoned', assumptions: [] };
                 if (mechanical.status !== 'pass') {
                     const blockers = references(result)
                         .filter((check) => check.existence !== 'pass' || check.scope !== 'pass' || check.cycle !== 'pass')
                         .map((check) => check.dependency).sort();
-                    return { status: 'broken', blockers, reason: mechanical.reason ?? 'mechanical-check-failed' };
+                    return { status: 'broken', blockers, reason: mechanical.reason ?? 'mechanical-check-failed', assumptions: assumptionsOf('broken') };
                 }
-                if (local.status === 'not-run') {
+                if (local.status === 'not-run' && local.reason !== 'assumed') {
                     const reason = local.reason ?? 'out-of-scope';
                     return reason === 'nothing-to-check' || reason === 'draft'
-                        ? { status: 'open', blockers: [], reason }
-                        : { status: 'unverified', blockers: [], reason };
+                        ? { status: 'open', blockers: [], reason, assumptions: assumptionsOf('open') }
+                        : { status: 'unverified', blockers: [], reason, assumptions: assumptionsOf('unverified') };
                 }
                 if (local.status === 'rejected')
-                    return { status: 'rejected', blockers: [], reason: 'local-verification-rejected' };
+                    return { status: 'rejected', blockers: [], reason: 'local-verification-rejected', assumptions: assumptionsOf('rejected') };
                 const blockers = result.dependencies.filter((dependency) => (resultById.has(dependency) && globalById.get(dependency)?.status !== 'verified')).sort();
+                // At this point local is `verified`, `disproved`, or `not-run`/`assumed`; the last composes as `verified`.
+                const composed = local.status === 'not-run' ? 'verified' : local.status;
                 return blockers.length
-                    ? { status: 'blocked', blockers, reason: 'dependency-closure-not-verified' }
-                    : { status: local.status, blockers: [] };
+                    ? { status: 'blocked', blockers, reason: 'dependency-closure-not-verified', assumptions: assumptionsOf('blocked') }
+                    : { status: composed, blockers: [], assumptions: assumptionsOf(composed) };
             })();
             globalById.set(result.id, global);
             result.intent = factIntent(result);
@@ -540,6 +554,29 @@ export async function verifyFacts(compilation, context, options = {}) {
         facts.sort((left, right) => left.id.localeCompare(right.id));
         return { facts };
     })();
+    // Stage: refuse assumptions under a protected goal when the project forbids them. A goal that
+    // composes `verified` only because its closure holds `.assumed` facts is not a proof the project
+    // has decided to accept, so `verification.assumptions: forbid` turns a non-empty footprint into a
+    // hard error that names every assumption. Runs after composition so each footprint is final.
+    const assumptionDiagnostics = (() => {
+        if (config.verification.assumptions !== 'forbid')
+            return [];
+        const items = [];
+        for (const result of results) {
+            if (result.origin !== 'user')
+                continue;
+            const footprint = result.global_verification?.assumptions ?? [];
+            if (!footprint.length)
+                continue;
+            items.push({
+                severity: 'error', code: 'GOAL_ASSUMED',
+                message: `${result.id} rests on ${footprint.length} assumed fact${footprint.length === 1 ? '' : 's'} while verification.assumptions is forbid: ${footprint.map((id) => `@${id}`).join(', ')}`,
+                file: result.file, line: result.line, id: result.id,
+                remediation: 'Prove the assumed facts, or set verification.assumptions to allow.'
+            });
+        }
+        return items;
+    })();
     // Stage: the per-status counts over the facts inside the current selection.
     const counts = (() => {
         const scopedFacts = composition.facts.filter((fact) => verificationIds.has(fact.id));
@@ -561,7 +598,7 @@ export async function verifyFacts(compilation, context, options = {}) {
         };
     })();
     const verification = { ...localVerification.tally, ...counts };
-    const diagnostics = [...mechanicalDiagnostics, ...aiDiagnostics]
+    const diagnostics = [...mechanicalDiagnostics, ...aiDiagnostics, ...assumptionDiagnostics]
         .sort((left, right) => `${left.file ?? ''}:${left.line ?? 0}:${left.code}:${left.id ?? ''}`.localeCompare(`${right.file ?? ''}:${right.line ?? 0}:${right.code}:${right.id ?? ''}`));
     return { verification, facts: composition.facts, diagnostics, selected: verificationIds };
 }

@@ -136,7 +136,7 @@ function node(path) {
                 usage: ['qmd-prover dependency <command> [arguments]'],
                 summary: 'Query the dependency graph: relationships, paths, hygiene findings, and graph-aware search.',
                 children: [
-                    'dependencies', 'reverse', 'impact', 'frontier', 'path', 'alternative', 'cycles',
+                    'dependencies', 'reverse', 'impact', 'frontier', 'assumptions', 'path', 'alternative', 'cycles',
                     'findings', 'unused', 'isolated', 'unreachable', 'ready', 'reused', 'search'
                 ]
             };
@@ -150,6 +150,8 @@ function node(path) {
             return { usage: ['qmd-prover dependency impact @ID [--print]'], summary: 'Show downstream facts affected by a fact change.', positional: true };
         case 'dependency frontier':
             return { usage: ['qmd-prover dependency frontier @ID [--print]'], summary: 'Show the lowest open, rejected, disproved, stale, or otherwise unusable dependencies.', positional: true };
+        case 'dependency assumptions':
+            return { usage: ['qmd-prover dependency assumptions @ID [--print]'], summary: 'Show the .assumed facts @ID rests on: its assumption footprint.', positional: true };
         case 'dependency path':
             return { usage: ['qmd-prover dependency path @FROM @TO [--print]'], summary: 'Show the shortest dependency path; FROM=TO returns the one-node path.', positional: true };
         case 'dependency alternative':

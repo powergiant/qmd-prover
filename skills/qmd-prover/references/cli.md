@@ -150,6 +150,7 @@ qmd-prover dependency dependencies @ID [--print]
 qmd-prover dependency reverse dependencies @ID [--print]
 qmd-prover dependency impact @ID [--print]
 qmd-prover dependency frontier @ID [--print]
+qmd-prover dependency assumptions @ID [--print]
 qmd-prover dependency path @FROM @TO [--print]
 qmd-prover dependency alternative paths @FROM @TO [--limit N] [--max-depth N] [--print]
 qmd-prover dependency cycles [--print]
@@ -410,7 +411,17 @@ actually has to happen, with everything already-blocked-by-something-lower filte
 path from `@ID` down to that fact (or `null` if unreachable).
 
 Facts inside the same cycle do not mask each other, so a cycle surfaces as a frontier rather than
-disappearing.
+disappearing. Assumed facts never appear: an `.assumed` fact composes as `verified`, so it is not an
+obligation. What the closure rests on is reported by `dependency assumptions` instead.
+
+### `dependency assumptions @ID`
+
+The **assumption footprint** of `@ID`: every `.assumed` fact in its closure that it rests on. Returns
+`target` (rendered `verified modulo N assumptions` when the footprint is non-empty) and `assumptions`,
+each entry `{fact, path, basis}`, where `basis` is `assumed-proof` (a proof block whose argument is
+taken as given, its citations still obligations) or `assumed-statement` (no proof block; the statement
+itself is taken as given). The frontier and the footprint are the two halves of one question: what is
+still owed versus what the project has decided not to prove.
 
 ### `dependency path @FROM @TO`
 
@@ -504,11 +515,11 @@ statement text, and proof text**. Omit it (or pass `""`) to match every fact and
 |---|---|
 | `--kind` | `definition` · `lemma` · `theorem` · `proposition` · `corollary` · `unknown` |
 | `--status` | `open` · `unverified` · `rejected` · `blocked` · `broken` · `abandoned` · `verified` · `disproved` · `missing` |
-| `--set` | `candidate` · `disproof-candidate` · `ready` · `unbroken` |
+| `--set` | `candidate` · `disproof-candidate` · `assumed` · `ready` · `unbroken` |
 | `--origin` | `fact` · `main-goal` · `unresolved` |
 | `--path` | One file path, or a directory prefix (matches the directory and everything under it). |
 
-`--status` takes one composed global status; `--set` takes one of the four overlapping groupings.
+`--status` takes one composed global status; `--set` takes one of the five overlapping groupings.
 Both vocabularies are defined in [status.md](status.md).
 
 **Graph relationship filters** (each takes one `@ID`):
@@ -661,6 +672,9 @@ without one is attributed to its **file**, and therefore breaks every fact decla
 | `PROOF_EMPTY` | **warning** | A `.proof` div has no content, so its fact is `open`. Write the proof, mark it `.draft` while unfinished, or delete the empty block. Not an error and never breaks the fact. |
 | `RESULT_DISPROOF_FORBIDDEN` | error | `.disproof` is on a result body. Move it onto the linked `.proof` div. |
 | `DEFINITION_DISPROOF_FORBIDDEN` | error | A definition's linked proof carries `.disproof`. Move the challenge to a linked theorem-like claim. |
+| `ASSUMED_DRAFT` | error | The same div carries `.assumed` and `.draft`. A fact is taken as given or is unfinished, not both. Remove one mark. |
+| `ASSUMED_DISPROOF` | error | The same div carries `.assumed` and `.disproof`. Assert an assumed result instead of an unargued refutation. Remove one mark. |
+| `GOAL_ASSUMED` | error | A protected goal rests on `.assumed` facts while `verification.assumptions` is `forbid`. Prove the named facts, or set the policy to `allow`. |
 
 #### References and scope
 

@@ -2,7 +2,7 @@ import { cleanId } from '../../core/infrastructure/files.js';
 import { inSet } from '../../core/semantic/dependency-graph.js';
 import type { FactSet } from '../../core/semantic/dependency-graph.js';
 import { SCHEMA_VERSION, byId } from '../../core/shared/core.js';
-import { adjacency, allSimplePaths, boundedInteger, frontier, requireNode, shortestPath, traverse } from '../../core/graph/algorithms.js';
+import { adjacency, allSimplePaths, assumptionFootprint, boundedInteger, frontier, requireNode, shortestPath, traverse } from '../../core/graph/algorithms.js';
 import { deriveGraphFindings } from '../../core/graph/findings.js';
 import { resolveProjectSnapshot } from '../../core/graph/snapshot.js';
 import type { ProjectSnapshot } from '../../core/graph/snapshot.js';
@@ -20,6 +20,7 @@ import type { GraphFindings } from '../../core/graph/findings.js';
 export interface DependencyAnalysisResult extends OperationResult {
   graph?: DependencyGraph;
   frontier?: Array<{ fact: GraphNode; path: string[] | null }>;
+  assumptions?: Array<{ fact: GraphNode; path: string[] | null; basis: 'assumed-proof' | 'assumed-statement' }>;
   direct?: GraphNode[];
   transitive?: GraphNode[];
   affected?: GraphNode[];
@@ -71,7 +72,7 @@ export async function analyzeDependencies(root: string, operation: string, args:
   };
   const requested = args[0];
   const requiredIds = [
-    ...(['dependencies', 'reverse-dependencies', 'impact', 'frontier'].includes(operation) ? [requested] : []),
+    ...(['dependencies', 'reverse-dependencies', 'impact', 'frontier', 'assumptions'].includes(operation) ? [requested] : []),
     ...(['path', 'alternative-paths'].includes(operation) ? [requested, args[1]] : []),
     ...(operation === 'search' ? [options.relatedTo, options.usedBy, options.dependsOn, options.affectedBy, options.frontierOf] : [])
   ].filter((value): value is string => typeof value === 'string' && value.length > 0);
@@ -116,6 +117,18 @@ export async function analyzeDependencies(root: string, operation: string, args:
     };
   } else if (operation === 'frontier') {
     result = { target: requireNode(graph, requested), frontier: frontier(graph, requested) };
+  } else if (operation === 'assumptions') {
+    // `assumed-proof` (the argument is taken as given while citations remain obligations) versus
+    // `assumed-statement` (no proof block; the statement itself is taken as given) is read off the
+    // manifest's proof presence, so the two axiom flavours are distinguished for a reader.
+    const manifestById = byId(snapshot.manifest.results);
+    result = {
+      target: requireNode(graph, requested),
+      assumptions: assumptionFootprint(graph, requested).map((item) => ({
+        ...item,
+        basis: manifestById.get(item.fact.id)?.proof_present ? 'assumed-proof' as const : 'assumed-statement' as const
+      }))
+    };
   } else if (['findings', 'unused-imports', 'unused-exports', 'isolated', 'unreachable', 'ready', 'reused'].includes(operation)) {
     const findings = deriveGraphFindings(snapshot);
     if (operation === 'findings') result = { findings };

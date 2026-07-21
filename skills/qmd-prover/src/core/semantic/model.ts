@@ -48,6 +48,8 @@ export interface ProofRecord {
   refutation: boolean;
   /** Author flag: this proof is deliberately unfinished (`.draft` class) — never sent to the verifier. */
   draft: boolean;
+  /** Author flag: this proof is taken as given (`.assumed` class) — never sent, composes as verified. */
+  assumed: boolean;
   /** Author flag: this proof is detached (`.abandon` class) — kept for memory, not linked or checked. */
   abandon: boolean;
 }
@@ -80,6 +82,8 @@ export interface SemanticResult {
   refutation: boolean;
   /** Author flag: the proof is deliberately unfinished — never checked, and the fact stays open. */
   draft: boolean;
+  /** Author flag: the fact is taken as given — never checked, composes as verified, recorded as an assumption. */
+  assumed: boolean;
   /** Author flag: this fact is detached — kept for memory, skipped by inspection. */
   abandon: boolean;
   export?: string | null;

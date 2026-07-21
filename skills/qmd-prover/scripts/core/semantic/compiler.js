@@ -5,7 +5,7 @@ import { auxLayout, scaffoldAux } from '../infrastructure/aux.js';
 import { loadConfig, pandocCommand } from '../infrastructure/config.js';
 import { divContent, inlineText, metaValue, normalizedAst, readAst, references, walk } from './pandoc.js';
 import { findDiv, findProofs, locateDivs } from './source.js';
-import { ABANDON_CLASS, DISPROOF_CLASS, DRAFT_CLASS, KIND_BY_PREFIX, RESULT_KINDS, SCHEMA_VERSION, SEMANTIC_ID_PATTERN, SEMANTIC_PREFIX_PATTERN } from '../shared/core.js';
+import { ABANDON_CLASS, ASSUMED_CLASS, DISPROOF_CLASS, DRAFT_CLASS, KIND_BY_PREFIX, RESULT_KINDS, SCHEMA_VERSION, SEMANTIC_ID_PATTERN, SEMANTIC_PREFIX_PATTERN } from '../shared/core.js';
 import { asArray, asRecord, errorMessage, uniqueSorted } from '../shared/core.js';
 import { discover, discoveryExclusions } from './discovery.js';
 import { findCycles } from './dependency-graph.js';
@@ -75,14 +75,17 @@ function resolveImport(importer, imported) {
 /**
  * The `intent` field of the status model: what the author declared, read off the div attributes
  * and nothing else. Never computed from proof content and never overwritten by the engine.
- * `.abandon` outranks `.draft`, which outranks `.disproof`, so a drafted refutation is a draft —
- * it is not sent either way, and the refutation reading does not matter until it is.
+ * `.abandon` outranks `.draft`, which outranks `.assumed`, which outranks `.disproof`. `.draft` with
+ * `.assumed` and `.assumed` with `.disproof` are mechanical errors, so those combinations never reach
+ * a live intent; the ordering only decides display for a fact that is already broken.
  */
 export function factIntent(result) {
     if (result.abandon)
         return 'abandoned';
     if (result.draft)
         return 'draft';
+    if (result.assumed)
+        return 'assumed';
     return result.refutation ? 'disproof' : 'normal';
 }
 /** True when the fact has proof content to check. A definition is discharged by its own body. */
@@ -114,6 +117,11 @@ export function preVerificationStatus(result, broken) {
         return 'abandoned';
     if (broken)
         return 'broken';
+    // An assumed fact is discharged by authorship, not by a verifier, so without any run it already
+    // resolves. Dependency composition (rule 6) may still lower it to `blocked`; that is `verifyFacts`'
+    // job, and like every other fact this pre-verification value never emits `blocked` itself.
+    if (result.intent === 'assumed')
+        return 'verified';
     if (result.draft || !hasCheckableContent(result))
         return 'open';
     return 'unverified';
@@ -191,6 +199,7 @@ export async function compileProject(root = process.cwd(), options = {}) {
                     const dependencies = references(blocks);
                     const abandon = classes.includes(ABANDON_CLASS);
                     const draft = classes.includes(DRAFT_CLASS);
+                    const assumed = classes.includes(ASSUMED_CLASS);
                     const disproof = classes.includes(DISPROOF_CLASS);
                     if (entry.type === 'proof') {
                         // A proof entry becomes a proof record plus its own structural diagnostics.
@@ -200,6 +209,7 @@ export async function compileProject(root = process.cwd(), options = {}) {
                                 target, file: file.relative, line,
                                 refutation: disproof,
                                 draft,
+                                assumed,
                                 abandon,
                                 proof_hash: hash,
                                 proof_present: present,
@@ -209,10 +219,17 @@ export async function compileProject(root = process.cwd(), options = {}) {
                             };
                             if (!target)
                                 diagnostics.push(diagnostic('error', 'PROOF_TARGET_MISSING', 'A .proof block requires an of attribute', file.relative, line));
+                            // `.assumed` is a commitment the author stands behind; it may not also claim the proof is
+                            // unfinished (`.draft`) or a refutation (`.disproof`). Either collision is a hard error, so
+                            // the fact fails closed to `broken` until one mark is removed.
+                            if (assumed && draft)
+                                diagnostics.push(diagnostic('error', 'ASSUMED_DRAFT', `Proof of @${target || '?'} carries both .assumed and .draft; a fact is taken as given or is unfinished, not both`, file.relative, line, target));
+                            if (assumed && disproof)
+                                diagnostics.push(diagnostic('error', 'ASSUMED_DISPROOF', `Proof of @${target || '?'} carries both .assumed and .disproof; assert an assumed result instead of an unargued refutation`, file.relative, line, target));
                             // An empty proof block says the same thing as no proof block: the fact is open. That is a
                             // legitimate state, so this is a warning — it exists only so a block emptied by a bad edit
-                            // stays visible. An abandoned or drafted proof is expected to be incomplete, so it is silent.
-                            if (!abandon && !draft && !present)
+                            // stays visible. An abandoned, drafted, or assumed proof is expected to carry no argument.
+                            if (!abandon && !draft && !assumed && !present)
                                 diagnostics.push(diagnostic('warning', 'PROOF_EMPTY', `Proof of @${target || '?'} is empty; @${target || '?'} is open`, file.relative, line, target));
                             return { proof, diagnostics };
                         })();
@@ -245,6 +262,10 @@ export async function compileProject(root = process.cwd(), options = {}) {
                             refutation: false,
                             // A definition carries its own `.draft`; a theorem-like inherits it from its linked proof.
                             draft: kind === 'definition' && draft,
+                            // `.assumed` on a result body is the axiom case for any kind: the statement is taken as
+                            // given and the fact depends on nothing. A theorem-like with a linked proof instead
+                            // inherits `.assumed` from that proof in the overlay stage, overwriting this.
+                            assumed,
                             abandon,
                             construction_dependencies: constructionDependencies,
                             dependencies: constructionDependencies
@@ -274,6 +295,9 @@ export async function compileProject(root = process.cwd(), options = {}) {
                         // definition cannot be refuted at all (challenge a theorem-like claim about it instead).
                         if (disproof)
                             diagnostics.push(diagnostic('error', 'RESULT_DISPROOF_FORBIDDEN', `${id} must not carry .disproof on its result body; put .disproof on its linked .proof block`, file.relative, line, id));
+                        // A result body taken as given may not also declare itself unfinished: the two are opposite claims.
+                        if (assumed && draft)
+                            diagnostics.push(diagnostic('error', 'ASSUMED_DRAFT', `${id} carries both .assumed and .draft; a fact is taken as given or is unfinished, not both`, file.relative, line, id));
                         const legacyHeaders = blocks.filter((block) => block.t === 'Header' && ['statement', 'uses', 'proof'].includes(inlineText(asArray(block.c)[2]).toLowerCase()));
                         if (legacyHeaders.length)
                             diagnostics.push(diagnostic('error', 'LEGACY_RESULT_SECTIONS', `${id} must use a result body and a separate linked .proof block, not Statement/Uses/Proof headings`, file.relative, line, id));
@@ -361,6 +385,9 @@ export async function compileProject(root = process.cwd(), options = {}) {
                 if (result.kind !== 'definition') {
                     result.refutation = proof.refutation;
                     result.draft = proof.draft;
+                    // A linked proof marked `.assumed` is the assumed-proof case: the argument is taken as given
+                    // while its citations stay obligations. This overwrites any `.assumed` on the result body.
+                    result.assumed = proof.assumed;
                 }
                 result.dependencies = uniqueSorted([...result.construction_dependencies, ...proof.dependencies]);
                 result.proof_file = proof.file;

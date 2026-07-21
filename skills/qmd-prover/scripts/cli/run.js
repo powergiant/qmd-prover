@@ -112,6 +112,7 @@ export async function main(args, { root = process.cwd(), pandoc = process.env.QM
                 case 'reverse-dependencies':
                 case 'impact':
                 case 'frontier':
+                case 'assumptions':
                     emit(await analyzeDependencies(root, command.sub, [command.id], options), command.print);
                     return;
                 case 'cycles':

@@ -36,6 +36,8 @@ export interface VerificationConfig {
   'rigor-disprove': string;
   /** Tool capabilities the verifier is told (in the prompt) it may use: any of file-read | web-search | code. */
   tools: string[];
+  /** Whether a protected goal may rest on `.assumed` facts: allow (default) | forbid. Never affects the cache key. */
+  assumptions: string;
   /** Path to the claude/codex CLI when backend is claude|codex (defaults to the backend name on PATH). */
   executable?: string;
   /** Fully custom verifier argv when backend is `command` (advanced escape hatch). */
@@ -65,7 +67,7 @@ const defaults: QmdProverConfig = {
   goals: { 'id-prefix': 'thm-main-', 'protect-statements': true },
   semantic: { 'wildcard-imports': false },
   tools: { pandoc: '', quarto: '' },
-  verification: { backend: 'none', model: '', effort: 'high', 'fresh-context': true, citations: 'standard', rigor: 'standard', 'rigor-disprove': 'standard', tools: [], executable: '' },
+  verification: { backend: 'none', model: '', effort: 'high', 'fresh-context': true, citations: 'standard', rigor: 'standard', 'rigor-disprove': 'standard', tools: [], assumptions: 'allow', executable: '' },
   render: { 'graph-engine': 'builtin', 'output-dir': '.qmd-prover/generated' }
 };
 
@@ -205,6 +207,8 @@ function booleanSetting(value: unknown, fallback: boolean): boolean {
 }
 
 const STRICTNESS_LEVELS = ['lenient', 'standard', 'strict'];
+/** Whether a protected goal may rest on `.assumed` facts. `forbid` makes a non-empty footprint a hard error. */
+const ASSUMPTIONS_POLICIES = ['allow', 'forbid'];
 // Reasoning-effort levels shared by the codex and claude backends (both accept low..xhigh;
 // claude also accepts max, which codex tolerates). Ordered from cheapest to most thorough.
 const EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'];
@@ -261,6 +265,7 @@ function normalizedConfig(value: JsonObject): QmdProverConfig {
       citations: enumSetting(verification.citations, STRICTNESS_LEVELS, defaults.verification.citations),
       rigor: enumSetting(verification.rigor, STRICTNESS_LEVELS, defaults.verification.rigor),
       'rigor-disprove': enumSetting(verification['rigor-disprove'], STRICTNESS_LEVELS, defaults.verification['rigor-disprove']),
+      assumptions: enumSetting(verification.assumptions, ASSUMPTIONS_POLICIES, defaults.verification.assumptions),
       // Kept as authored strings; protocol.ts filters to the known tool names for the contract/prompt.
       tools: Array.isArray(verification.tools) ? asStringArray(verification.tools) : defaults.verification.tools
     },

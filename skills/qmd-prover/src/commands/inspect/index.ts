@@ -72,7 +72,7 @@ function unknownFact(id: string): SemanticResult {
   return {
     id, file: '', kind: 'unknown', classes: [], title: '', date: '', origin: 'agent', intent: 'normal', mechanical: 'broken', status: 'missing', export: null,
     statement_text: '', statement_hash: '', title_hash: '', proof_hash: '', proof_present: false, proof_text: '',
-    refutation: false, draft: false, abandon: false,
+    refutation: false, draft: false, assumed: false, abandon: false,
     construction_dependencies: [], dependencies: []
   };
 }
@@ -173,7 +173,7 @@ function factFailure(id: string, diagnostics: Diagnostic[]): InspectFactResult {
       id, status: fact.status,
       mechanical: { status: 'fail', references: [], reason },
       local_verification: { status: 'not-run', reason: 'not-eligible', detail: 'The fact could not be read, so it was not sent to the verifier.' },
-      global_verification: { status: 'broken', blockers: [], reason },
+      global_verification: { status: 'broken', blockers: [], reason, assumptions: [] },
       diagnostics
     },
     graph: emptyGraph(), verification: emptyVerification(),

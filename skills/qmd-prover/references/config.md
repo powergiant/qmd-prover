@@ -41,6 +41,7 @@ verification:
   citations: standard             # lenient | standard | strict — uncited-term scrutiny
   rigor: standard                 # lenient | standard | strict — how fully proof steps must be justified
   rigor-disprove: standard        # lenient | standard | strict — how strongly a refutation must be argued
+  assumptions: allow              # allow | forbid — forbid makes a .assumed fact under a protected goal a GOAL_ASSUMED error
   tools: []                       # capabilities the verifier is TOLD it may use: [file-read, web-search, code]
 
 render:
@@ -109,6 +110,7 @@ packet protocol and the bundled `claude`/`codex` adapters.
 | `citations` | `standard` | `lenient` · `standard` · `strict` | How aggressively the verifier flags a specialized term used **without a cited definition**. `lenient` = assume its evident meaning, never flag a missing citation; `standard` = flag only genuine doubt; `strict` = every load-bearing term must be fixed by a citation. |
 | `rigor` | `standard` | `lenient` · `standard` · `strict` | How completely a **valid** proof step must be spelled out — i.e. what counts as a `gap`. `lenient` = accept informal/textbook argument; `standard` = ask for material justification but take routine steps as evident; `strict` = every load-bearing step must be explicit **and** any reported gap blocks acceptance. Wrong or misapplied steps (`critical_errors`) always block, at every level. |
 | `rigor-disprove` | `standard` | `lenient` · `standard` · `strict` | The refutation-side analogue of `rigor`: how strongly a proposed counterexample or refutation (a `.disproof` proof) must be argued. Applies only in refutation mode; `strict` makes a refutation's reported gaps block, just as `rigor: strict` does for a proof. |
+| `assumptions` | `allow` | `allow` · `forbid` | Whether a protected main goal may rest on `.assumed` facts. `allow` permits them; the goal composes as `verified` and reports its footprint as `verified modulo N assumptions`. `forbid` turns any non-empty footprint under a protected goal into the `GOAL_ASSUMED` error, naming every assumption. **Operational, not part of the checker contract:** it never affects a cache key, since `.assumed` facts are never sent to the verifier. |
 | `tools` | `[]` | inline list of `file-read` · `web-search` · `code` | Which tool capabilities the verifier is **told, in its prompt,** that it may use — always only to *check* the submission, never to import unsupplied premises. **Prompt-only:** qmd-prover neither provides a tool nor enforces this; whether a permitted tool actually works depends on what the backend agent has (e.g. `web-search` needs network, which the read-only codex sandbox lacks). `file-read` = look up a term's definition/notation in the project (never a dependency's proof); `web-search` = confirm an external result the external basis permits/cites; `code` = run a computation to check a step. Empty = reason from the packet alone. |
 
 **Correctness floor, plus two strictness axes.** No level of either axis ever relaxes correctness:
@@ -123,8 +125,9 @@ same axis for a proposed refutation and applies only in refutation mode.
 **Checker-contract keys vs. operational keys.** Eight keys — `backend`, `model`, `effort`,
 `fresh-context`, `citations`, `rigor`, `rigor-disprove`, `tools` — form the *checker contract* that is hashed into
 every verification cache key. Changing any of them re-verifies every fact, because old cached verdicts no
-longer match the contract. The remaining two — `executable` and `command` — are only *how to spawn*
-the verifier and do not invalidate cached verdicts.
+longer match the contract. The rest — `executable` and `command` (only *how to spawn* the verifier)
+and `assumptions` (a project policy applied after composition, never sent to the verifier) — do not
+invalidate cached verdicts.
 
 **Which verifier actually runs** (highest precedence first): the `QMD_PROVER_VERIFIER` environment
 variable > the `claude`/`codex` bundled adapter selected by `backend` > `verification.command`.

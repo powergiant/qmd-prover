@@ -6,14 +6,16 @@ export const AUX = '.qmd-prover';
 export type ResultKind = 'definition' | 'lemma' | 'theorem' | 'proposition' | 'corollary' | 'unknown';
 
 /** Stable output schema for every operation result and persisted snapshot. */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 // The label model lives entirely in div attributes, never in body paragraphs. The author writes
-// three flags; the engine projects one attribute back after inspection.
+// four flags; the engine projects one attribute back after inspection.
 /** Class flag: the proof div carries a proposed refutation, checked in refutation mode. */
 export const DISPROOF_CLASS = 'disproof';
 /** Class flag: the proof is deliberately unfinished — never checked, and the fact stays open. */
 export const DRAFT_CLASS = 'draft';
+/** Class flag: the fact is taken as given — never checked, composes as verified, recorded as an assumption. */
+export const ASSUMED_CLASS = 'assumed';
 /** Class flag: the proof (or fact) is detached — kept in the file for memory, never checked. */
 export const ABANDON_CLASS = 'abandon';
 /** Key the engine writes a checked fact's local verdict into; never read back, never trusted. */

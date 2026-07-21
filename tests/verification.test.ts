@@ -465,3 +465,107 @@ test('verification.tools drives prompt-level tool permissions and filters unknow
     assert.ok(text.includes(phrase), `missing tool permission: ${phrase}`);
   }
 });
+
+test('.assumed facts skip the verifier, compose as verified, and record an assumption footprint', async () => {
+  const root = await project();
+  const countFile = path.join(root, 'assumed-verifier-calls.txt');
+  process.env.QMD_PROVER_VERIFIER = verifier;
+  process.env.QMD_PROVER_VERIFIER_COUNT = countFile;
+  try {
+    await writeFile(path.join(root, 'goal.qmd'), result('thm-main-assumed-top', 'The top claim holds.'));
+    await mkdir(path.join(root, 'workspace'), { recursive: true });
+    await writeFile(path.join(root, 'workspace', 'route.qmd'), [
+      // An axiom: no proof block, `.assumed` on the result div. It depends on nothing.
+      result('lem-assumed-axiom', 'An axiom taken as given.', { assumed: true }),
+      // An assumed proof: the argument is trusted, but its citation stays an obligation.
+      result('lem-assumed-proof', 'Assumed via an argument.', { proofText: 'Trust this, appealing to @lem-real.', assumed: true }),
+      result('lem-real', 'A genuinely checked lemma.', { proofText: 'An ordinary argument.' }),
+      proof('thm-main-assumed-top', 'Combine @lem-assumed-axiom and @lem-assumed-proof.')
+    ].join('\n'));
+
+    const inspected = await inspectProject(root, options);
+    assert.equal(inspected.ok, true, JSON.stringify(inspected.diagnostics));
+    const node = (id: string) => must(inspected.graph.nodes.find((item) => item.id === id));
+
+    // Neither assumed lemma is sent; only lem-real and the goal proof cost a call.
+    assert.equal(inspected.verification.verifier_calls, 2);
+    assert.deepEqual((await readFile(countFile, 'utf8')).trim().split('\n').sort(), ['lem-real', 'thm-main-assumed-top']);
+
+    const axiom = node('lem-assumed-axiom');
+    assert.equal(axiom.intent, 'assumed');
+    assert.equal(axiom.local_verification?.status, 'not-run');
+    assert.equal(axiom.local_verification?.reason, 'assumed');
+    assert.equal(axiom.global_verification?.status, 'verified');
+    assert.deepEqual(axiom.global_verification?.assumptions, ['lem-assumed-axiom']);
+
+    const assumedProof = node('lem-assumed-proof');
+    assert.equal(assumedProof.global_verification?.status, 'verified');
+    assert.deepEqual(assumedProof.global_verification?.assumptions, ['lem-assumed-proof']);
+
+    const top = node('thm-main-assumed-top');
+    assert.equal(top.global_verification?.status, 'verified');
+    assert.deepEqual(top.global_verification?.assumptions, ['lem-assumed-axiom', 'lem-assumed-proof']);
+
+    // The footprint is never printed as a bare `verified`.
+    const factView = await inspectFact(root, '@thm-main-assumed-top', options);
+    assert.match(printReport(factView), /verified modulo 2 assumptions/);
+
+    // `dependency assumptions` reports the footprint and distinguishes the two axiom flavours.
+    const footprint = await analyzeDependencies(root, 'assumptions', ['@thm-main-assumed-top'], options);
+    assert.deepEqual(must(footprint.assumptions).map((item) => [item.fact.id, item.basis]), [
+      ['lem-assumed-axiom', 'assumed-statement'],
+      ['lem-assumed-proof', 'assumed-proof']
+    ]);
+
+    // `--set assumed` lists the commitments themselves.
+    const commitments = await analyzeDependencies(root, 'search', [''], { ...options, set: 'assumed' });
+    assert.deepEqual(must(commitments.matches).map((item) => item.id), ['lem-assumed-axiom', 'lem-assumed-proof']);
+  } finally {
+    delete process.env.QMD_PROVER_VERIFIER;
+    delete process.env.QMD_PROVER_VERIFIER_COUNT;
+  }
+});
+
+test('.assumed collisions break the fact and an assumed lemma still blocks on an unproved dependency', async () => {
+  const root = await project();
+  await writeFile(path.join(root, 'goal.qmd'), result('thm-main-assumed-shape', 'The shape target holds.'));
+  await mkdir(path.join(root, 'workspace'), { recursive: true });
+  await writeFile(path.join(root, 'workspace', 'route.qmd'), [
+    result('lem-assumed-and-draft', 'Both assumed and draft.', { proofText: 'Ambiguous.', assumed: true, draft: true }),
+    result('lem-assumed-and-disproof', 'Both assumed and disproof.', { proofText: 'Ambiguous.', assumed: true, disproof: true }),
+    result('lem-open-dep', 'An unfinished dependency.', { proofText: 'Sketch only.', draft: true }),
+    result('lem-assumed-on-open', 'Assumed but resting on open work.', { proofText: 'Trust this, using @lem-open-dep.', assumed: true })
+  ].join('\n'));
+
+  const inspected = await inspectProject(root, options);
+  const node = (id: string) => must(inspected.graph.nodes.find((item) => item.id === id));
+
+  assert.equal(node('lem-assumed-and-draft').global_verification?.status, 'broken');
+  assert.ok(inspected.diagnostics.some((item) => item.code === 'ASSUMED_DRAFT' && item.id === 'lem-assumed-and-draft'));
+  assert.equal(node('lem-assumed-and-disproof').global_verification?.status, 'broken');
+  assert.ok(inspected.diagnostics.some((item) => item.code === 'ASSUMED_DISPROOF' && item.id === 'lem-assumed-and-disproof'));
+
+  // An assumed fact composes exactly as a verified one: a cited draft lemma still blocks it.
+  const assumedOnOpen = node('lem-assumed-on-open');
+  assert.equal(assumedOnOpen.global_verification?.status, 'blocked');
+  assert.deepEqual(assumedOnOpen.global_verification?.blockers, ['lem-open-dep']);
+});
+
+test('verification.assumptions: forbid turns a goal footprint into the GOAL_ASSUMED error', async () => {
+  const root = await project();
+  await writeFile(path.join(root, '.qmd-prover', 'config.yml'), 'verification:\n  assumptions: forbid\n');
+  // A protected goal taken as given is an assumed-statement: verified, footprint = itself.
+  await writeFile(path.join(root, 'goal.qmd'), result('thm-main-forbidden', 'A goal taken on faith.', { assumed: true }));
+
+  const forbidden = await inspectProject(root, options);
+  assert.equal(forbidden.ok, false);
+  const goalAssumed = must(forbidden.diagnostics.find((item) => item.code === 'GOAL_ASSUMED'));
+  assert.equal(goalAssumed.id, 'thm-main-forbidden');
+  assert.match(goalAssumed.message, /@thm-main-forbidden/);
+
+  // The same project passes under the default allow policy.
+  await writeFile(path.join(root, '.qmd-prover', 'config.yml'), 'verification:\n  assumptions: allow\n');
+  const allowed = await inspectProject(root, options);
+  assert.ok(!allowed.diagnostics.some((item) => item.code === 'GOAL_ASSUMED'));
+  assert.equal(must(allowed.graph.nodes.find((item) => item.id === 'thm-main-forbidden')).global_verification?.status, 'verified');
+});

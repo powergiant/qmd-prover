@@ -7,6 +7,18 @@ function byId(items) {
 function formatPath(ids) {
     return ids?.map((id) => `@${id}`).join(' -> ') ?? 'none';
 }
+/**
+ * A node's status for display. A `verified` fact resting on assumptions is never shown as a bare
+ * `verified`: the count rides along so no reader mistakes "proved from N unchecked things" for
+ * "proved". See docs/designs/design-status.md.
+ */
+function statusLabel(node) {
+    const status = node?.status ?? 'missing';
+    const count = node?.global_verification?.assumptions?.length ?? 0;
+    return status === 'verified' && count > 0
+        ? `verified modulo ${count} assumption${count === 1 ? '' : 's'}`
+        : String(status);
+}
 function formatCounts(counts = {}) {
     const entries = Object.entries(counts).sort(([left], [right]) => left.localeCompare(right));
     return entries.map(([name, count]) => `${name}=${count}`).join(', ') || 'none';
@@ -45,13 +57,13 @@ function reportFindings(lines, findings) {
     if (findings.isolated_facts !== undefined) {
         lines.push(`  isolated facts: ${findings.isolated_facts.length}`);
         for (const item of findings.isolated_facts)
-            lines.push(`    @${item.id} [${item.status}] ${item.file ?? ''}`.trimEnd());
+            lines.push(`    @${item.id} [${statusLabel(item)}] ${item.file ?? ''}`.trimEnd());
     }
     if (findings.unreachable !== undefined) {
         const unreachable = findings.unreachable;
         lines.push(`  unreachable facts: ${unreachable.applicable === false ? 'not applicable (no goal root)' : unreachable.facts.length}`);
         for (const item of unreachable.facts)
-            lines.push(`    @${item.id} [${item.status}] ${item.file ?? ''}`.trimEnd());
+            lines.push(`    @${item.id} [${statusLabel(item)}] ${item.file ?? ''}`.trimEnd());
     }
     if (findings.candidate_ready_for_ai !== undefined) {
         lines.push(`  candidates ready for AI: ${findings.candidate_ready_for_ai.length}`);
@@ -79,7 +91,7 @@ export function printReport(input) {
     if (result.scope)
         lines.push(`scope: ${result.scope.type} ${result.scope.id ? `@${result.scope.id}` : result.scope.path}`);
     if (result.target?.id)
-        lines.push(`target: @${result.target.id} [${result.target.status ?? 'missing'}]`);
+        lines.push(`target: @${result.target.id} [${statusLabel(result.target)}]`);
     if (result.dependencies) {
         lines.push('dependencies:');
         for (const [name, dependency] of Object.entries(result.dependencies)) {
@@ -125,7 +137,7 @@ export function printReport(input) {
             lines.push(`  invalidated @${item.id}: ${formatPath(item.path)}`);
     }
     if (result.fact)
-        lines.push(`fact: @${result.fact.id} [${result.fact.kind}, ${result.fact.status}] ${result.fact.file}:${result.fact.line ?? '?'}`);
+        lines.push(`fact: @${result.fact.id} [${result.fact.kind}, ${statusLabel(result.fact)}] ${result.fact.file}:${result.fact.line ?? '?'}`);
     const nodes = inspectedNodes(result);
     if (nodes.length) {
         if (!result.summary) {
@@ -146,7 +158,7 @@ export function printReport(input) {
         }
         lines.push('facts by file:');
         for (const [file, facts] of [...byFile].sort(([left], [right]) => left.localeCompare(right))) {
-            lines.push(`  ${file}: ${facts.map((item) => `@${item.id} [${item.kind}, ${item.status}]`).join(', ')}`);
+            lines.push(`  ${file}: ${facts.map((item) => `@${item.id} [${item.kind}, ${statusLabel(item)}]`).join(', ')}`);
         }
         for (const node of nodes.filter((item) => item.disproof)) {
             lines.push(`${node.disproof?.status ?? 'conditional'} disproof @${node.id}: ${node.disproof?.refutation}`);
@@ -216,6 +228,11 @@ export function printReport(input) {
         for (const item of result.frontier)
             lines.push(`  @${item.fact.id} [${item.fact.status}] via ${formatPath(item.path)}`);
     }
+    if (result.assumptions) {
+        lines.push(result.assumptions.length ? `assumptions (${result.assumptions.length}):` : 'assumptions: none');
+        for (const item of result.assumptions)
+            lines.push(`  @${item.fact.id} [${item.basis}] via ${formatPath(item.path)}`);
+    }
     if (result.changed?.length) {
         lines.push('stale identities:');
         for (const item of result.changed) {
@@ -253,7 +270,7 @@ export function printReport(input) {
     if (result.matches) {
         lines.push(`matches: ${result.matches.length}`);
         for (const item of result.matches)
-            lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file ?? ''}:${item.line ?? '?'}`);
+            lines.push(`  @${item.id} [${item.kind}, ${statusLabel(item)}] ${item.file ?? ''}:${item.line ?? '?'}`);
     }
     reportFindings(lines, result.findings ?? null);
     if (result.unused_imports)
@@ -263,12 +280,12 @@ export function printReport(input) {
     if (result.candidates) {
         lines.push('candidates ready for AI:');
         for (const item of result.candidates)
-            lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file ?? ''}`.trimEnd());
+            lines.push(`  @${item.id} [${item.kind}, ${statusLabel(item)}] ${item.file ?? ''}`.trimEnd());
     }
     if (result.operation === 'dependency-isolated' || result.operation === 'dependency-unreachable') {
         lines.push(`${result.operation.slice('dependency-'.length)} facts:`);
         for (const item of result.facts ?? [])
-            lines.push(`  @${item.id} [${item.kind}, ${item.status}] ${item.file ?? ''}`.trimEnd());
+            lines.push(`  @${item.id} [${item.kind}, ${statusLabel(item)}] ${item.file ?? ''}`.trimEnd());
     }
     if (result.operation === 'dependency-reused') {
         lines.push(`heavily reused facts (${result.total} total):`);

@@ -58,7 +58,7 @@ function optionValues(args, names, flags = new Set()) {
 // winning during resolution. Exported so the help-coverage test can derive the
 // documented command surface from this single source rather than restating it.
 export const DEPENDENCY_OPERATIONS = [
-    ['dependencies'], ['reverse', 'dependencies'], ['impact'], ['frontier'], ['path'],
+    ['dependencies'], ['reverse', 'dependencies'], ['impact'], ['frontier'], ['assumptions'], ['path'],
     ['alternative', 'paths'], ['cycles'], ['findings'], ['unused', 'imports'], ['unused', 'exports'],
     ['isolated'], ['unreachable'], ['ready'], ['reused'], ['search']
 ];
@@ -222,7 +222,7 @@ function parseDependency(rest) {
             throw new Error('dependency path requires 2 semantic IDs');
         return { kind: 'dependency', sub: 'path', from: tail[0], to: tail[1], print };
     }
-    if (op === 'dependencies' || op === 'reverse-dependencies' || op === 'impact' || op === 'frontier') {
+    if (op === 'dependencies' || op === 'reverse-dependencies' || op === 'impact' || op === 'frontier' || op === 'assumptions') {
         if (tail.length !== 1)
             throw new Error(`dependency ${op.replaceAll('-', ' ')} requires 1 semantic ID`);
         return { kind: 'dependency', sub: op, id: tail[0], print };

@@ -14,8 +14,8 @@ function nodeLocalVerification(check) {
 }
 function nodeGlobalVerification(global) {
     if (!global)
-        return { status: 'unverified', blockers: [] };
-    return { status: global.status, blockers: global.blockers ?? [] };
+        return { status: 'unverified', blockers: [], assumptions: [] };
+    return { status: global.status, blockers: global.blockers ?? [], assumptions: global.assumptions ?? [] };
 }
 function uniqueDiagnostics(items) {
     const seen = new Set();
@@ -37,7 +37,7 @@ function compilationSource(compilation) {
             proof_present: result.proof_present, dependencies: result.dependencies, export: result.export,
             // The author's checking intent is part of the source identity; the engine-written `status`
             // attribute is deliberately excluded, so projecting a verdict back never re-keys the snapshot.
-            refutation: result.refutation, draft: result.draft, abandon: result.abandon
+            refutation: result.refutation, draft: result.draft, assumed: result.assumed, abandon: result.abandon
         })),
         proofs: compilation.manifest.proofs,
         diagnostics: compilation.diagnostics

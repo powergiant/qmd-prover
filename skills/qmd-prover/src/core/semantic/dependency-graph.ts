@@ -40,7 +40,7 @@ export interface GraphEdge {
  * The named fact sets. They cut across `status` and overlap each other, so they cannot be status
  * values; they are the groupings a query asks for by name. See docs/designs/design-status.md.
  */
-export const SETS = ['candidate', 'disproof-candidate', 'ready', 'unbroken'] as const;
+export const SETS = ['candidate', 'disproof-candidate', 'assumed', 'ready', 'unbroken'] as const;
 export type FactSet = typeof SETS[number];
 
 /** The statuses that say a fact was never eligible to be sent: `ready` is everything else. */
@@ -49,17 +49,20 @@ const NOT_READY: readonly FactListStatus[] = ['open', 'broken', 'abandoned', 'mi
 /**
  * Whether a graph node belongs to a named set.
  *
- * `ready` is read off `status` rather than recomputed, because the four not-ready statuses are
- * exactly the four reasons a fact is never sent: nothing written (`open`, which also covers
+ * `ready` is read off `status` rather than recomputed, because four of the five reasons a fact is
+ * never sent are exactly the four not-ready statuses: nothing written (`open`, which also covers
  * `.draft`), malformed (`broken`), kept for memory (`abandoned`), or not a fact at all (`missing`).
- * That keeps the set answerable on a graph compiled without any verification run.
+ * The fifth reason, `.assumed`, is invisible in `status` (an assumed fact composes as `verified`),
+ * so it is excluded through `intent`. That keeps the set answerable on a graph compiled without any
+ * verification run.
  */
 export function inSet(node: GraphNode, set: FactSet): boolean {
   switch (set) {
     case 'candidate': return node.intent !== 'abandoned';
     case 'disproof-candidate': return node.intent === 'disproof';
+    case 'assumed': return node.intent === 'assumed';
     case 'unbroken': return node.mechanical !== 'broken';
-    case 'ready': return !NOT_READY.includes(node.status);
+    case 'ready': return !NOT_READY.includes(node.status) && node.intent !== 'assumed';
   }
 }
 

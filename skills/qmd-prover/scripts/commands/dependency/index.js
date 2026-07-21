@@ -1,7 +1,7 @@
 import { cleanId } from '../../core/infrastructure/files.js';
 import { inSet } from '../../core/semantic/dependency-graph.js';
 import { SCHEMA_VERSION, byId } from '../../core/shared/core.js';
-import { adjacency, allSimplePaths, boundedInteger, frontier, requireNode, shortestPath, traverse } from '../../core/graph/algorithms.js';
+import { adjacency, allSimplePaths, assumptionFootprint, boundedInteger, frontier, requireNode, shortestPath, traverse } from '../../core/graph/algorithms.js';
 import { deriveGraphFindings } from '../../core/graph/findings.js';
 import { resolveProjectSnapshot } from '../../core/graph/snapshot.js';
 import { compileProject } from '../../core/semantic/compiler.js';
@@ -48,7 +48,7 @@ export async function analyzeDependencies(root, operation, args = [], options = 
         };
     const requested = args[0];
     const requiredIds = [
-        ...(['dependencies', 'reverse-dependencies', 'impact', 'frontier'].includes(operation) ? [requested] : []),
+        ...(['dependencies', 'reverse-dependencies', 'impact', 'frontier', 'assumptions'].includes(operation) ? [requested] : []),
         ...(['path', 'alternative-paths'].includes(operation) ? [requested, args[1]] : []),
         ...(operation === 'search' ? [options.relatedTo, options.usedBy, options.dependsOn, options.affectedBy, options.frontierOf] : [])
     ].filter((value) => typeof value === 'string' && value.length > 0);
@@ -99,6 +99,19 @@ export async function analyzeDependencies(root, operation, args = [], options = 
     }
     else if (operation === 'frontier') {
         result = { target: requireNode(graph, requested), frontier: frontier(graph, requested) };
+    }
+    else if (operation === 'assumptions') {
+        // `assumed-proof` (the argument is taken as given while citations remain obligations) versus
+        // `assumed-statement` (no proof block; the statement itself is taken as given) is read off the
+        // manifest's proof presence, so the two axiom flavours are distinguished for a reader.
+        const manifestById = byId(snapshot.manifest.results);
+        result = {
+            target: requireNode(graph, requested),
+            assumptions: assumptionFootprint(graph, requested).map((item) => ({
+                ...item,
+                basis: manifestById.get(item.fact.id)?.proof_present ? 'assumed-proof' : 'assumed-statement'
+            }))
+        };
     }
     else if (['findings', 'unused-imports', 'unused-exports', 'isolated', 'unreachable', 'ready', 'reused'].includes(operation)) {
         const findings = deriveGraphFindings(snapshot);

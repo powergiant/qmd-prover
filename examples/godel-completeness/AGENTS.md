@@ -1,6 +1,6 @@
 # Mathematical project instructions
 
-<!-- qmd-prover-contract:start version=27 -->
+<!-- qmd-prover-contract:start version=28 -->
 
 ## Contents
 
@@ -119,10 +119,11 @@ Workflow state for a proof lives in attributes on its `.proof` div, never in bod
 | _none_ | — | An ordinary candidate, checked by default. |
 | `.disproof` | author | The proof is a proposed counterexample or refutation of the exact theorem-like statement, checked in refutation mode. Conditional evidence until locally checked and globally composed. |
 | `.draft` | author | The proof is deliberately unfinished. It is never sent to the verifier and the fact stays `open`. Remove the mark when the proof is ready to be checked. |
+| `.assumed` | author | The fact is taken as given: never sent to the verifier, composed as `verified`, and recorded in the assumption footprint of everything that rests on it. On a `.proof` div with content the argument is trusted while its citations stay obligations; on a result div with no proof block the statement itself is trusted and the fact depends on nothing. Use it only for a claim you are prepared to stand behind unchecked, never for one that is merely unfinished. |
 | `.abandon` | author | The proof is detached from its result and kept only for memory: never linked, never a competing proof, never checked. On a result div instead, it retires the whole fact. |
 | `status` | engine | Display-only projection of the fact's local verdict (`verified`, `disproved`, or `rejected`), written by inspection. Never hand-write it; the engine overwrites or clears it and never reads it back. |
 
-When more than one applies, `.abandon` outranks `.draft`, which outranks `.disproof`. A definition carries `.draft` and `.abandon` on its own div, because it has no proof block.
+When more than one applies, `.abandon` outranks `.draft`, which outranks `.assumed`, which outranks `.disproof`. A definition or an assumed statement carries its attributes on its own div, because it has no proof block. `.assumed` may not be combined with `.draft` (a fact is taken as given or is unfinished, not both) or with `.disproof`; either collision makes the fact `broken`.
 
 A proof carrying `.disproof` must give the actual counterexample or refutation, check the hypotheses, and explain why the stated conclusion fails. The verifier checks it conditionally on the exact direct dependency statements. A locally accepted refutation is conditional evidence; it becomes globally disproved only when machine analysis also establishes that its complete dependency closure is globally verified. A failed refutation is locally rejected. The verifier may also discover and report a counterexample while checking an ordinary candidate, without changing its QMD source.
 
@@ -147,7 +148,7 @@ Any file in any folder of the project is part of the same unified mathematics; f
 - Put only the linked proof of a protected main goal in its proof overlay file, such as `workspace/main-proof.qmd`; do not repeat or rewrite the theorem.
 - Follow every unproved dependency until it has its own proof. A plan, example, computation, or prose sketch is not a completed proof.
 - Keep a failed route when it is useful for future work, but add `.abandon` to its `.proof` div so it is detached from its result and cannot silently become an active premise.
-- Mark a proof you are still writing with `.draft` so it is not sent to the verifier, and remove the mark when it is ready to be checked.
+- Mark a proof you are still writing with `.draft` so it is not sent to the verifier, and remove the mark when it is ready to be checked. Mark `.assumed` only a fact you are prepared to stand behind unchecked; expect it in the assumption footprint of every goal above it.
 - When a precise counterexample or refutation shows that a theorem-like statement is false, keep the statement unchanged, add `.disproof` to its linked `.proof` div, and submit the refutation to inspection.
 
 After each coherent batch of semantic-QMD changes, run the narrowest useful inspection:
@@ -185,11 +186,13 @@ Global composition is deterministic. Every fact holds exactly one of these, firs
 |---|---|---|
 | `abandoned` | the fact carries `.abandon` | nothing; it is kept for memory only |
 | `broken` | the mechanical layer failed: shape, ID, date, an unresolved or out-of-scope reference, or a cycle | repair the fact |
-| `open` | there is nothing to check: no proof block, an empty one, or a `.draft` proof | write the proof, or drop `.draft` |
+| `open` | there is nothing to check yet: no proof block, an empty one, or a `.draft` proof (an `.assumed` fact is not open — it composes as `verified`) | write the proof, or drop `.draft` |
 | `rejected` | the verifier found the proof or refutation wrong or incomplete | repair the argument |
 | `unverified` | the proof is ready but carries no verdict: not yet requested, no verifier configured, or the verifier failed | run inspection, or repair the verifier |
-| `blocked` | this proof was accepted but some direct dependency is not globally verified | fix the upstream fact |
-| `verified` / `disproved` | the verdict is conclusive and the whole direct dependency closure is globally verified | nothing |
+| `blocked` | this proof was accepted, or is `.assumed`, but some direct dependency is not globally verified | fix the upstream fact |
+| `verified` / `disproved` | the verdict is conclusive (or the fact is `.assumed`) and the whole direct dependency closure is globally verified | nothing |
+
+An `.assumed` fact composes exactly as a `verified` one: `blocked` while anything it cites is unproved, `verified` once the closure is clear. It is never sent to the verifier, so its `local` stays `not-run` with reason `assumed`. Every fact carries `global_verification.assumptions`, the sorted `.assumed` facts in its closure; a `verified` fact with a non-empty footprint is reported as `verified modulo N assumptions`, never as a bare `verified`. Run `qmd-prover dependency assumptions @ID` to list what a fact rests on, `--set assumed` to list the commitments themselves. A project may set `verification.assumptions: forbid` to make any assumption under a protected goal the `GOAL_ASSUMED` error.
 
 Rule order matters: an accepted refutation resting on an unproved lemma is `blocked`, not `disproved`, and citing an `abandoned` fact blocks the citer, because an abandoned proof is not a premise. Without a configured verifier, machine inspection still succeeds when its own inputs are valid, every local result is `not-run`, and every ready fact stays `unverified`. `ok` reports whether the requested inspection operation and configured verifier execution completed without machine or verifier-infrastructure errors; read `global_verification`, not `ok`, as the mathematical status.
 
@@ -200,7 +203,7 @@ Apply these rules:
 1. State agent-created mathematics precisely: introduce notation, scope variables, include every nontrivial hypothesis, and justify reductions, existence, finiteness, well-definedness, and limit passages.
 2. Identify external theorems precisely enough to check applicability. Keep examples, computations, and intuition distinct from a general proof.
 3. If a main goal appears false, preserve it, place a precise refutation in its proof overlay with `.disproof` on that `.proof` div, and run inspection. Report the refutation as globally established only when `global_verification.status` is `disproved`; a local disproof with blocked dependencies remains conditional. Change the protected statement only with explicit user approval.
-4. Keep prose mathematical and readable. Workflow state lives only in the `.disproof`/`.draft`/`.abandon` div attributes, so keep verifier metadata, search notes, and confidence claims out of declaration and proof bodies.
+4. Keep prose mathematical and readable. Workflow state lives only in the `.disproof`/`.draft`/`.assumed`/`.abandon` div attributes, so keep verifier metadata, search notes, and confidence claims out of declaration and proof bodies.
 5. Before relying on a fact, inspect its global state. Use it as an established premise only when `global_verification.status` is `verified`. A local conditional pass is not enough, and a globally disproved fact is evidence about the false statement, not a usable dependency.
 6. Repair every mechanical diagnostic and every local verifier critical error or gap. An unconfigured verifier is a supported machine-only mode and leaves local/global verification incomplete. If the user requests AI verification and the verifier is missing, failing, or malformed, repair `verification.command` or `QMD_PROVER_VERIFIER`; do not loop and do not declare the result verified yourself.
 

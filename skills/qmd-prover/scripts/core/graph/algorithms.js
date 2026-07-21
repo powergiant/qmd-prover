@@ -162,3 +162,15 @@ export function frontier(graph, requested) {
     const lowest = unresolved.filter((id) => !explainedByLower(id));
     return lowest.sort().map((id) => ({ fact: nodes.get(id) ?? { id, status: 'missing' }, path: shortestPath(graph, target.id, id) }));
 }
+/**
+ * The assumption footprint of a fact: every `.assumed` fact its `global_verification` records in the
+ * closure, each with a shortest path from the target. The compiler computes the id list during
+ * global composition; this only resolves those ids to nodes and paths, so it never recomputes the
+ * closure. See docs/designs/design-status.md.
+ */
+export function assumptionFootprint(graph, requested) {
+    const target = requireNode(graph, requested);
+    const nodes = byId(graph.nodes);
+    const ids = target.global_verification?.assumptions ?? [];
+    return [...ids].sort().map((id) => ({ fact: nodes.get(id) ?? { id, status: 'missing' }, path: shortestPath(graph, target.id, id) }));
+}

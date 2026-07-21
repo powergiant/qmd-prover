@@ -49,17 +49,26 @@ every definition, and a result whose statement is being taken as given — carri
 | `assumed` | `.assumed` | the author takes it as given; do not check it |
 | `abandoned` | `.abandon` | the fact is kept for memory only |
 
-When more than one attribute is present the first match in this order wins:
-`.abandon`, then `.draft`, then `.assumed`, then `.disproof`. A drafted
-refutation has intent `draft`; it is not sent either way, so the refutation
-reading does not matter yet, and it joins the `disproof-candidate` set only once
-the draft mark comes off.
+Two of these combine and two do not. `.abandon` outranks `.draft`, which
+outranks `.disproof`: an abandoned attempt is retired whatever else it says, and
+a drafted refutation has intent `draft`, is not sent either way, and joins the
+`disproof-candidate` set only once the draft mark comes off.
 
-`.assumed` may not be combined with `.disproof`. An assumption is a premise
-later work rests on, and a refutation is terminal evidence that a statement is
-false; asserting a refutation without an argument is just asserting the negated
-statement, which is written as an ordinary assumed result. The combination is
-the `ASSUMED_DISPROOF` mechanical error.
+`.assumed` combines with neither `.draft` nor `.disproof`, and each collision is
+a mechanical error rather than a silent precedence:
+
+- `.draft` with `.assumed` is `ASSUMED_DRAFT`. The two make opposite claims — "I
+  have not finished this" against "I know this is right" — so a fact carrying
+  both is telling the reader nothing coherent. The author has to choose, because
+  the engine choosing for them would either audit an unfinished proof or trust
+  one the author only meant to park.
+- `.assumed` with `.disproof` is `ASSUMED_DISPROOF`. An assumption is a premise
+  later work rests on, and a refutation is terminal evidence that a statement is
+  false; asserting a refutation without an argument is just asserting the
+  negated statement, which is written as an ordinary assumed result.
+
+A broken fact is never sent and never composed as a premise, so both collisions
+fail closed: the fact is `broken` until the author removes one mark.
 
 ### `.draft` and `.assumed` are different claims
 
@@ -115,7 +124,8 @@ A fact is `broken` when any of these hold:
 - the result or proof block has the wrong shape;
 - the ID is missing, malformed, duplicated anywhere in the project, or claimed
   by a file that does not own it;
-- the same block carries both `.assumed` and `.disproof` (`ASSUMED_DISPROOF`);
+- the same block carries `.assumed` with `.draft` (`ASSUMED_DRAFT`) or with
+  `.disproof` (`ASSUMED_DISPROOF`);
 - the introduction date is missing or is not a real calendar date;
 - a cited `@ID` resolves to nothing;
 - a cited `@ID` resolves to a fact that is not in scope for this file;
@@ -185,12 +195,13 @@ grant one.
 | `no-backend` | no verifier is configured | `unverified` |
 | `verifier-error` | the verifier failed, timed out, or returned an unusable report | `unverified` |
 
-The four authored reasons are tested in this order, first match winning:
-`not-eligible`, `draft`, `assumed`, `nothing-to-check`. `draft` outranks
-`assumed`, so marking both leaves the fact unfinished rather than trusted, and
-`assumed` outranks `nothing-to-check`, so an assumed statement with no proof
-block is read as taken-as-given rather than as an empty one. The remaining three
-reasons describe the run rather than the source and cannot compete with these.
+The authored reasons are tested in this order, first match winning:
+`not-eligible`, `draft`, `assumed`, `nothing-to-check`. `not-eligible` comes
+first, so a fact that carries `.draft` and `.assumed` together is `broken` and
+never reaches the later reasons. `assumed` outranks `nothing-to-check`, so an
+assumed statement with no proof block is read as taken-as-given rather than as
+an empty one. The remaining three reasons describe the run rather than the
+source and cannot compete with these.
 
 `assumed` is the only reason whose `global` is not a defect. `local` still
 records `not-run`, which is the literal truth — no verifier saw this fact — and
@@ -424,7 +435,7 @@ no verdict is exactly an `unverified` one, which is what the
 | theorem, proof marked `.assumed`, lemma proved | `assumed` | `ok` | `not-run` / `assumed` | `verified` |
 | theorem, proof marked `.assumed`, lemma unproved | `assumed` | `ok` | `not-run` / `assumed` | `blocked` |
 | theorem, no proof block, result marked `.assumed` | `assumed` | `ok` | `not-run` / `assumed` | `verified` |
-| theorem, proof marked both `.draft` and `.assumed` | `draft` | `ok` | `not-run` / `draft` | `open` |
+| theorem, proof marked both `.draft` and `.assumed` | `draft` | `broken` | `not-run` / `not-eligible` | `broken` |
 | theorem, proof marked both `.assumed` and `.disproof` | `assumed` | `broken` | `not-run` / `not-eligible` | `broken` |
 | theorem, proof written, no verifier configured | `normal` | `ok` | `not-run` / `no-backend` | `unverified` |
 | theorem, proof written, backend down | `normal` | `ok` | `not-run` / `verifier-error` | `unverified` |
@@ -459,7 +470,7 @@ project-wide `DUPLICATE_ID` diagnostic still fires.
 | `unverified` meant any missing verdict | means a proof exists but has no verdict |
 | `revoked` | removed; a discarded verdict is simply re-checked |
 | no way to mark an unfinished proof | `.draft` on the proof block |
-| `.draft` also used to mean "trust this, do not check it" | `.assumed`, with its own intent, `not-run` reason, and footprint |
+| `.draft` also used to mean "trust this, do not check it" | `.assumed`, with its own intent, `not-run` reason, and footprint; `.draft` with `.assumed` is now the `ASSUMED_DRAFT` error |
 | no record of what a proof was taken on faith | `global_verification.assumptions`, `--set assumed`, `dependency assumptions @ID` |
 | nothing refused an unproved premise under a goal | `verification.assumptions: forbid` and the `GOAL_ASSUMED` error |
 | `PROOF_EMPTY` was an error | a warning; the fact is `open` |

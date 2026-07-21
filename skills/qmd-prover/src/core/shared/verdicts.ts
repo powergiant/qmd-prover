@@ -20,6 +20,7 @@ export type LocalVerificationStatus = VerificationOutcome | 'not-run';
 export type LocalNotRunReason =
   | 'nothing-to-check'   // no proof block, or an empty one
   | 'draft'              // the proof is marked `.draft`
+  | 'assumed'            // the fact is marked `.assumed` — taken as given, composes as verified
   | 'not-eligible'       // the fact is broken or abandoned
   | 'out-of-scope'       // ready, but outside the selected fact/path closure
   | 'no-backend'         // no verifier is configured
@@ -40,11 +41,17 @@ export type FactListStatus = GlobalVerificationStatus | 'missing';
 export type MechanicalStatus = 'ok' | 'broken';
 
 /** The `intent` field: what the author declared through div attributes. */
-export type FactIntent = 'normal' | 'disproof' | 'draft' | 'abandoned';
+export type FactIntent = 'normal' | 'disproof' | 'draft' | 'assumed' | 'abandoned';
 
 export interface GlobalVerification {
   status: GlobalVerificationStatus;
   blockers: string[];
+  /**
+   * Every `.assumed` fact in this fact's dependency closure (itself included when it is assumed),
+   * sorted. Empty when the fact rests on nothing taken on faith. A non-empty footprint under a
+   * `verified` status is rendered as `verified modulo N assumptions`. See docs/designs/design-status.md.
+   */
+  assumptions: string[];
   reason?: string;
 }
 

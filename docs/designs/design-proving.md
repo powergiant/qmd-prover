@@ -114,7 +114,8 @@ nothing. `.disproof` marks a proposed counterexample or refutation; it is still
 a candidate until independently checked. `.abandon` on a proof block detaches
 that attempt and keeps it for history; on a result it retires the whole fact. A
 proof block with none of these is a proof candidate. Definitions cannot use
-`.disproof`, and no fact may carry `.assumed` and `.disproof` together.
+`.disproof`, and `.assumed` may not be combined with either `.draft` or
+`.disproof`: both collisions make the fact `broken`.
 
 There are no body markers. `OPEN`, `REJECTED`, `DISPROVED`, and `VERIFIED` are
 ordinary words with no meaning in QMD source.

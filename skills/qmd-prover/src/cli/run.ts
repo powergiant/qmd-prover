@@ -119,6 +119,7 @@ export async function main(
         case 'reverse-dependencies':
         case 'impact':
         case 'frontier':
+        case 'assumptions':
           emit(await analyzeDependencies(root, command.sub, [command.id], options), command.print);
           return;
         case 'cycles':
