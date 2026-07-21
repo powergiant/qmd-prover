@@ -1,6 +1,6 @@
 /**
  * The named fact sets. They cut across `status` and overlap each other, so they cannot be status
- * values; they are the groupings a query asks for by name. See docs/design-status.md.
+ * values; they are the groupings a query asks for by name. See docs/designs/design-status.md.
  */
 export const SETS = ['candidate', 'disproof-candidate', 'ready', 'unbroken'];
 /** The statuses that say a fact was never eligible to be sent: `ready` is everything else. */

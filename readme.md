@@ -370,7 +370,7 @@ configured, available verifier produces verification state.
   what to do about it.
 - [Project contract](skills/qmd-prover/references/AGENTS.md) — the rules the assistant follows inside
   a project (declarations, proofs, imports/exports, verification discipline).
-- [Design docs](docs/design.md) — architecture and internals for maintainers.
+- [Design docs](docs/designs/design.md) — architecture and internals for maintainers.
 
 ## Project layout
 
@@ -380,7 +380,7 @@ skills/qmd-prover/       the add-on
   src/, scripts/         the engine: TypeScript source and its compiled `qmd-prover` command
 tests/                   compiler, verification, concurrency, and rendering tests
 tooling/                 development and installation tools
-docs/                    maintainer design and architecture docs
+docs/designs/            maintainer design and architecture docs
 examples/                a worked example project
 ```
 

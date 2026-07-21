@@ -139,6 +139,11 @@ usage, surfaced per fact as `local_verification.metrics` and summed into the ver
 | `graph-engine` | `builtin` | Engine used to draw the dependency-graph SVG. `builtin` is the shipped, dependency-free engine. |
 | `output-dir` | `.qmd-prover/generated` | Directory where `render` writes generated proof-status QMD, report data, and the dependency SVG. It is created on demand and is always excluded from discovery. |
 
+`render.output-dir` governs only what `qmd-prover render` writes. It is not where the rendered book
+lands: that is `project.output-dir` in the project's own `_quarto.yml`, which the `init` scaffold sets
+to `.qmd-prover/site/book`. There is no configuration key for it — `_quarto.yml` belongs to the
+project, and qmd-prover never rewrites it. Quarto, not qmd-prover, writes that directory.
+
 ## Notes on the file format
 
 - The reader accepts a **minimal YAML subset**: nested mappings by (space-only) indentation, and
@@ -157,7 +162,7 @@ usage, surfaced per fact as `local_verification.metrics` and summed into the ver
   unterminated quote or `[` — stops loading with an error naming the line number, rather than being
   silently skipped.
 - Enum values are validated: an invalid `citations`, `rigor`, `rigor-disprove`, or `effort` falls back to its default
-  (`standard`, `standard`, `high`); an unrecognized `backend` is a config error.
+  (`standard`, `standard`, `standard`, `high`); an unrecognized `backend` is a config error.
 - Run `doctor` to see the resolved Pandoc, Quarto, and verifier commands and whether each is
   available; it also reports a malformed `config.yml` instead of crashing.
 

@@ -2,7 +2,7 @@
 
 Copy the managed block below into the root `AGENTS.md` of every mathematical project that uses qmd-prover. Keep the block unchanged. Add project-specific organization, notation, and writing rules outside the managed block.
 
-<!-- qmd-prover-contract:start version=26 -->
+<!-- qmd-prover-contract:start version=27 -->
 
 ## Contents
 
@@ -175,7 +175,7 @@ Passing one layer does not imply passing another:
 | Global composition | Inspector over the dependency graph | A result is globally verified only when its mechanical layer passes, its local proof is accepted, and every direct dependency is globally verified. Cycles and unresolved edges make a fact `broken`, which prevents global verification. |
 | Agent conduct | This contract | Project ownership, protected goals, the `workspace/` layout convention, accurate reporting, and response to verification findings. |
 
-Machine dependency analysis and local AI verification have separate state. Machine analysis always builds the available graph and reports existence, scope, import/export, cycle, and source diagnostics without consulting AI. Local verification assumes only the supplied direct dependency conclusions and checks the proof that is actually stored; an unverified, rejected, or `broken` upstream proof does not suppress this local check. Only the verifier produces `verified`, `disproved`, or `rejected`; the mechanical layer may withdraw a recorded verdict when its inputs change, but never grants one. A local proof is accepted only with `verdict: "correct"` and no critical errors or gaps. A local refutation is accepted only with `verdict: "disproved"`, a nonempty independently checkable refutation, and no critical errors or gaps.
+Machine dependency analysis and local AI verification have separate state. Machine analysis always builds the available graph and reports existence, scope, import/export, cycle, and source diagnostics without consulting AI. Local verification assumes only the supplied direct dependency conclusions and checks the proof that is actually stored; an unverified, rejected, or `broken` upstream proof does not suppress this local check. Only the verifier produces `verified`, `disproved`, or `rejected`; the mechanical layer may withdraw a recorded verdict when its inputs change, but never grants one. A local proof is accepted only with `verdict: "correct"`, no critical errors, and no gaps that the configured `rigor` treats as blocking. A local refutation is accepted only with `verdict: "disproved"`, a nonempty independently checkable refutation, no critical errors, and no gaps that the configured `rigor-disprove` treats as blocking. Critical errors always block; only `strict` rigor makes reported gaps block.
 
 Only unbroken facts are sent to the verifier, and only when they have content to check. A fact with no proof block, an empty proof block, or a `.draft` proof is `open` and costs nothing. An abandoned fact resolves no references, contributes no dependency edges, and is never checked; it keeps its ID, so an ID hidden inside an abandoned block still collides with a live one.
 

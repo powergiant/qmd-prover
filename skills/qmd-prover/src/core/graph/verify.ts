@@ -254,7 +254,7 @@ export async function verifyFacts(compilation: Compilation, context: Verificatio
 
   /**
    * Why this fact carries no verifier verdict, or null when it is ready to be sent. This is the
-   * `ready` set of docs/design-status.md: unbroken, not abandoned, not draft, and with content to
+   * `ready` set of docs/designs/design-status.md: unbroken, not abandoned, not draft, and with content to
    * check. The returned reason is what the global composition reads to pick `open` vs `unverified`.
    */
   function notRunReason(result: SemanticResult): LocalNotRunReason | null {
@@ -551,7 +551,7 @@ export async function verifyFacts(compilation: Compilation, context: Verificatio
     for (const result of topologicalOrder(results)) {
       const mechanical = mechanicalOf(result);
       const local = outcomes.get(result.id) ?? notRun('out-of-scope');
-      // The seven rules of docs/design-status.md, in order. First match wins, the values are
+      // The seven rules of docs/designs/design-status.md, in order. First match wins, the values are
       // disjoint, and rule 2 keeps cycles out of rules 6-7 so this always terminates.
       const global = ((): GlobalVerification => {
         if (result.abandon) return { status: 'abandoned', blockers: [], reason: 'author-abandoned' };

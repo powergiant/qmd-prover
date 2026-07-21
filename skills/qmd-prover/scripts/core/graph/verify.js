@@ -172,7 +172,7 @@ export async function verifyFacts(compilation, context, options = {}) {
     const mechanicalOf = (result) => mechanicalByFact.get(result.id) ?? { status: 'pass', verification_mode: 'proof', references: [], diagnostics: [] };
     /**
      * Why this fact carries no verifier verdict, or null when it is ready to be sent. This is the
-     * `ready` set of docs/design-status.md: unbroken, not abandoned, not draft, and with content to
+     * `ready` set of docs/designs/design-status.md: unbroken, not abandoned, not draft, and with content to
      * check. The returned reason is what the global composition reads to pick `open` vs `unverified`.
      */
     function notRunReason(result) {
@@ -484,7 +484,7 @@ export async function verifyFacts(compilation, context, options = {}) {
         for (const result of topologicalOrder(results)) {
             const mechanical = mechanicalOf(result);
             const local = outcomes.get(result.id) ?? notRun('out-of-scope');
-            // The seven rules of docs/design-status.md, in order. First match wins, the values are
+            // The seven rules of docs/designs/design-status.md, in order. First match wins, the values are
             // disjoint, and rule 2 keeps cycles out of rules 6-7 so this always terminates.
             const global = (() => {
                 if (result.abandon)

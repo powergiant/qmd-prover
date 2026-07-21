@@ -107,7 +107,7 @@ export function isBroken(result, errors) {
 }
 /**
  * Rules 1-5 of the global composition, for a fact with no local verdict on record. `verifyFacts`
- * re-runs all seven rules once verdicts exist. See docs/design-status.md.
+ * re-runs all seven rules once verdicts exist. See docs/designs/design-status.md.
  */
 export function preVerificationStatus(result, broken) {
     if (result.abandon)

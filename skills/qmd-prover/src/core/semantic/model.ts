@@ -61,7 +61,7 @@ export interface SemanticResult {
   title: string;
   date: string;
   // The four fields of the status model, plus the single string they project to.
-  // See docs/design-status.md.
+  // See docs/designs/design-status.md.
   /** What the author declared, read off the div attributes alone. */
   intent: FactIntent;
   /** Whether the fact is well formed: shape, ID, date, references, cycles. */

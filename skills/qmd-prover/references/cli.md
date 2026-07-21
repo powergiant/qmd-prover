@@ -42,7 +42,7 @@ Tool-path precedence, highest first:
 | Quarto | `QMD_PROVER_QUARTO` | `tools.quarto` | `quarto` on `PATH` |
 | verifier | `QMD_PROVER_VERIFIER` | `verification.backend` + `verification.executable`, or `verification.command` | none |
 
-Two further environment variables affect a run:
+Three further environment variables affect a run:
 
 | variable | effect |
 |---|---|
@@ -182,7 +182,7 @@ implements:
   "tool": "0.1.0",
   "schema_version": 7,
   "verifier_protocol_version": 6,
-  "contract_version": 25
+  "contract_version": 26
 }
 ```
 
