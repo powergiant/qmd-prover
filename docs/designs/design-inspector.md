@@ -445,7 +445,8 @@ For selected facts, support:
 - direct and transitive reverse dependencies;
 - shortest and bounded alternative paths;
 - impact analysis;
-- proof-frontier discovery; and
+- proof-frontier discovery;
+- assumption-footprint discovery; and
 - graph-aware search filters.
 
 Without a target, support complete-project cycles, findings, unused imports and
@@ -483,6 +484,36 @@ For a selected fact:
 5. Return the resulting claims with paths from the selected result.
 
 The frontier is a useful next-obligation set, not merely every unverified node.
+
+An assumed fact never appears. Its `global` is `verified` or `blocked`, so step
+3 removes it and step 4 has no claim on it. This is deliberate: `.assumed` means
+the author has decided the fact is not an obligation, and the frontier lists
+obligations. What the project owes on that decision is reported by the
+assumption footprint instead.
+
+### Find the assumption footprint
+
+`dependency assumptions @ID` answers "what is this fact actually resting on".
+For a selected fact:
+
+1. Read `global_verification.assumptions`, which the compiler already computed
+   in dependency order; the inspector never recomputes the closure for this.
+2. Return each assumption with its kind — `assumed-proof` where the fact has a
+   proof block whose reasoning is taken as given, `assumed-statement` where the
+   fact has none and the statement itself is taken as given — and a shortest
+   path from the selected fact.
+3. Report the count beside the selected fact's own status, so a `verified` goal
+   with a non-empty footprint reads `verified modulo N assumptions` here and
+   everywhere else a status is rendered.
+
+Without a target, the same query over every protected main goal is what
+`check` runs under `verification.assumptions: forbid`, and a non-empty result
+is the `GOAL_ASSUMED` error.
+
+The frontier and the footprint are the two halves of one question. The frontier
+is the work the project still owes; the footprint is the work the project has
+decided to skip. Neither list is trustworthy without the other, so a report that
+shows one shows the count of the other.
 
 ### Additional graph findings
 

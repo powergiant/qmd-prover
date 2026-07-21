@@ -251,6 +251,9 @@ The skill instructs the host agent to:
 - keep search notes, confidence claims, and verifier metadata out of proofs;
 - mark a proof that is still being written `.draft` so it is not sent to the
   verifier, and remove the mark when it is ready;
+- mark `.assumed` only a fact the author is prepared to stand behind unchecked,
+  never one that is merely unfinished, and expect it to be listed in the
+  assumption footprint of every goal above it;
 - retain useful failed routes under `.abandon` rather than presenting them as
   premises;
 - mark a precise refutation with `.disproof` when a protected goal appears
@@ -408,11 +411,15 @@ By @def-even-integer, write $a=2k$. Then $ab=2(kb)$, so
 Author intent lives in the proof block's attributes. `.disproof` says the block
 is a proposed counterexample or refutation of the exact theorem-like statement.
 `.draft` says the proof is deliberately unfinished, so it is never sent to the
-verifier and the fact stays `open`. `.abandon` detaches the attempt and keeps it
-for history. A proof block with none of these is a proof candidate. A definition
-carries `.draft` or `.abandon` on its own declaration, but it may not use
+verifier and the fact stays `open`. `.assumed` says the opposite about an
+equally unchecked fact: the author takes it as given, so it is never sent either
+but composes as `verified` and is recorded in the assumption footprint of
+everything above it. `.abandon` detaches the attempt and keeps it for history. A
+proof block with none of these is a proof candidate. A definition carries
+`.draft`, `.assumed`, or `.abandon` on its own declaration, but it may not use
 `.disproof`; any challenge to existence, uniqueness, or well-definedness belongs
-in a theorem-like claim. An attribute alone does not establish verification or
+in a theorem-like claim. `.assumed` and `.disproof` may not be combined on any
+fact. An attribute alone does not establish verification or
 disproof. There are no body markers: `OPEN`, `REJECTED`, `DISPROVED`, and
 `VERIFIED` are ordinary words with no meaning in source.
 

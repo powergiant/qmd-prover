@@ -105,11 +105,16 @@ protected main-goal candidate contains only the linked proof.
 
 Author intent lives in the attributes of the proof block, not in its body.
 `.draft` marks a deliberately unfinished proof: it is never sent to the
-verifier and the fact stays `open`. `.disproof` marks a proposed counterexample
-or refutation; it is still a candidate until independently checked. `.abandon`
-on a proof block detaches that attempt and keeps it for history; on a result it
-retires the whole fact. A proof block with none of these is a proof candidate.
-Definitions cannot use `.disproof`.
+verifier and the fact stays `open`. `.assumed` marks a fact the author takes as
+given: it is not sent either, but it composes as `verified` and joins the
+assumption footprint of everything that rests on it. On a proof block it takes
+the argument as given while its citations remain obligations; on a result with
+no proof block it takes the statement as given, and the fact then depends on
+nothing. `.disproof` marks a proposed counterexample or refutation; it is still
+a candidate until independently checked. `.abandon` on a proof block detaches
+that attempt and keeps it for history; on a result it retires the whole fact. A
+proof block with none of these is a proof candidate. Definitions cannot use
+`.disproof`, and no fact may carry `.assumed` and `.disproof` together.
 
 There are no body markers. `OPEN`, `REJECTED`, `DISPROVED`, and `VERIFIED` are
 ordinary words with no meaning in QMD source.
@@ -157,8 +162,8 @@ Before independent verification, the inspector confirms that:
 - an intermediate result has exactly one appropriate linked proof;
 - the protected target is supplied only through a proof overlay and was not
   redeclared;
-- the fact is unbroken, is not abandoned, is not marked `.draft`, and has
-  proof content to check;
+- the fact is unbroken, is not abandoned, is marked neither `.draft` nor
+  `.assumed`, and has proof content to check;
 - every dependency exists, is unique, and is in scope;
 - every cross-file dependency has an exact producer export and consumer import;
 - cycle membership is recorded as a machine finding; and

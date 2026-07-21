@@ -129,7 +129,7 @@ Derived state under `.qmd-prover/` includes:
 `.qmd-prover/` holds derived tool state only and is excluded from source
 discovery. QMD source has no body markers: no word in a declaration or proof
 body carries workflow meaning. Author intent lives only in the `.disproof`,
-`.draft`, and `.abandon` div attributes.
+`.draft`, `.assumed`, and `.abandon` div attributes.
 
 ### Example: one theorem after prolonged work
 
@@ -192,7 +192,8 @@ inspection.
 
 The subject files contain ordinary semantic QMD. A declaration normally stays
 beside its linked proof. Attempts and counterexamples need no special file
-type. A proof block carries `.draft` while it is deliberately unfinished and
+type. A proof block carries `.draft` while it is deliberately unfinished,
+`.assumed` when the author takes it as given rather than checking it, and
 `.abandon` once it is set aside. `.disproof` marks a proposed counterexample or
 refutation of a theorem-like statement; it stays a proposal until independently
 checked.
@@ -429,14 +430,17 @@ Operational `ok` says whether inspection and configured verifier execution
 completed; it is not the mathematical answer.
 
 Author intent is the fourth field alongside those three. It records what the
-author declared through the `.disproof`, `.draft`, and `.abandon` div
-attributes, and the engine never computes or overwrites it. `inspect fact @ID`
+author declared through the `.disproof`, `.draft`, `.assumed`, and `.abandon`
+div attributes, and the engine never computes or overwrites it. `inspect fact @ID`
 exposes all four.
 
 Mechanical state is `ok` or `broken`. Local verification is one field holding
 `not-run`, `verified`, `disproved`, or `rejected`, and `not-run` always carries
-a reason: `nothing-to-check`, `draft`, `not-eligible`, `out-of-scope`,
-`no-backend`, or `verifier-error`.
+a reason: `nothing-to-check`, `draft`, `assumed`, `not-eligible`,
+`out-of-scope`, `no-backend`, or `verifier-error`. Global verification carries
+`assumptions` beside `status`, `blockers`, and `reason`: every `.assumed` fact
+in the closure, so a `verified` value that rests on unchecked commitments is
+always reported as `verified modulo N assumptions`.
 
 List output shows one string, and that string is always the global field. Its
 values are `open`, `unverified`, `rejected`, `blocked`, `broken`, `abandoned`,
@@ -445,8 +449,9 @@ values are `open`, `unverified`, `rejected`, `blocked`, `broken`, `abandoned`,
 
 `open` means there is nothing to check yet: no proof block, an empty one, or one
 marked `.draft`. `unverified` means a proof exists but carries no verdict. The
-two are disjoint. `candidate`, `disproof-candidate`, `ready`, and `unbroken` are
-not statuses; they are named sets selected with `--set`, and `ready` is the set
+two are disjoint, and neither covers `.assumed`, which is not an unresolved
+state at all. `candidate`, `disproof-candidate`, `assumed`, `ready`, and
+`unbroken` are not statuses; they are named sets selected with `--set`, and `ready` is the set
 that is eligible to be sent to the verifier.
 
 [Status model design](design-status.md) is the single reference for these four

@@ -34,30 +34,73 @@ string is always the `global` field. There is no other projection.
 
 ## intent
 
-Declared by the author through div attributes. `.disproof` and `.draft` go on the
-proof block. `.abandon` goes on the result to retire the whole fact; on a proof
-block it detaches that one attempt instead, leaving the result with no active
-proof and therefore `open`. A definition has no proof block, so it carries
-`.draft` and `.abandon` on its own div.
+Declared by the author through div attributes. `.disproof`, `.draft`, and
+`.assumed` go on the proof block. `.abandon` goes on the result to retire the
+whole fact; on a proof block it detaches that one attempt instead, leaving the
+result with no active proof and therefore `open`. A fact with no proof block —
+every definition, and a result whose statement is being taken as given — carries
+`.draft`, `.assumed`, and `.abandon` on its own div.
 
 | value | source | meaning |
 | --- | --- | --- |
 | `normal` | no attribute | an ordinary construction or proof |
 | `disproof` | `.disproof` | the proof block argues the statement is false |
 | `draft` | `.draft` | the proof is deliberately unfinished |
+| `assumed` | `.assumed` | the author takes it as given; do not check it |
 | `abandoned` | `.abandon` | the fact is kept for memory only |
 
 When more than one attribute is present the first match in this order wins:
-`.abandon`, then `.draft`, then `.disproof`. A drafted refutation has intent
-`draft`; it is not sent either way, so the refutation reading does not matter
-yet, and it joins the `disproof-candidate` set only once the draft mark comes
-off.
+`.abandon`, then `.draft`, then `.assumed`, then `.disproof`. A drafted
+refutation has intent `draft`; it is not sent either way, so the refutation
+reading does not matter yet, and it joins the `disproof-candidate` set only once
+the draft mark comes off.
+
+`.assumed` may not be combined with `.disproof`. An assumption is a premise
+later work rests on, and a refutation is terminal evidence that a statement is
+false; asserting a refutation without an argument is just asserting the negated
+statement, which is written as an ordinary assumed result. The combination is
+the `ASSUMED_DISPROOF` mechanical error.
+
+### `.draft` and `.assumed` are different claims
+
+Both stop a proof from reaching the verifier, and that is all they share.
 
 `.draft` is how an author says "I know this is not finished". Without it, a
 half-written proof would be sent to the verifier on every run and come back
 `rejected`, which costs tokens and reads as "the AI found this wrong" about an
 argument nobody has finished. Removing `.draft` is the author's signal that the
-proof is ready to be checked.
+proof is ready to be checked. A drafted fact is `open`: unfinished work, on the
+frontier, blocking everything above it.
+
+`.assumed` is how an author says "I know this is right, do not spend a check on
+it". It is a commitment, not a defect. An assumed fact composes exactly as a
+verified one does, so nothing above it is blocked and it never reaches the
+frontier — but the commitment is recorded, and every fact resting on it reports
+the assumption it rests on. See "Assumption footprint" below.
+
+The two must stay distinct because they call for opposite responses. Work
+through a draft; audit an assumption. Folding them into one attribute would
+either put settled commitments on the todo list or quietly retire real
+obligations, and the second failure is the dangerous one.
+
+### What `.assumed` means depends on whether a proof is present
+
+The attribute has one meaning — "take this as given" — and the thing taken as
+given is whatever the fact would otherwise have had checked.
+
+| placement | the author is claiming | dependencies |
+| --- | --- | --- |
+| on a proof block with content | this argument is sound | still cited, still composed, still each their own obligation |
+| on a result div with no proof block | this statement holds | none; the fact stands alone |
+
+The first is a local guarantee: the reasoning is trusted, but every lemma the
+proof cites must still be proved on its own. The second is an axiom in the
+ordinary sense — no argument is offered, so there is nothing to depend on.
+
+Nothing distinguishes the two beyond the presence of a proof, so the author
+learns one attribute and the engine needs no second rule. Output names them
+`assumed-proof` and `assumed-statement` where the distinction matters to a
+reader.
 
 Intent is never computed and never overwritten by the engine. It is separate
 from `refutation`, the internal flag that selects the verifier's mode; a fact
@@ -72,6 +115,7 @@ A fact is `broken` when any of these hold:
 - the result or proof block has the wrong shape;
 - the ID is missing, malformed, duplicated anywhere in the project, or claimed
   by a file that does not own it;
+- the same block carries both `.assumed` and `.disproof` (`ASSUMED_DISPROOF`);
 - the introduction date is missing or is not a real calendar date;
 - a cited `@ID` resolves to nothing;
 - a cited `@ID` resolves to a fact that is not in scope for this file;
@@ -81,7 +125,7 @@ A fact is **not** broken for any of these:
 
 - it has no proof block;
 - its proof block is empty;
-- its proof block is marked `.draft`;
+- its proof block is marked `.draft` or `.assumed`;
 - a fact it cites is itself broken, rejected, or unproved.
 
 The second list is the important one. `broken` describes the shape of the fact,
@@ -135,10 +179,24 @@ grant one.
 | --- | --- | --- |
 | `nothing-to-check` | no proof block, or an empty one | `open` |
 | `draft` | the proof is marked `.draft` | `open` |
+| `assumed` | the fact is marked `.assumed` | `verified` / `blocked` |
 | `not-eligible` | the fact is broken or abandoned | `broken` / `abandoned` |
 | `out-of-scope` | ready, but outside the selected fact or path closure | `unverified` |
 | `no-backend` | no verifier is configured | `unverified` |
 | `verifier-error` | the verifier failed, timed out, or returned an unusable report | `unverified` |
+
+The four authored reasons are tested in this order, first match winning:
+`not-eligible`, `draft`, `assumed`, `nothing-to-check`. `draft` outranks
+`assumed`, so marking both leaves the fact unfinished rather than trusted, and
+`assumed` outranks `nothing-to-check`, so an assumed statement with no proof
+block is read as taken-as-given rather than as an empty one. The remaining three
+reasons describe the run rather than the source and cannot compete with these.
+
+`assumed` is the only reason whose `global` is not a defect. `local` still
+records `not-run`, which is the literal truth — no verifier saw this fact — and
+the author's commitment is carried by the reason, not by a verdict. This keeps
+the promise that only the verifier produces `verified`, `disproved`, and
+`rejected` in the `local` field.
 
 There is no `stale` reason. A verdict whose key no longer matches is discarded,
 and the fact is simply re-checked in the same run; if there is no verifier to
@@ -153,15 +211,16 @@ project nobody has checked yet from a project whose backend is broken.
 A fact is sent to the verifier when all of the following hold:
 
 - `mechanical` is `ok`;
-- `intent` is neither `abandoned` nor `draft`;
+- `intent` is none of `abandoned`, `draft`, `assumed`;
 - it is a definition, or it has a proof block with non-empty content.
 
-This is the set named `ready` below. A missing, empty, or drafted proof block is
-never sent.
+This is the set named `ready` below. A missing, empty, drafted, or assumed proof
+block is never sent.
 
 A definition has no proof block, and that is normal rather than empty. Its
 verification mode is `definition-construction`, and it is sent whenever it is
-otherwise eligible. A definition marked `.draft` is `open` and is not sent.
+otherwise eligible. A definition marked `.draft` is `open` and is not sent; one
+marked `.assumed` is `verified` and is not sent.
 
 ### How a report becomes a verdict
 
@@ -184,9 +243,16 @@ the direct dependencies. First matching rule wins:
 2. `mechanical` is `broken` → **`broken`**
 3. `local` is `not-run` with reason `nothing-to-check` or `draft` → **`open`**
 4. `local` is `rejected` → **`rejected`**
-5. `local` is `not-run` for any other reason → **`unverified`**
+5. `local` is `not-run` with a reason other than `assumed` → **`unverified`**
 6. some direct dependency's `global` is not `verified` → **`blocked`**
-7. `local` is `verified` → **`verified`**; `local` is `disproved` → **`disproved`**
+7. `local` is `verified`, or `not-run` with reason `assumed` → **`verified`**;
+   `local` is `disproved` → **`disproved`**
+
+Rule 5 skipping `assumed` is the whole of the change: an assumed fact falls
+through to the same two rules a verified one meets, so it is `blocked` while
+anything it cites is unproved and `verified` once they are all proved. An
+assumed statement with no proof block cites nothing, so rule 6 is vacuous and it
+is `verified` immediately.
 
 The values are disjoint, and each one names a different next action:
 
@@ -198,7 +264,7 @@ The values are disjoint, and each one names a different next action:
 | `blocked` | this proof is fine, upstream is not | fix the upstream fact |
 | `broken` | the fact is malformed | fix the shape, ID, date, or reference |
 | `abandoned` | kept for memory only | nothing |
-| `verified` | proved, and everything it rests on is proved | nothing |
+| `verified` | proved, and everything it rests on is proved or assumed | check the assumption footprint |
 | `disproved` | refuted, and everything the refutation rests on is proved | nothing |
 
 Rule 6 applies to disproofs as well as proofs. A refutation resting on an
@@ -213,6 +279,62 @@ terminates.
 
 `verified` is composed AI evidence. It is not formal proof, not human review,
 never inferred from an agent's confidence, and never written as a source marker.
+
+## Assumption footprint
+
+`.assumed` buys silence from the verifier, not silence from the report. Every
+`global_verification` carries a fifth field beside `status`, `blockers`, and
+`reason`:
+
+```
+assumptions: string[]
+```
+
+It lists, sorted, every fact in the closure of this one — the fact itself
+included — whose `local` reason is `assumed`. It is computed in the same
+topological pass that computes `blockers`:
+
+```
+assumptions(f) = (f is assumed ? {f} : {}) ∪ ⋃ { assumptions(d) : d ∈ deps(f) }
+```
+
+The field is always present and is empty for a fact that rests on nothing
+assumed. It is the answer to "what is this proof actually resting on", and it is
+the reason a project can use `.assumed` freely without losing track of what it
+has committed to.
+
+**A non-empty footprint must never be printed as a bare `verified`.** Wherever a
+status is rendered for such a fact, the count comes with it:
+
+```
+@thm-main-goal [verified modulo 4 assumptions]
+```
+
+The `global` value really is `verified` — filters, sets, and composition all
+treat it as verified, because the project has decided the statement holds. The
+rendering rule exists so that no reader ever concludes "proved" from a line that
+means "proved from four things nobody checked".
+
+`--set assumed` selects facts whose `intent` is `assumed`, which is the list of
+commitments themselves rather than the facts resting on them.
+`dependency assumptions @ID` reports one fact's footprint with a path to each
+assumption, and is the query to run before believing a goal.
+
+### Refusing assumptions
+
+`verification.assumptions` takes `allow` (default) or `forbid`. Under `forbid`,
+a protected main goal whose footprint is non-empty raises the `GOAL_ASSUMED`
+error and `check` fails, naming every assumption in the closure.
+
+This is a project setting rather than a command-line flag on purpose. Whether a
+project is willing to stand on assumptions is a property of the project, it
+belongs in `config.yml` where it is reviewed and versioned, and it must not be
+something a single invocation can quietly turn off.
+
+`.assumed` and the frontier do not interact. An assumed fact is `verified` or
+`blocked`, and neither reaches the frontier. The two lists a project reads are
+therefore disjoint and together complete: the frontier is what is left to do,
+and the footprint is what has been decided not to do.
 
 ## missing
 
@@ -236,6 +358,11 @@ result, the result div for a definition. It carries the `local` verdict, not the
 status="verified"   status="disproved"   status="rejected"
 ```
 
+An assumed fact is never conclusively checked, so it never carries a written-back
+`status`. The engine must not project `.assumed` into `status="verified"`: the
+attribute reports what a verifier concluded, and no verifier saw the fact. A
+reader sees `.assumed` on the div, which already says everything there is to say.
+
 A fact that was not conclusively checked has any prior attribute cleared. The
 attribute is excluded from every content hash, the verifier packet, the cache
 key, and the snapshot identity, and is never read back, so writing it can never
@@ -254,15 +381,20 @@ statement shown to be false must not carry the word `verified`.
 open  unverified  rejected  blocked  broken  abandoned  verified  disproved  missing
 ```
 
-Four further sets are useful and are not `global` values, because they overlap
+Five further sets are useful and are not `global` values, because they overlap
 each other and cut across the field. They are selected with `--set`:
 
 | set | definition |
 | --- | --- |
 | `candidate` | `intent` is not `abandoned` — every fact the project still stands behind |
 | `disproof-candidate` | `intent` is `disproof` |
-| `ready` | eligible to be sent to the verifier: `status` is none of `open`, `broken`, `abandoned`, `missing` |
+| `assumed` | `intent` is `assumed` — every commitment the project has made |
+| `ready` | eligible to be sent to the verifier: `status` is none of `open`, `broken`, `abandoned`, `missing`, and `intent` is not `assumed` |
 | `unbroken` | `mechanical` is `ok` |
+
+`assumed` has to be a set rather than a status because an assumed fact already
+has a `global` value to show — `verified` or `blocked` — and that value is the
+one composition uses.
 
 `ready` is the set that was previously called `candidate`. Queries that ask "what
 can the AI work on now" want `--set ready`, not `--set candidate`.
@@ -270,12 +402,15 @@ can the AI work on now" want `--set ready`, not `--set candidate`.
 `unbroken` is exposed only as a filter. It is never printed as a status, because
 every unbroken fact has a more specific `global` value to show instead.
 
-The four not-ready statuses are exactly the four reasons a fact is never sent —
+Four of the five reasons a fact is never sent are readable from `status` alone —
 nothing written (`open`, which covers `.draft` too), malformed (`broken`), kept
-for memory (`abandoned`), or not a fact at all (`missing`) — so `ready` is
-answerable from `status` alone, even on a graph compiled without any verifier.
-A `ready` fact carrying no verdict is exactly an `unverified` one, which is what
-the `candidate_ready_for_ai` finding reports.
+for memory (`abandoned`), or not a fact at all (`missing`). The fifth is
+`.assumed`, which is deliberately invisible in `status` because an assumed fact
+composes as a verified one, so `ready` reads `intent` for that one exclusion.
+Both fields are on every node, so `ready` is still answerable from the graph
+alone, even when it was compiled without any verifier. A `ready` fact carrying
+no verdict is exactly an `unverified` one, which is what the
+`candidate_ready_for_ai` finding reports.
 
 `--status` and `--set` may be combined, and both narrow the same result list.
 
@@ -286,6 +421,11 @@ the `candidate_ready_for_ai` finding reports.
 | theorem, no proof block | `normal` | `ok` | `not-run` / `nothing-to-check` | `open` |
 | theorem, empty proof block | `normal` | `ok` | `not-run` / `nothing-to-check` | `open` |
 | theorem, proof marked `.draft` | `draft` | `ok` | `not-run` / `draft` | `open` |
+| theorem, proof marked `.assumed`, lemma proved | `assumed` | `ok` | `not-run` / `assumed` | `verified` |
+| theorem, proof marked `.assumed`, lemma unproved | `assumed` | `ok` | `not-run` / `assumed` | `blocked` |
+| theorem, no proof block, result marked `.assumed` | `assumed` | `ok` | `not-run` / `assumed` | `verified` |
+| theorem, proof marked both `.draft` and `.assumed` | `draft` | `ok` | `not-run` / `draft` | `open` |
+| theorem, proof marked both `.assumed` and `.disproof` | `assumed` | `broken` | `not-run` / `not-eligible` | `broken` |
 | theorem, proof written, no verifier configured | `normal` | `ok` | `not-run` / `no-backend` | `unverified` |
 | theorem, proof written, backend down | `normal` | `ok` | `not-run` / `verifier-error` | `unverified` |
 | theorem outside the inspected closure | `normal` | `ok` | `not-run` / `out-of-scope` | `unverified` |
@@ -297,6 +437,7 @@ the `candidate_ready_for_ai` finding reports.
 | theorem citing a cycle participant | `normal` | `ok` | `verified` | `blocked` |
 | definition, in scope, checked | `normal` | `ok` | `verified` | `verified` |
 | definition marked `.draft` | `draft` | `ok` | `not-run` / `draft` | `open` |
+| definition marked `.assumed` | `assumed` | `ok` | `not-run` / `assumed` | `verified` |
 | refutation accepted, premises proved | `disproof` | `ok` | `disproved` | `disproved` |
 | refutation accepted, a premise unproved | `disproof` | `ok` | `disproved` | `blocked` |
 | refutation found wrong | `disproof` | `ok` | `rejected` | `rejected` |
@@ -318,6 +459,9 @@ project-wide `DUPLICATE_ID` diagnostic still fires.
 | `unverified` meant any missing verdict | means a proof exists but has no verdict |
 | `revoked` | removed; a discarded verdict is simply re-checked |
 | no way to mark an unfinished proof | `.draft` on the proof block |
+| `.draft` also used to mean "trust this, do not check it" | `.assumed`, with its own intent, `not-run` reason, and footprint |
+| no record of what a proof was taken on faith | `global_verification.assumptions`, `--set assumed`, `dependency assumptions @ID` |
+| nothing refused an unproved premise under a goal | `verification.assumptions: forbid` and the `GOAL_ASSUMED` error |
 | `PROOF_EMPTY` was an error | a warning; the fact is `open` |
 | cycle participants were checked locally | cycle participants are `broken` and are not sent |
 | `local_verification` was `status` plus `outcome` | one `status` field plus a required `reason` |
@@ -331,6 +475,20 @@ The output schema version moves from 6 to 7 and the project contract from 24 to
 25. Published snapshots written under schema 6 are discarded and recomputed.
 Cached verifier verdicts survive: the verdicts themselves did not change, only
 the composition around them, so no re-verification is triggered.
+
+`.assumed` is designed here and not yet built. Until it is,
+`skills/qmd-prover/references/status.md` and `references/config.md` stay silent
+about it on purpose: the shipped skill describes what the engine does, and it
+must not tell an agent to write an attribute the engine ignores. Sync both files
+in the same change that implements this section.
+
+Adding `.assumed` moves the output schema from 7 to 8, for the new `intent`
+value, the new `not-run` reason, the `assumptions` field on
+`global_verification`, and the new `--set assumed`. The project contract moves
+from 27 to 28, because a project written against the old contract may use
+`.draft` for both meanings and its author has to be told the two have separated.
+Cached verdicts again survive untouched: no fact that was sent before is sent
+differently, and `.assumed` only ever removes a fact from what is sent.
 
 There are no body markers. `OPEN`, `REJECTED`, `DISPROVED`, `VERIFIED`, and
 `REVOKED` have no meaning anywhere in QMD source; they are ordinary words. All

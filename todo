@@ -101,5 +101,9 @@ Introduce the progress note.
 Implement the ideation skill which is only triggered within a side task.
 
 Support conditional development, building on and writing a paper from certain assumed results.
+  Designed in docs/designs/design-status.md as the `.assumed` attribute; still unimplemented.
+  Implementation also has to sync skills/qmd-prover/references/status.md and config.md, which
+  are deliberately still silent about `.assumed` so the shipped skill does not tell an agent to
+  use an attribute the engine ignores, and to bump the contract from 27 to 28.
 
 In the "paper" model, verifier check correctness while in the "notes" model check readability, so notes require each definition to cite enough examples beneath it.
